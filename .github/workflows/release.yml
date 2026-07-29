@@ -63,6 +63,24 @@ jobs:
       # time via OIDC, not read access during the build. That also means
       # `--skip-existing all` cannot see what is already published, so this is `local`
       # -- see the note on the publish step below.
+      # Tests are deliberately deferred to the next step rather than run inline, and the
+      # reason is a real ordering limitation rather than a preference.
+      #
+      # rattler-build orders the recipes in a --recipe-dir by their *build* dependency
+      # graph, but a test environment has to install the package's whole *run* closure.
+      # For the ament_python packages those differ: isaac_ros_manipulation_orchestration
+      # builds against nothing but python/pip/setuptools, and only at test time does it
+      # need isaac_ros_manipulation_ros_python_utils -> isaac_ros_test. There is no
+      # build-graph edge to order on, so the alphabetically earlier orchestration is built
+      # and tested before isaac-ros-test exists, and its test env cannot solve:
+      #
+      #   Test failed: failed to setup test environment: Cannot solve the request because
+      #   of: ros-jazzy-isaac-ros-manipulation-orchestration ... would require
+      #   ros-jazzy-isaac-ros-test *, for which no candidates were found.
+      #
+      # Building everything first and testing afterwards removes the ordering question
+      # entirely -- by then every package is in ./output. This keeps the tests rather than
+      # dropping them, which a bare `--test skip` would do.
       - name: Build all recipes
         run: |
           mkdir -p output
@@ -71,9 +89,35 @@ jobs:
             --output-dir output \
             -m variants.yaml \
             --skip-existing local \
+            --test skip \
             -c ./output \
             -c https://prefix.dev/robostack-jazzy \
             -c conda-forge
+
+      # Every package's own tests, now that the whole set exists to resolve against.
+      # Runs them all before failing so one broken package reports as one failure rather
+      # than hiding the rest.
+      - name: Test all built packages
+        run: |
+          shopt -s nullglob
+          pkgs=(output/*/*.conda)
+          echo "testing ${#pkgs[@]} package(s)"
+          failed=()
+          for p in "${pkgs[@]}"; do
+            if ! pixi run rattler-build test \
+                 --package-file "$p" \
+                 -c ./output \
+                 -c https://prefix.dev/robostack-jazzy \
+                 -c conda-forge; then
+              failed+=("$(basename "$p")")
+            fi
+          done
+          if [ "${#failed[@]}" -gt 0 ]; then
+            echo "::error::${#failed[@]} package(s) failed their tests:"
+            printf '  %s\n' "${failed[@]}"
+            exit 1
+          fi
+          echo "all ${#pkgs[@]} packages passed their tests"
 
       # Build trees are large and are not needed to upload.
       - name: Drop build trees

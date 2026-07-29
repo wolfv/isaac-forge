@@ -33,6 +33,9 @@ fetch isaac_ros_pose_estimation "$B/isaac_ros_pose_estimation/archive/refs/tags/
 # Two of its four packages -- tensor_proc and dnn_image_encoder -- carry no TensorRT and
 # no Triton, which is what puts isaac_ros_foundationpose in reach. See gen_source.py.
 fetch isaac_ros_dnn_inference "$B/isaac_ros_dnn_inference/archive/refs/tags/v4.5-0.tar.gz"
+# All eight of its packages build: TensorRT is <exec_depend> in the three that use it and
+# <test_depend> in detectnet, so none of them needs it to configure.
+fetch isaac_ros_object_detection "$B/isaac_ros_object_detection/archive/refs/tags/v4.5-0.tar.gz"
 fetch negotiated "https://github.com/osrf/negotiated/archive/eac198b55dcd052af5988f0f174902913c5f20e7.tar.gz"
 # Not NVIDIA's: two open-source ROS packages the manipulation stack needs and RoboStack
 # does not carry. topic_based_ros2_control has no jazzy release at all (ISSUES.md #15), so

@@ -501,6 +501,29 @@ or documenting it, would help anyone packaging this stack.
 metadata over-constraint. Two lines of fix, and **we ran it against Eigen 5.0.1 and checked
 the answers**. Found while packaging `isaac_ros_manipulation`.
 
+**It is not only cuMotion.** `find_package(Eigen3 3.3 REQUIRED NO_MODULE)` appears verbatim
+in **18** packages across this corpus -- 13 NITROS type adapters, 3 GXF extensions,
+`isaac_ros_depth_image_proc`, `isaac_ros_detectnet`, `isaac_ros_grounding_dino`,
+`isaac_ros_cumotion_robot_segmenter` and the NITROS core -- and every one of them fails to
+configure against the Eigen 5.0.1 robostack-jazzy now ships:
+
+```
+CMake Error at CMakeLists.txt:40 (find_package):
+  Could not find a configuration file for package "Eigen3" that is compatible with
+  requested version "3.3".
+    .../share/eigen3/cmake/Eigen3Config.cmake, version: 5.0.1
+      The version found is not compatible with the version requested.
+```
+
+The mechanism is the same in all of them, and worth stating plainly because it is easy to
+write by accident: **in config mode a version argument is a ceiling as well as a floor.**
+Eigen ships a `SameMajorVersion` `Eigen3ConfigVersion.cmake`, so "3.3" does not mean "3.3
+or newer" -- it means "3.x", and Eigen 5 is *rejected*. `NO_MODULE` forces config mode,
+which also rules out the usual escape hatch (`ros-jazzy-eigen3-cmake-module`'s module-mode
+`FindEigen3.cmake`, which does treat the version as a floor). Dropping the number, keeping
+`REQUIRED`, satisfies every Eigen these packages actually work with. `scripts/gen_source.py`
+does that as the `eigenfloor` build trait.
+
 > **Result first, because it changes the ask.** Compiled against Eigen 5.0.1 and linked
 > against the Eigen 3 `libcumotion.so.1.1.0` as shipped, cuMotion loads, plans, and solves
 > IK **exactly**: the returned joint values put the gripper 0.000 mm from the requested
@@ -847,6 +870,16 @@ A guard that keeps the `ament_index_register_resource` and skips the dry-run and
 target when the assets cannot be fetched — or an opt-in
 `-DISAAC_ROS_DOWNLOAD_ASSETS=ON` — would make the package buildable everywhere without
 changing anything for container users.
-`recipes/ros-jazzy-isaac-ros-foundationpose-models-install/patches/0001-register-asset-script-without-downloading-it.patch`
-does it consumer-side, in the one file that is Apache-2.0, and says so in its commit
-message: it is a packaging deviation, not a fix, because the fix cannot be made here.
+`scripts/gen_source.py` does it consumer-side, as the `asset` build trait: it rewrites the
+`install_isaac_ros_asset(<name>)` call to the `ament_index_register_resource()` the function
+would have emitted, and drops the dry-run and the `ALL` target. That is a packaging
+deviation rather than a fix, and deliberately so -- the fix cannot be made here, because
+the function is in `isaac_ros_common/cmake` under the proprietary header.
+
+Four packages need it -- `isaac_ros_foundationpose_models_install`,
+`isaac_ros_rtdetr_models_install`, `isaac_ros_grounding_dino_models_install` and
+`isaac_ros_peoplenet_models_install` -- and every Isaac repo tends to ship one, which is
+why it is a rule rather than four identical patch files. All four write the call the same
+way, with the asset name matching its script's basename; the generated build script asserts
+that text is present before rewriting, so a change in shape upstream fails the build loudly
+instead of quietly restoring the download.

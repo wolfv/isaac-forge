@@ -215,11 +215,11 @@ cuVSLAM — see [`slam/`](slam/README.md).
 
 ### Source-build where source exists
 
-Repacking a vendor binary is the fallback, not the goal. Of the 75 recipes:
+Repacking a vendor binary is the fallback, not the goal. Of the 86 recipes:
 
 | | count | |
 |---|---|---|
-| **source-built** | **60** | everything with published source |
+| **source-built** | **76** | everything with published source |
 | blob-only, irreducible | 8 | 7 `gxf_isaac_*` extensions + `isaac_ros_gxf` (prebuilt `.so` only) |
 | no source anywhere | 2 | `vpi`, `nvv4l2` |
 | external OSS, handled properly | 3 | `libcvcuda` + `libcvcuda-dev` from conda-forge, `magic_enum` from conda-forge |
@@ -296,6 +296,36 @@ replace a source recipe with a repack.
   **changes the build hash of every CUDA package here**. And `libcvcuda-dev` is pinned
   `>=0.16`, because FoundationPose is the first to call `find_package(nvcv_types)` and only
   conda-forge's 0.16 ships the CMake configs.
+
+- **[`detect/`](detect/README.md) — the object-detection stack, all eight packages.**
+  RT-DETR, Grounding DINO, YOLOv8 and DetectNet, plus their three NGC asset packages and
+  `isaac_ros_grounding_dino_interfaces`. Six composable nodes, all loading.
+
+  ```bash
+  cd detect && pixi run check
+  ```
+
+  `packages.json` marks four of the eight `tensorrt`, and this time no patches were needed
+  to disprove it: every package already declares its backend as `<exec_depend>` (DetectNet
+  has Triton as a `<test_depend>` only), both of which are invisible to
+  `ament_auto_find_build_dependencies()`. So the label was purely the
+  manifest-reading artefact — which is now two repos in a row, and the reason the
+  `tensorrt` blocker count in `packages.json` should not be trusted without checking
+  whether the code includes a TensorRT header.
+
+  Two findings here became generator rules rather than patch files, and both were worth
+  more than the packages that prompted them:
+
+  - **`install_isaac_ros_asset()`** downloads model weights from NGC and runs `trtexec` as
+    part of the default build target, and dry-runs its script at configure time needing
+    `$ISAAC_ROS_WS`. Four packages call it. Rewritten to register the ament resource
+    without the download — an engine plan is specific to the GPU that built it, so this is
+    a correctness fix, not a convenience (`ISSUES.md` #20).
+  - **`find_package(Eigen3 3.3 REQUIRED NO_MODULE)`** appears verbatim in **18** packages.
+    In config mode the version is a ceiling as well as a floor, so Eigen 5 rejects it, and
+    `NO_MODULE` rules out the module-mode workaround. All 18 fail to configure against
+    robostack-jazzy's Eigen 5. Version stripped, with an assertion in front so the rewrite
+    cannot silently stop matching (`ISSUES.md` #13).
 
 **Next**
 
@@ -477,6 +507,7 @@ verify/                  clean-env check of the built packages
 slam/                    cuVSLAM on the r2b Galileo dataset
 manip/                   the manipulation stack, cuMotion solving IK
 pose/                    the pose-estimation stack, 21 components loading
+detect/                  the object-detection stack, 6 components loading
 bench/                   NVIDIA's benchmark harness (partially working)
 src/                     cloned upstream sources (gitignored)
 output/                  built packages (gitignored)

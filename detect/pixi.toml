@@ -1,0 +1,46 @@
+[workspace]
+name = "isaac-forge-detect"
+description = "Resolve the Isaac ROS object-detection packages from the built channel and load them"
+channels = ["../output", "https://prefix.dev/robostack-jazzy", "conda-forge"]
+platforms = ["linux-64"]
+
+# The vendored NVIDIA binaries are built on Ubuntu 24.04 and reference GLIBC_2.38,
+# declared as `__glibc >=2.38`. pixi's default floor is lower.
+[system-requirements]
+libc = { family = "glibc", version = "2.38" }
+
+# All eight packages in NVIDIA-ISAAC-ROS/isaac_ros_object_detection, plus the two
+# isaac_ros_dnn_inference packages they need. If this environment solves, the ten are
+# mutually consistent and consistent with robostack-jazzy; `pixi run check` then proves
+# the components load.
+#
+# Unlike the pose-estimation stack, this repo needed no manifest patches: every package
+# here already declares its inference backend as <exec_depend> (isaac_ros_detectnet has
+# isaac_ros_triton as a <test_depend> only), so nothing about TensorRT runs at configure
+# time. packages.json marks four of them `tensorrt` anyway, because it reads manifests
+# without distinguishing the dependency kind.
+#
+# isaac_ros_tensor_rt is still deliberately absent, and still gates the *pipelines*: the
+# decoders here consume tensors an inference node produces, so a full detection graph
+# waits on TensorRT even though every package in it is built. See README.md.
+[dependencies]
+ros-jazzy-ros-base = "*"
+ros-jazzy-rclcpp-components = "*"
+python = "3.12.*"
+
+ros-jazzy-isaac-ros-detectnet = "*"
+ros-jazzy-isaac-ros-yolov8 = "*"
+ros-jazzy-isaac-ros-rtdetr = "*"
+ros-jazzy-isaac-ros-grounding-dino = "*"
+ros-jazzy-isaac-ros-grounding-dino-interfaces = "*"
+ros-jazzy-isaac-ros-rtdetr-models-install = "*"
+ros-jazzy-isaac-ros-grounding-dino-models-install = "*"
+ros-jazzy-isaac-ros-peoplenet-models-install = "*"
+
+# Needed by the detectors, and built here too.
+ros-jazzy-isaac-ros-dnn-image-encoder = "*"
+ros-jazzy-isaac-ros-tensor-proc = "*"
+
+[tasks.check]
+description = "List the packages, load every C++ composable node, check the generated service type"
+cmd = "python check.py"

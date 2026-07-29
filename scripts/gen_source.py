@@ -65,6 +65,9 @@ REPOS = {
     "isaac_ros_dnn_inference": dict(
         url="https://github.com/NVIDIA-ISAAC-ROS/isaac_ros_dnn_inference/archive/refs/tags/v4.5-0.tar.gz",
         sha256="e19397a4f685fffc66cd68d1a8489fc2939878ea6299c376d04ab5d19c09ce06"),
+    "isaac_ros_object_detection": dict(
+        url="https://github.com/NVIDIA-ISAAC-ROS/isaac_ros_object_detection/archive/refs/tags/v4.5-0.tar.gz",
+        sha256="349b78dcdbd22c019f982d343c65bd690d4affcdf8aca85183b1505943962098"),
     "negotiated": dict(
         url="https://github.com/osrf/negotiated/archive/"
             "eac198b55dcd052af5988f0f174902913c5f20e7.tar.gz",
@@ -227,6 +230,32 @@ PACKAGES = [
     # PATCHES demotes them; see the patch commit messages, both prepared for upstream.
     ("ros-jazzy-isaac-ros-dope", "isaac_ros_pose_estimation", "isaac_ros_dope"),
     ("ros-jazzy-isaac-ros-centerpose", "isaac_ros_pose_estimation", "isaac_ros_centerpose"),
+    # --- object detection ---------------------------------------------------------
+    #
+    # All eight packages in isaac_ros_object_detection, and this repo needed no manifest
+    # patches at all: unlike isaac_ros_dope and isaac_ros_centerpose, every package here
+    # already declares its inference backend the right way. isaac_ros_rtdetr,
+    # isaac_ros_yolov8 and isaac_ros_grounding_dino carry
+    # <exec_depend>isaac_ros_tensor_rt, so nothing about TensorRT runs at configure time,
+    # and isaac_ros_detectnet has isaac_ros_triton as a <test_depend> only. packages.json
+    # still marks four of them `tensorrt` because it reads manifests without distinguishing
+    # the dependency kind -- see the note in README.md.
+    #
+    # isaac_ros_nitros_bridge_interfaces is the one dependency that had to come along. It
+    # lives in isaac_ros_common rather than isaac_ros_nitros_bridge despite the name, and
+    # is a plain rosidl package, so it costs nothing.
+    ("ros-jazzy-isaac-ros-nitros-bridge-interfaces", "isaac_ros_common", "isaac_ros_nitros_bridge_interfaces"),
+    ("ros-jazzy-isaac-ros-grounding-dino-interfaces", "isaac_ros_object_detection", "isaac_ros_grounding_dino_interfaces"),
+    # Asset scripts. All three hit the install_isaac_ros_asset() rewrite -- see detect().
+    ("ros-jazzy-isaac-ros-rtdetr-models-install", "isaac_ros_object_detection", "isaac_ros_rtdetr_models_install"),
+    ("ros-jazzy-isaac-ros-grounding-dino-models-install", "isaac_ros_object_detection", "isaac_ros_grounding_dino_models_install"),
+    # DetectNet needs no DNN package at all: its Triton dependency is a <test_depend>.
+    ("ros-jazzy-isaac-ros-detectnet", "isaac_ros_object_detection", "isaac_ros_detectnet"),
+    # Depends on isaac_ros_detectnet, so it follows it.
+    ("ros-jazzy-isaac-ros-peoplenet-models-install", "isaac_ros_object_detection", "isaac_ros_peoplenet_models_install"),
+    ("ros-jazzy-isaac-ros-yolov8", "isaac_ros_object_detection", "isaac_ros_yolov8"),
+    ("ros-jazzy-isaac-ros-rtdetr", "isaac_ros_object_detection", "isaac_ros_rtdetr"),
+    ("ros-jazzy-isaac-ros-grounding-dino", "isaac_ros_object_detection", "isaac_ros_grounding_dino"),
 ]
 
 DEP_TAG = re.compile(
@@ -284,6 +313,10 @@ TRAIT_DEPS = {
     # what kept the include-path problem invisible -- declare it, and see the magicenum
     # note in detect() for why the include directory has to be stated too.
     "magicenum": ["magic_enum"],
+    # No extra requirements -- these two rewrite a CMake call rather than adding a
+    # dependency. Present because emit() indexes TRAIT_DEPS by every detected trait.
+    "asset": [],
+    "eigenfloor": [],
 }
 
 
@@ -338,6 +371,19 @@ DROP_DEPS = {
         "isaac_ros_tensor_rt": "needs TensorRT; one of two interchangeable backends",
         "isaac_ros_triton": "needs Triton; the other backend",
     },
+    # Already <exec_depend> upstream, so these cost nothing at build time -- they only
+    # have to stay out of `run`, where an unbuildable package makes the environment
+    # unsolvable. isaac_ros_dnn_image_encoder is deliberately NOT dropped: it is built
+    # here now, so the declared dependency can be honoured.
+    "ros-jazzy-isaac-ros-rtdetr": {
+        "isaac_ros_tensor_rt": "needs TensorRT; the inference node in the launch graph",
+    },
+    "ros-jazzy-isaac-ros-yolov8": {
+        "isaac_ros_tensor_rt": "needs TensorRT; the inference node in the launch graph",
+    },
+    "ros-jazzy-isaac-ros-grounding-dino": {
+        "isaac_ros_tensor_rt": "needs TensorRT; the inference node in the launch graph",
+    },
 }
 
 # Patches applied to a package's source, keyed by conda package name; paths are relative
@@ -350,27 +396,13 @@ PATCHES = {
     # target with two TUs including it. Breaks
     # isaac_ros_nitros_detection3_d_array_type at link time under GCC 15.
     # Apache-2.0, so ours to fix; see ISSUES.md and upstream/README.md.
-    # 0002: find_package(Eigen3 3.3 REQUIRED NO_MODULE) reads as a floor and, in config
-    # mode, acts as an upper bound too -- Eigen's SameMajorVersion rule makes eigen 5
-    # *reject* a "3.3" request. NO_MODULE forces config mode, so eigen3_cmake_module's
-    # module-mode FindEigen3.cmake cannot rescue this one the way it can elsewhere. The
-    # target is INTERFACE and compiles nothing, so no Eigen version reaches a binary here;
-    # the floor only stops it configuring. Same over-constraint as ISSUES.md #13.
-    "ros-jazzy-gxf-isaac-gems": ["patches/0001-epsilon-odr-inline.patch",
-                                 "patches/0002-drop-eigen-3.3-version-floor.patch"],
+    "ros-jazzy-gxf-isaac-gems": ["patches/0001-epsilon-odr-inline.patch"],
     # test_utils.py raises at module scope when ISAAC_ROS_WS is unset, and __init__.py
     # re-exports it, so importing the package fails in any environment that does not
     # export that variable -- which is every conda environment. Apache-2.0, ours to fix;
     # see ISSUES.md.
     "ros-jazzy-isaac-ros-manipulation-ros-python-utils": [
         "patches/0001-defer-isaac-ros-ws-check.patch"],
-    # install_isaac_ros_asset() dry-runs the asset script at configure time (which needs
-    # $ISAAC_ROS_WS) and then makes `ALL` download the FoundationPose ONNX models from NGC
-    # and run trtexec over them. A build cannot do that, and a TensorRT engine plan is
-    # specific to the GPU it was built on, so it should not: the patch registers the ament
-    # resource and leaves the download to the target system.
-    "ros-jazzy-isaac-ros-foundationpose-models-install": [
-        "patches/0001-register-asset-script-without-downloading-it.patch"],
     # Demote the inference backends from <depend> to <exec_depend>. Neither decoder
     # includes a header from them; declaring them as build dependencies is what makes
     # ament_auto_find_build_dependencies require TensorRT (and, for centerpose, Triton) to
@@ -386,15 +418,6 @@ PATCHES = {
 # exists, or wherever a patch is what puts it there -- a passing build says the compiler
 # was happy, not that the payload arrived.
 EXTRA_TEST_FILES = {
-    # The whole package is this one script plus the ament resource pointing at it, and
-    # both come from the patch rather than from upstream's install_isaac_ros_asset. If
-    # either goes missing, `ros2 run ... install_foundationpose_models.sh` breaks and
-    # nothing else would notice.
-    "ros-jazzy-isaac-ros-foundationpose-models-install": [
-        "lib/isaac_ros_foundationpose_models_install/install_foundationpose_models.sh",
-        "share/ament_index/resource_index/install_foundationpose_models/"
-        "isaac_ros_foundationpose_models_install",
-    ],
 }
 
 
@@ -479,7 +502,61 @@ def detect(cml: str, pkgxml: str, path: str) -> set[str]:
     # build.sh; this is the same two lines, decided from the manifest instead.
     if re.search(r"isaac_ros_(gxf|nitros)", pkgxml):
         traits.add("magicenum")
+    # install_isaac_ros_asset() cannot run in a package build. It does two things: it
+    # execute_process()es the asset script with --print-install-paths at *configure* time,
+    # and every path in those scripts derives from $ISAAC_ROS_WS, so with that unset --
+    # which it is outside NVIDIA's container -- configure aborts with "ERROR:
+    # ISAAC_ROS_WS is not set." Then it hangs the script off add_custom_target(... ALL),
+    # making the default build target download model weights from NGC behind a EULA and
+    # run trtexec over them.
+    #
+    # The second half should not happen in a binary package regardless of the first: a
+    # TensorRT engine plan is specialised to the GPU, driver and TensorRT version that
+    # produced it, so a .plan baked into a package is wrong for every machine but the
+    # builder's. Models belong on the target system, which is how NVIDIA documents
+    # installing them anyway:
+    #
+    #     ros2 run <pkg> <asset_name>.sh
+    #
+    # So keep the two things that make that command work -- the script under lib/<pkg>/,
+    # which the untouched install(PROGRAMS ...) already does, and the ament resource
+    # pointing at it -- and drop the build-time download. See ISSUES.md #20; the fix
+    # cannot be made upstream because the function lives in isaac_ros_common/cmake, under
+    # the proprietary header.
+    #
+    # Four packages need this (foundationpose, rtdetr, grounding_dino and peoplenet model
+    # installs) and every Isaac repo tends to ship one, so it is a generator rule rather
+    # than four near-identical patch files. All four have the identical shape
+    # `install_isaac_ros_asset(<name>)` with <name> matching the asset script's basename,
+    # which is what asset_name() relies on and what the build script asserts before
+    # rewriting.
+    if "install_isaac_ros_asset(" in cml:
+        traits.add("asset")
+    # `find_package(Eigen3 3.3 REQUIRED NO_MODULE)`, which 18 packages in this corpus
+    # write verbatim. The number reads as a floor and, in config mode, acts as a ceiling
+    # too: Eigen ships a SameMajorVersion Eigen3ConfigVersion.cmake, so eigen 5 *rejects*
+    # a 3.3 request rather than satisfying it --
+    #
+    #   Could not find a configuration file for package "Eigen3" that is compatible with
+    #   requested version "3.3".  ... Eigen3Config.cmake, version: 5.0.1
+    #
+    # NO_MODULE forces config mode, so ros-jazzy-eigen3-cmake-module's module-mode
+    # FindEigen3.cmake -- which does treat the version as a floor -- cannot rescue these.
+    # robostack-jazzy has moved to eigen 5, so every one of them fails to configure.
+    #
+    # Nothing in this corpus needs Eigen 3 specifically; the types crossing these
+    # boundaries (Matrix, Quaternion, Map) are unchanged. Same over-constraint as
+    # ISSUES.md #13 and the same treatment, applied as a rule rather than as 18 identical
+    # patch files.
+    if re.search(r"find_package\(\s*Eigen3\s+[0-9]", cml):
+        traits.add("eigenfloor")
     return traits
+
+
+def asset_name(cml: str) -> str | None:
+    """The asset registered by install_isaac_ros_asset(), which is also its script name."""
+    m = re.search(r"install_isaac_ros_asset\(\s*([A-Za-z0-9_]+)\s*\)", cml)
+    return m.group(1) if m else None
 
 
 # package.xml uses bare rosdep keys, not deb names, so a second mapping layer is
@@ -808,7 +885,55 @@ def emit(name: str, repo: str, path: str) -> str | None:
     patch_block = ("    patches:\n" + "\n".join(f"      - {x}" for x in pats)
                    if pats else "")
 
-    extra_files = "".join(f"\n        - {f}" for f in EXTRA_TEST_FILES.get(name, []))
+    # See the asset note in detect(). The rewrite is a sed rather than a patch file
+    # because four packages need the identical change; the grep in front of it is the
+    # load-bearing part -- if upstream ever changes the call's shape, the sed would
+    # silently not match and the build would go back to trying to download models at
+    # build time, so assert the text is there first and fail loudly if it is not.
+    # Source rewrites applied in the package directory before cmake runs. Each is
+    # preceded by a grep asserting the text is present, which is the load-bearing part: a
+    # sed that silently stops matching would quietly restore the broken behaviour, so the
+    # build fails loudly instead if upstream changes shape.
+    prep = ""
+    if "eigenfloor" in traits:
+        prep += (
+            "\n    # See the eigenfloor note in scripts/gen_source.py: a versioned"
+            "\n    # find_package(Eigen3 ...) in config mode rejects eigen 5 rather than"
+            "\n    # accepting it, and NO_MODULE rules out the module-mode workaround."
+            "\n    - grep -qE 'find_package\\(Eigen3 [0-9]' CMakeLists.txt"
+            " || { echo 'versioned find_package(Eigen3) not found -- upstream changed"
+            " shape, revisit gen_source.py'; exit 1; }"
+            "\n    - sed -i -E 's|find_package\\(Eigen3 [0-9.]+|find_package(Eigen3|'"
+            " CMakeLists.txt")
+
+    asset = asset_name(cml) if "asset" in traits else None
+    if asset:
+        prep += (
+            "\n    # See scripts/gen_source.py: install_isaac_ros_asset() would download"
+            "\n    # model weights and run trtexec during the build. Keep the ament"
+            "\n    # resource, drop the download -- assets belong on the target machine."
+            f"\n    - grep -q 'install_isaac_ros_asset({asset})' CMakeLists.txt"
+            f" || {{ echo 'install_isaac_ros_asset({asset}) not found -- upstream changed"
+            # Not an f-string fragment, so a literal single brace -- doubling it here
+            # emitted `}}` and made the build script a shell syntax error.
+            " shape, revisit gen_source.py'; exit 1; }"
+            "\n    - >"
+            "\n      sed -i"
+            " 's|install_isaac_ros_asset(\\([A-Za-z0-9_]*\\))"
+            "|ament_index_register_resource(\"\\1\" CONTENT"
+            " \"${CMAKE_INSTALL_PREFIX}/lib/${PROJECT_NAME}/\\1.sh\")|'"
+            "\n      CMakeLists.txt")
+
+    # A passing build says the compiler was happy, not that the payload arrived. For the
+    # asset packages the payload *is* the script plus its resource, and both come from the
+    # rewrite above rather than from upstream, so assert them explicitly.
+    test_files = list(EXTRA_TEST_FILES.get(name, []))
+    if asset:
+        test_files += [
+            f"lib/{ros_dir}/{asset}.sh",
+            f"share/ament_index/resource_index/{asset}/{ros_dir}",
+        ]
+    extra_files = "".join(f"\n        - {f}" for f in test_files)
 
     # See the magicenum note in detect(): the host dep alone is not enough, because
     # conda-forge's magic_enum nests the header one directory deeper than the
@@ -842,7 +967,7 @@ build:
   script:
     - export AMENT_PREFIX_PATH="${{PREFIX}}${{AMENT_PREFIX_PATH:+:${{AMENT_PREFIX_PATH}}}}"
     - export CMAKE_PREFIX_PATH="${{PREFIX}}${{CMAKE_PREFIX_PATH:+:${{CMAKE_PREFIX_PATH}}}}"{magic_enum_include}
-    - cd src/{path}
+    - cd src/{path}{prep}
     # ${{CMAKE_ARGS}} carries the compiler activation's CMAKE_FIND_ROOT_PATH, which is
     # what points find_package(CUDAToolkit) at the prefix rather than /usr/local/cuda.
     - >

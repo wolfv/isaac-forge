@@ -24,6 +24,7 @@ build:
     - export AMENT_PREFIX_PATH="${PREFIX}${AMENT_PREFIX_PATH:+:${AMENT_PREFIX_PATH}}"
     - export CMAKE_PREFIX_PATH="${PREFIX}${CMAKE_PREFIX_PATH:+:${CMAKE_PREFIX_PATH}}"
     - export CXXFLAGS="${CXXFLAGS:-} -I${PREFIX}/include/magic_enum"
+    - export CUDAFLAGS="${CUDAFLAGS:-} -I${PREFIX}/include/magic_enum"
     - cd src/isaac_ros_nitros_type/isaac_ros_nitros_std_msg_type
     # ${CMAKE_ARGS} carries the compiler activation's CMAKE_FIND_ROOT_PATH, which is
     # what points find_package(CUDAToolkit) at the prefix rather than /usr/local/cuda.

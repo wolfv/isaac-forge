@@ -268,6 +268,40 @@ PACKAGES = [
     # which is internal and does not resolve, and no public x86_64 Triton server tarball
     # exists to override it with. See ISSUES.md #21.
     ("ros-jazzy-isaac-ros-tensor-rt", "isaac_ros_dnn_inference", "isaac_ros_tensor_rt"),
+    # --- the previously unattempted packages, first batch -------------------------
+    #
+    # Everything here is in a repo already cached, needs no new REPOS entry, and follows a
+    # pattern already validated: rosidl interfaces, NITROS type adapters, and the image
+    # pipeline. gxf_isaac_utils is the one GXF extension in this batch that compiles its own
+    # pipeline. None of the nine unbuilt GXF extensions is here, and gxf_isaac_utils is the
+    # instructive one: unlike the other eight it is not an INTERFACE target, it compiles five
+    # of its own .cpp files -- so it looks source-buildable. It also *links* a prebuilt
+    # lib/gxf_x86_64_cuda_13_0/libgxf_utils.so, which in the release tarball is a 132-byte
+    # git-lfs pointer, so the link fails with
+    #
+    #   ld: .../libgxf_utils.so:1: syntax error
+    #
+    # -- text being read as an object file. Compiling its sources cannot help when the blob
+    # they link against is not published, so all nine go through gen_repack.py. This is the
+    # same LFS trap README.md documents for isaac_ros_nitros, which is solved there by
+    # filling the pointers from the deb; for these it is cheaper to repack outright.
+    ("ros-jazzy-isaac-ros-apriltag-interfaces", "isaac_ros_common", "isaac_ros_apriltag_interfaces"),
+    ("ros-jazzy-isaac-ros-nova-interfaces", "isaac_ros_common", "isaac_ros_nova_interfaces"),
+    ("ros-jazzy-isaac-ros-test-cmake", "isaac_ros_common", "isaac_ros_test_cmake"),
+    ("ros-jazzy-isaac-ros-nitros-odometry-type", "isaac_ros_nitros", "isaac_ros_nitros_type/isaac_ros_nitros_odometry_type"),
+    ("ros-jazzy-isaac-ros-nitros-pose-array-type", "isaac_ros_nitros", "isaac_ros_nitros_type/isaac_ros_nitros_pose_array_type"),
+    ("ros-jazzy-isaac-ros-nitros-twist-type", "isaac_ros_nitros", "isaac_ros_nitros_type/isaac_ros_nitros_twist_type"),
+    ("ros-jazzy-isaac-ros-nitros-compressed-video-type", "isaac_ros_nitros", "isaac_ros_nitros_type/isaac_ros_nitros_compressed_video_type"),
+    ("ros-jazzy-isaac-ros-nitros-battery-state-type", "isaac_ros_nitros", "isaac_ros_nitros_type/isaac_ros_nitros_battery_state_type"),
+    ("ros-jazzy-isaac-ros-nitros-correlated-timestamp-type", "isaac_ros_nitros", "isaac_ros_nitros_type/isaac_ros_nitros_correlated_timestamp_type"),
+    ("ros-jazzy-isaac-ros-nitros-encoder-ticks-type", "isaac_ros_nitros", "isaac_ros_nitros_type/isaac_ros_nitros_encoder_ticks_type"),
+    ("ros-jazzy-gxf-isaac-utils", "isaac_ros_nitros", "isaac_ros_gxf_extensions/gxf_isaac_utils"),
+    ("ros-jazzy-isaac-ros-nitros-topic-tools", "isaac_ros_nitros", "isaac_ros_nitros_topic_tools"),
+    ("ros-jazzy-isaac-ros-pynitros", "isaac_ros_nitros", "isaac_ros_pynitros"),
+    ("ros-jazzy-isaac-ros-nitros-bridge-ros2", "isaac_ros_nitros", "isaac_ros_nitros_bridge/isaac_ros_nitros_bridge_ros2"),
+    ("ros-jazzy-isaac-ros-stereo-image-proc", "isaac_ros_image_pipeline", "isaac_ros_stereo_image_proc"),
+    ("ros-jazzy-isaac-ros-depth-image-proc", "isaac_ros_image_pipeline", "isaac_ros_depth_image_proc"),
+    ("ros-jazzy-isaac-ros-image-pipeline", "isaac_ros_image_pipeline", "isaac_ros_image_pipeline"),
 ]
 
 DEP_TAG = re.compile(
@@ -650,6 +684,9 @@ def deps_of(pkgxml: str, name: str, kinds: set[str] | None = None) -> list[str]:
 # or which no package.xml in this corpus bothers to declare.
 PY_IMPORTS = {
     "yaml": "pyyaml",
+    # isaac_ros_pynitros does `import cuda.bindings.driver`; the `cuda` module is
+    # conda-forge's cuda-python. Without this the import heuristic invents ros-jazzy-cuda.
+    "cuda": "cuda-python",
     "numpy": "numpy",
     "scipy": "scipy",
     "matplotlib": "matplotlib-base",
@@ -714,6 +751,14 @@ def py_run_deps(base: str, module: str, name: str) -> list[str]:
             mapped = PY_IMPORTS[mod]
         elif mod in ROS_PY_IMPORTS:
             mapped = ROS_PY_IMPORTS[mod]
+        elif mod in SYSTEM and SYSTEM[mod]:
+            # The manifest path (deps_of) and the import path both map names, and without
+            # this they disagree: isaac_ros_pynitros declares <exec_depend>posix_ipc, which
+            # SYSTEM maps to conda-forge's posix_ipc, *and* imports posix_ipc from
+            # utils/cpu_shared_mem.py, which fell through to ros_name() and invented
+            # ros-jazzy-posix-ipc. Both landed in `run`, and the invented one does not exist,
+            # so the test environment could not solve. One mapping table, consulted by both.
+            mapped = SYSTEM[mod]
         else:
             mapped = ros_name(mod)
             if mapped == name:
@@ -955,6 +1000,11 @@ def emit(name: str, repo: str, path: str) -> str | None:
     # include is ISSUES.md #17; this is the consumer-side half of it.
     magic_enum_include = (
         '\n    - export CXXFLAGS="${CXXFLAGS:-} -I${PREFIX}/include/magic_enum"'
+        # CMake seeds CMAKE_CUDA_FLAGS from CUDAFLAGS the way it seeds CMAKE_CXX_FLAGS from
+        # CXXFLAGS, and nvcc does not otherwise see the C++ one. Needed wherever a .cu source
+        # includes a GXF header -- isaac_ros_depth_image_proc is the first such package here,
+        # and CXXFLAGS alone left it failing on magic_enum.hpp in depth_to_point_cloud_cuda.cu.
+        '\n    - export CUDAFLAGS="${CUDAFLAGS:-} -I${PREFIX}/include/magic_enum"'
         if "magicenum" in traits else "")
 
     return f"""schema_version: 1

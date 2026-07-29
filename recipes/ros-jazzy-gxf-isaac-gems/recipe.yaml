@@ -25,6 +25,7 @@ build:
     - export AMENT_PREFIX_PATH="${PREFIX}${AMENT_PREFIX_PATH:+:${AMENT_PREFIX_PATH}}"
     - export CMAKE_PREFIX_PATH="${PREFIX}${CMAKE_PREFIX_PATH:+:${CMAKE_PREFIX_PATH}}"
     - export CXXFLAGS="${CXXFLAGS:-} -I${PREFIX}/include/magic_enum"
+    - export CUDAFLAGS="${CUDAFLAGS:-} -I${PREFIX}/include/magic_enum"
     - cd src/isaac_ros_gxf_extensions/gxf_isaac_gems
     # See the eigenfloor note in scripts/gen_source.py: a versioned
     # find_package(Eigen3 ...) in config mode rejects eigen 5 rather than

@@ -38,8 +38,9 @@ sign-off. We are happy to send the PRs.
 | 18 | Inference backends declared as `<depend>`, making TensorRT a *build* dependency of two packages that never call it | `isaac_ros_dope/package.xml:47`, `isaac_ros_centerpose/package.xml:49-50` | **Apache-2.0** | **us — patches prepared** |
 | 19 | `isaac_ros_tensor_proc` links `isaac_ros_cvcuda_utils` without declaring it | `isaac_ros_tensor_proc/CMakeLists.txt:44`, `package.xml` | **Apache-2.0** | **us, via PR** |
 | 20 | `install_isaac_ros_asset()` downloads models and runs `trtexec` as part of `ALL` | `isaac_ros_common/cmake/isaac_ros_common-extras-assets.cmake` | NVIDIA Isaac ROS Software License (no modification) | **NVIDIA only** |
+| 21 | `isaac_ros_triton` defaults x86_64 to an unreachable internal artifactory URL | `isaac_ros_triton/CMakeLists.txt:20-22` | **Apache-2.0** | **NVIDIA** — needs a public x86_64 tarball to point at |
 
-Only #4b, #5, #11, #17 and #20 need NVIDIA to hold the pen — #4b because the intended license is
+Only #4b, #5, #11, #17, #20 and #21 need NVIDIA to hold the pen — #4b because the intended license is
 genuinely ambiguous from outside and we will not guess at it, and #11 because it is a
 tagging and source-release decision in your repo. Item 2 has both a consumer-side fix we
 can PR today and a cleaner root-cause fix only NVIDIA can make.
@@ -883,3 +884,55 @@ why it is a rule rather than four identical patch files. All four write the call
 way, with the asset name matching its script's basename; the generated build script asserts
 that text is present before rewriting, so a change in shape upstream fails the build loudly
 instead of quietly restoring the download.
+
+## 21. `isaac_ros_triton` cannot be built on x86_64 outside NVIDIA
+
+**Severity:** blocks `isaac_ros_triton` completely on x86_64 — not "needs a workaround",
+blocks it, because the artifact it needs is not published anywhere public. The CMake is
+Apache-2.0 and the fix is a one-line URL change, but only NVIDIA can supply the artifact
+that URL should point at.
+
+`isaac_ros_triton/CMakeLists.txt` picks a Triton Server tarball by architecture:
+
+```cmake
+if(CMAKE_SYSTEM_PROCESSOR STREQUAL "aarch64")
+  set(_TRITON_BASE_URL "https://github.com/triton-inference-server/server/releases/download")
+  set(TRITON_SERVER_TARBALL_URL "${_TRITON_BASE_URL}/v2.60.0/tritonserver2.60.0-agx.tar")
+elseif(CMAKE_SYSTEM_PROCESSOR STREQUAL "x86_64" OR ...)
+  set(_TRITON_BASE_URL "https://artifactory.pdx.nvidia.com/artifactory")
+  set(_TRITON_PATH "sw-isaac-ros-generic-local/triton/tritonserver.2.60.tar.gz")
+```
+
+The aarch64 branch points at a public GitHub release. The x86_64 branch points at
+`artifactory.pdx.nvidia.com`, which is an internal host — it does not resolve from outside
+your network at all:
+
+```console
+$ curl -sI https://artifactory.pdx.nvidia.com/artifactory/sw-isaac-ros-generic-local/triton/tritonserver.2.60.tar.gz
+HTTP 000   (DNS resolution failed)
+```
+
+`FetchContent` then fails, and since the package needs `libtritonserver.so` and
+`tritonserver.h` from that tarball, there is no build without it.
+
+`TRITON_SERVER_TARBALL_URL` is overridable, which is the saving grace — but there is
+nothing public to override it *with*. The v2.60.0 release publishes
+`tritonserver2.60.0-agx.tar` and `tritonserver2.60.0-igpu.tar`, both aarch64, plus a
+clients tarball. Triton's x86_64 server is distributed as an NGC **container image**, not
+as a tarball, so the two routes left to a downstream packager are extracting
+`libtritonserver.so` out of a ~15 GB container layer, or building
+`triton-inference-server/core` from source with its whole vendored `third_party` tree.
+Both are disproportionate for one library, and neither is what the CMake intends.
+
+**What would fix it:** publish the x86_64 server tarball alongside the aarch64 ones on the
+Triton releases page (or anywhere public), and point the x86_64 branch at it. This is the
+same class of problem as #3 (`urm.nvidia.com` unreachable in the GXF build) — an internal
+URL that works inside NVIDIA and silently makes a public repository unbuildable outside
+it. Worth a grep across the Isaac ROS repos for other `*.nvidia.com` hosts that are not
+`developer.download.nvidia.com` or `github.com`.
+
+This is why `isaac_ros_triton` is absent from this repository while
+`isaac_ros_tensor_rt` is present: TensorRT's binaries are publicly downloadable and
+TensorRT is the backend every Isaac ROS DNN pipeline actually defaults to. Triton is the
+alternative backend for exactly one package (`isaac_ros_centerpose`, which also ships a
+TensorRT launch file), so nothing in the stack is unreachable for want of it.

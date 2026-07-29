@@ -17,7 +17,7 @@ machine-readable per-package inventory.
 |---|---|
 | Target | Isaac ROS 4.5.0 · ROS 2 Jazzy · CUDA 13 · `linux-64` |
 | RoboStack coverage | 133 of 149 external ROS deps already in `robostack-jazzy` (89%) |
-| Chokepoint | VPI — sits under 218 of 252 packages |
+| Chokepoint | VPI — sits under 218 of 252 packages (packaged; see `recipes/vpi`) |
 
 **Done**
 
@@ -215,13 +215,13 @@ cuVSLAM — see [`slam/`](slam/README.md).
 
 ### Source-build where source exists
 
-Repacking a vendor binary is the fallback, not the goal. Of the 86 recipes:
+Repacking a vendor binary is the fallback, not the goal. Of the 88 recipes:
 
 | | count | |
 |---|---|---|
-| **source-built** | **76** | everything with published source |
+| **source-built** | **77** | everything with published source |
 | blob-only, irreducible | 8 | 7 `gxf_isaac_*` extensions + `isaac_ros_gxf` (prebuilt `.so` only) |
-| no source anywhere | 2 | `vpi`, `nvv4l2` |
+| no source anywhere | 3 | `vpi`, `nvv4l2`, `tensorrt` (vendor binaries, no source published) |
 | external OSS, handled properly | 3 | `libcvcuda` + `libcvcuda-dev` from conda-forge, `magic_enum` from conda-forge |
 | external ROS, built here | 3 | `negotiated`, `topic_based_ros2_control`, `robotiq_controllers` |
 
@@ -364,11 +364,43 @@ replace a source recipe with a repack.
 - A cuMotion *trajectory* against ground reference, the way `slam/` does for cuVSLAM.
   `manip/fk_check.py` verifies an IK solution to 0.000 mm, which covers kinematics; it says
   nothing about whether a planned trajectory is smooth, collision-free or time-optimal.
-- `tensorrt` (finish staged-recipes #29445 or repack `libnvinfer10`), then the DNN packages —
-  which is also what `isaac_ros_manipulation_bringup` and `_asset_bringup` are waiting for.
+- **`tensorrt` is done** (see above), so the DNN packages it gated are reachable. What is
+  still open behind it: `isaac_ros_manipulation_bringup` and `_asset_bringup`, whose closure
+  is the whole DNN + nvblox stack, and the ESS / SegmentAnything / nvblox packages nobody has
+  tried yet. Each is now a normal packaging job rather than a blocked one.
 - Extend the generator over the remaining ~300 debs.
 
-### TensorRT
+### TensorRT — done, in `recipes/tensorrt`
+
+**Packaged.** TensorRT 10.13.3.9 repacked from NVIDIA's CUDA apt repository and
+redistributed from this channel with NVIDIA's permission, which unblocks
+`isaac_ros_tensor_rt` and with it every DNN pipeline in the stack. `detect/` proves it end
+to end: `TensorRTNode` parses a generated ONNX graph, initialises the plugins, creates a
+runtime and builds an engine.
+
+Two decisions, both recorded in the recipe:
+
+- **The debs, not the tarball** conda-forge staged-recipes#29445 builds from. That tarball
+  is 6.18 GB and extracts to ~14 GB (`libnvinfer_static.a` alone is 3.6 GB), which does not
+  fit a CI runner; the debs carry the same shared objects for 1.45 GB. This is the path this
+  section already recommended, below.
+- **10.13.3.9 + cuda13.0, not 10.9.0.34 + cuda12.8.** Mechanical rather than a preference: a
+  cuda-12.8 TensorRT links `libcudart.so.12`, every package here requires
+  `cuda-cudart >=13.3.29`, and conda-forge ships both CUDA majors under one package name, so
+  such an environment does not solve at all. The TensorRT major is unchanged, so the soname
+  Isaac looks for — `libnvinfer.so.10` — is too. The cost is that engine plans are not
+  interchangeable with NVIDIA's own 10.9 debs.
+
+The 1.3 GB `libnvinfer_builder_resource.so` is dlopen'd rather than linked, so no file list
+or ELF check covers it; building a real engine in `detect/check.py` is what does.
+
+**Triton is not packaged, and that one is upstream's to unblock** — `isaac_ros_triton`
+defaults x86_64 to a tarball on `artifactory.pdx.nvidia.com`, an internal host that does not
+resolve, and there is no public x86_64 Triton server tarball to point at instead. See
+`ISSUES.md` #21. It is the alternative backend for `isaac_ros_centerpose` alone, which also
+ships a TensorRT launch file, so nothing in the stack is unreachable for want of it.
+
+#### The original analysis, for context
 
 Isaac needs `libnvinfer.so.10`; only 6 debs depend on it. conda-forge staged-recipes
 [#29445](https://github.com/conda-forge/staged-recipes/pull/29445) (`carterbox`, still draft, CI

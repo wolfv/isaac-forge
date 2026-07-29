@@ -256,6 +256,18 @@ PACKAGES = [
     ("ros-jazzy-isaac-ros-yolov8", "isaac_ros_object_detection", "isaac_ros_yolov8"),
     ("ros-jazzy-isaac-ros-rtdetr", "isaac_ros_object_detection", "isaac_ros_rtdetr"),
     ("ros-jazzy-isaac-ros-grounding-dino", "isaac_ros_object_detection", "isaac_ros_grounding_dino"),
+    # --- the TensorRT inference node -----------------------------------------------
+    #
+    # The backend every DNN pipeline above actually defaults to, unblocked by
+    # recipes/tensorrt (10.13.3.9, repacked from NVIDIA's CUDA apt repo with their
+    # permission -- see that recipe for why 10.13/cuda13 rather than the 10.9/cuda12.8
+    # Isaac ships against).
+    #
+    # isaac_ros_triton, its sibling in the same repo, is still absent and not for want of
+    # trying: its CMakeLists defaults x86_64 to a tarball on artifactory.pdx.nvidia.com,
+    # which is internal and does not resolve, and no public x86_64 Triton server tarball
+    # exists to override it with. See ISSUES.md #21.
+    ("ros-jazzy-isaac-ros-tensor-rt", "isaac_ros_dnn_inference", "isaac_ros_tensor_rt"),
 ]
 
 DEP_TAG = re.compile(
@@ -564,6 +576,8 @@ def asset_name(cml: str) -> str | None:
 # system package is assumed to be a ROS package and gets the ros-jazzy- prefix.
 SYSTEM = {
     "cuda-toolkit": "cuda-version 13.*",
+    # recipes/tensorrt -- the conda package name matches gen_repack's MAP for libnvinfer10.
+    "tensorrt": "tensorrt",
     "eigen": "eigen",
     "eigen3": "eigen",
     "yaml-cpp": "yaml-cpp",

@@ -20,6 +20,7 @@ surfaced. The decoders in dope and centerpose link RoboStack's OpenCV rather tha
 from __future__ import annotations
 
 import os
+import signal
 import subprocess
 import sys
 import time
@@ -95,6 +96,25 @@ COMPONENTS = [
 failures = 0
 
 
+def kill_group(proc: subprocess.Popen) -> None:
+    """Terminate a container and everything it spawned.
+
+    SIGTERM to the group, then SIGKILL to whatever ignored it. Without the group signal
+    the component_container survives its `ros2 run` parent and keeps a CUDA context alive.
+    """
+    try:
+        os.killpg(os.getpgid(proc.pid), signal.SIGTERM)
+    except (ProcessLookupError, PermissionError):
+        return
+    try:
+        proc.wait(timeout=20)
+    except subprocess.TimeoutExpired:
+        try:
+            os.killpg(os.getpgid(proc.pid), signal.SIGKILL)
+        except (ProcessLookupError, PermissionError):
+            pass
+
+
 def report(ok: bool, what: str, detail: str = "") -> None:
     global failures
     if not ok:
@@ -128,10 +148,17 @@ resource = os.path.join(
 report(os.path.isfile(resource), "ament resource install_foundationpose_models registered")
 
 print(f"\nC++ components (dlopen into a live container) -- {len(COMPONENTS)} to load")
+# start_new_session so the whole process group can be signalled. `ros2 run` is a launcher:
+# the actual component_container is a *child* of it, so terminate() on this Popen reaped the
+# wrapper and left the container running -- holding its CUDA context and GPU memory. Two of
+# those leaked from earlier runs of this script and eventually exhausted an 8 GB GPU, which
+# surfaced as an unrelated-looking "failed to create cuda stream, out of memory" in a later
+# check. Kill the group, not the leader.
 container = subprocess.Popen(
     ["ros2", "run", "rclcpp_components", "component_container",
      "--ros-args", "-r", f"__node:={CONTAINER}"],
-    stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True)
+    stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True,
+    start_new_session=True)
 try:
     # Wait for *this* container to be discoverable, not merely for the CLI to exit 0 --
     # `ros2 component list` succeeds with empty output when no container is up at all, so
@@ -174,8 +201,7 @@ try:
         note = f" ({', '.join(params)})" if params else ""
         report(loaded, f"load {cls.split('::')[-1]}{note}", detail)
 finally:
-    container.terminate()
-    container.wait(timeout=20)
+    kill_group(container)
 
 print("\nFAILED" if failures else "\nall checks passed")
 sys.exit(1 if failures else 0)

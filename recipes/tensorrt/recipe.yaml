@@ -1,0 +1,168 @@
+schema_version: 1
+
+# NVIDIA TensorRT 10.13.3.9, repacked from the official CUDA apt repository.
+#
+# This is what `isaac_ros_tensor_rt` needs, and through it every DNN inference pipeline
+# in Isaac ROS: RT-DETR, YOLOv8, DetectNet, Grounding DINO, DOPE, CenterPose, ESS depth
+# and FoundationPose all run their models through a TensorRT node. It was the widest
+# remaining blocker in the repo -- see README.md.
+#
+# NVIDIA granted permission to redistribute these binaries from this repository's
+# channel. That permission is why the recipe lives in recipes/ rather than in
+# external/staged-recipes/: conda-forge cannot take TensorRT without a redistribution
+# grant of its own.
+#
+# ---------------------------------------------------------------------------
+# Why debs, and not the tarball conda-forge's PR uses
+# ---------------------------------------------------------------------------
+# conda-forge staged-recipes#29445 builds from
+# TensorRT-<v>.Linux.x86_64-gnu.cuda-<x>.tar.gz. That tarball is **6.18 GB** and
+# extracts to roughly 14 GB, because it carries the static archives --
+# libnvinfer_static.a alone is 3.6 GB, libnvinfer_lean_static.a another 1.1 GB -- plus
+# samples, data, docs and a 1 GB Windows builder resource. A GitHub runner has ~14 GB
+# free in total, so a source that size cannot be unpacked in CI at all.
+#
+# The debs carry exactly the same shared objects, split, and total 1.45 GB. We need four
+# of the eighteen: the runtime library, the plugin library, the ONNX parser and the
+# headers. libnvinfer-dev is deliberately absent -- it is 2.5 GB of static archives and
+# nothing here links statically.
+#
+# ---------------------------------------------------------------------------
+# Why 10.13.3.9 + cuda13.0, and not the 10.9.0.34 + cuda12.8 that Isaac ships against
+# ---------------------------------------------------------------------------
+# NVIDIA's own libnvinfer10 deb for Isaac ROS 4.5 is 10.9.0.34-1+cuda12.8, and README.md
+# notes the oddity: the rest of Isaac ROS 4.5 is CUDA 13 while its TensorRT is the CUDA
+# 12.8 build. Taking that at face value does not work here, and the reason is mechanical
+# rather than a matter of taste.
+#
+# A CUDA 12.8 TensorRT links libcudart.so.12. Every package already built in this repo
+# carries `cuda-cudart >=13.3.29`, which is `libcudart.so.13`, and conda-forge ships both
+# majors under the *same package name* -- cuda-cudart 12.x and 13.x cannot coexist in one
+# environment. So a cuda-12.8 TensorRT is not installable next to the rest of the stack;
+# it is not a compatibility judgement, the environment simply does not solve.
+#
+# 10.13.3.9 is the same TensorRT major, so the soname is unchanged -- libnvinfer.so.10,
+# exactly what Isaac's own binaries and `find_trt_library(nvinfer)` look for -- and NVIDIA
+# publishes it built against CUDA 13.0. That makes it the one choice that satisfies both
+# ends. What we give up is bit-for-bit parity with the TensorRT NVIDIA tested Isaac ROS
+# 4.5 against, and that is worth knowing: an engine plan built by 10.13 will not load in
+# 10.9 and vice versa, so anyone mixing this channel with NVIDIA's own debs should expect
+# to rebuild their .plan files.
+#
+# ---------------------------------------------------------------------------
+# What is in the package
+# ---------------------------------------------------------------------------
+# FindTENSORRT.cmake (shipped in isaac_ros_common) does find_path for NvInferVersion.h and
+# find_library for nvinfer, nvinfer_plugin and nvonnxparser, then builds three imported
+# targets. All six inputs are here.
+#
+# libnvinfer_builder_resource.so is 1.3 GB of the 1.4 GB and is not optional: libnvinfer
+# dlopens it whenever it *builds* an engine, which is precisely what isaac_ros_tensor_rt
+# does with the ONNX models the *_models_install packages fetch. Dropping it would give a
+# package that loads and then fails the moment it is asked to do its job.
+
+context:
+  version: "10.13.3.9"
+  # The soname triple as it appears in the file names (libnvinfer.so.10.13.3). Spelled
+  # out rather than derived: rattler-build's jinja has no string .split(), so
+  # `version.split('.')[:3] | join('.')` renders as "unknown method: string has no
+  # method named split" -- and only at test time, after a two-minute build.
+  lib_version: "10.13.3"
+  deb_version: "10.13.3.9-1+cuda13.0"
+  pool: https://developer.download.nvidia.com/compute/cuda/repos/ubuntu2404/x86_64
+
+package:
+  name: tensorrt
+  version: ${{ version }}
+
+source:
+  # `file_name` stops rattler-build from trying to unpack the .deb itself -- build.sh
+  # does that with bsdtar, the same way recipes/vpi does.
+  - url: ${{ pool }}/libnvinfer10_${{ deb_version }}_amd64.deb
+    file_name: libnvinfer10.deb
+    sha256: bc99693fa55a62afc193b32b1eecb18006393ff2959d95a737683b6c238ab546
+  - url: ${{ pool }}/libnvinfer-plugin10_${{ deb_version }}_amd64.deb
+    file_name: libnvinfer-plugin10.deb
+    sha256: 7a40cdf6618b7e25f716554d0804632677e46df3503e5d8dfa50c62940f8517f
+  - url: ${{ pool }}/libnvonnxparsers10_${{ deb_version }}_amd64.deb
+    file_name: libnvonnxparsers10.deb
+    sha256: 1d4d48eca9ba5eafb2c48e1f62b0631194ac43967577666ed24b36b95d64184e
+  # Headers, in three packages. NvInferVersion.h is the one FindTENSORRT.cmake searches
+  # for; NvInferPluginUtils.h is included directly by tensor_rt_node.cpp.
+  - url: ${{ pool }}/libnvinfer-headers-dev_${{ deb_version }}_amd64.deb
+    file_name: libnvinfer-headers-dev.deb
+    sha256: ddc5a6f2bc72e572141cf9f117604fe07ec0d01a59edfb411decdaa780dc4b08
+  - url: ${{ pool }}/libnvinfer-headers-plugin-dev_${{ deb_version }}_amd64.deb
+    file_name: libnvinfer-headers-plugin-dev.deb
+    sha256: a6b9d2f8adec9b158ba44cd6bd154cafcf4b4597f35ccc18b0093396218e1479
+  - url: ${{ pool }}/libnvonnxparsers-dev_${{ deb_version }}_amd64.deb
+    file_name: libnvonnxparsers-dev.deb
+    sha256: 1efba486fcf795f4ebbb802ed3cf5e999ca6e75caed25c90b4920265e5ccc43e
+
+build:
+  number: 0
+  script: build.sh
+  dynamic_linking:
+    # NVIDIA's binaries are installed untouched -- no RPATH rewriting, no relinking, so
+    # what ships here is byte-identical to the deb payload. build.sh asserts that.
+    binary_relocation: false
+    missing_dso_allowlist:
+      # libnvinfer NEEDs libcudart/libcublas/libcublasLt, which are real run deps below
+      # and resolve inside the prefix. libnvinfer_builder_resource is dlopen'd, not
+      # linked, so it never appears in a NEEDED list. libnvdla_compiler and
+      # libnvdla_runtime are Jetson DLA stubs with no x86_64 counterpart.
+      - libnvdla_compiler.so
+      - libnvdla_runtime.so
+
+requirements:
+  build:
+    - libarchive          # bsdtar, which reads .deb (ar) archives
+  run:
+    # Ubuntu 24.04 build, so the binaries reference GLIBC_2.38.
+    - __glibc >=2.38
+    # Read off libnvinfer.so.10's own DT_NEEDED, not off the debs: libnvinfer10 declares
+    # no apt Depends at all, and libnvinfer-plugin10/libnvonnxparsers10 declare only
+    # libnvinfer10, so the manifests say nothing useful about the CUDA runtime.
+    #
+    # The cuda-version pin is the constraint the whole version choice above exists to
+    # satisfy -- it is what makes this installable beside a stack that already requires
+    # cuda-cudart >=13.3.29.
+    - cuda-version 13.*
+    - cuda-cudart
+    - libcublas
+
+tests:
+  - package_contents:
+      lib:
+        # Matches libnvinfer.so / .so.10 / .so.10.13.3
+        - nvinfer
+        - nvinfer_plugin
+        - nvonnxparser
+      include:
+        # The header FindTENSORRT.cmake keys its version detection on, and the one
+        # tensor_rt_node.cpp includes directly.
+        - NvInferVersion.h
+        - NvInferPluginUtils.h
+        - NvOnnxParser.h
+  # A file list is not enough for this package: the builder resource is dlopen'd rather
+  # than linked, so nothing about the ELF metadata would notice if it went missing, and
+  # the failure would surface only when a node first tries to build an engine.
+  - script:
+      - test -f "${PREFIX}/lib/libnvinfer_builder_resource.so.${{ lib_version }}"
+      - python -c "import ctypes; ctypes.CDLL('libnvinfer.so.10')"
+    requirements:
+      run:
+        - python
+
+about:
+  homepage: https://developer.nvidia.com/tensorrt
+  summary: NVIDIA TensorRT runtime, plugin and ONNX parser libraries
+  description: |
+    Repacked from NVIDIA's CUDA apt repository, redistributed from this channel with
+    NVIDIA's permission. Contains the TensorRT 10 runtime (libnvinfer), the plugin
+    library, the ONNX parser and the headers -- enough to build and run
+    isaac_ros_tensor_rt and every Isaac ROS DNN pipeline above it.
+  # No SPDX identifier exists for the TensorRT terms, hence the LicenseRef. The debs
+  # install NVIDIA's license text under share/doc/, which build.sh preserves.
+  license: LicenseRef-NVIDIA-TensorRT
+  license_file: LICENSE

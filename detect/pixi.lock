@@ -41,10 +41,12 @@ environments:
       - conda: /home/wolfv/Programs/isaac-forge/output/linux-64/ros-jazzy-isaac-ros-rtdetr-models-install-4.5.0-py312hed801ba_0.conda
       - conda: /home/wolfv/Programs/isaac-forge/output/linux-64/ros-jazzy-isaac-ros-tensor-list-interfaces-4.5.0-hcf1e741_0.conda
       - conda: /home/wolfv/Programs/isaac-forge/output/linux-64/ros-jazzy-isaac-ros-tensor-proc-4.5.0-py312hed801ba_0.conda
+      - conda: /home/wolfv/Programs/isaac-forge/output/linux-64/ros-jazzy-isaac-ros-tensor-rt-4.5.0-py312hed801ba_0.conda
       - conda: /home/wolfv/Programs/isaac-forge/output/linux-64/ros-jazzy-isaac-ros-vpi-utils-4.5.0-hcf1e741_0.conda
       - conda: /home/wolfv/Programs/isaac-forge/output/linux-64/ros-jazzy-isaac-ros-yolov8-4.5.0-py312hed801ba_0.conda
       - conda: /home/wolfv/Programs/isaac-forge/output/linux-64/ros-jazzy-negotiated-0.1.0-hcf1e741_0.conda
       - conda: /home/wolfv/Programs/isaac-forge/output/linux-64/ros-jazzy-negotiated-interfaces-0.1.0-hcf1e741_0.conda
+      - conda: /home/wolfv/Programs/isaac-forge/output/linux-64/tensorrt-10.13.3.9-hcf1e741_0.conda
       - conda: /home/wolfv/Programs/isaac-forge/output/linux-64/vpi-4.0.5-hb0f4dca_0.conda
       - conda: https://conda.anaconda.org/conda-forge/linux-64/_openmp_mutex-4.5-20_gnu.conda
       - conda: https://conda.anaconda.org/conda-forge/linux-64/alsa-lib-1.2.16.1-hb03c661_0.conda
@@ -233,10 +235,12 @@ environments:
       - conda: https://conda.anaconda.org/conda-forge/linux-64/lz4-4.4.5-py312h3d67a73_1.conda
       - conda: https://conda.anaconda.org/conda-forge/linux-64/lz4-c-1.10.0-h5888daf_1.conda
       - conda: https://conda.anaconda.org/conda-forge/linux-64/magic_enum-0.9.8-hb700be7_0.conda
+      - conda: https://conda.anaconda.org/conda-forge/linux-64/ml_dtypes-0.5.4-np2py312h0f77346_1.conda
       - conda: https://conda.anaconda.org/conda-forge/linux-64/mpg123-1.32.9-hc50e24c_0.conda
       - conda: https://conda.anaconda.org/conda-forge/linux-64/ncurses-6.6-hdb14827_0.conda
       - conda: https://conda.anaconda.org/conda-forge/linux-64/numpy-2.5.1-py312h33ff503_0.conda
       - conda: https://conda.anaconda.org/conda-forge/linux-64/ocl-icd-2.3.4-hb03c661_1.conda
+      - conda: https://conda.anaconda.org/conda-forge/linux-64/onnx-1.22.0-py312he0a7d46_0.conda
       - conda: https://conda.anaconda.org/conda-forge/linux-64/opencl-headers-2025.06.13-hecca717_0.conda
       - conda: https://conda.anaconda.org/conda-forge/linux-64/openexr-3.4.13-h6de6307_2.conda
       - conda: https://conda.anaconda.org/conda-forge/linux-64/openh264-2.6.0-h65dd3cf_1.conda
@@ -250,6 +254,7 @@ environments:
       - conda: https://conda.anaconda.org/conda-forge/linux-64/pcre2-10.47-haa7fec5_0.conda
       - conda: https://conda.anaconda.org/conda-forge/linux-64/pixman-0.46.4-h54a6638_2.conda
       - conda: https://conda.anaconda.org/conda-forge/linux-64/pkg-config-0.29.2-h4bc722e_1009.conda
+      - conda: https://conda.anaconda.org/conda-forge/linux-64/protobuf-6.33.5-py312ha7b3241_2.conda
       - conda: https://conda.anaconda.org/conda-forge/linux-64/psutil-7.2.2-py312h5253ce2_0.conda
       - conda: https://conda.anaconda.org/conda-forge/linux-64/pthread-stubs-0.4-hb9d3cd8_1002.conda
       - conda: https://conda.anaconda.org/conda-forge/linux-64/pugixml-1.15-h3f63f65_0.conda
@@ -1112,6 +1117,29 @@ packages:
   license: Apache-2.0
   size: 851053
   timestamp: 1785341671657
+- conda: /home/wolfv/Programs/isaac-forge/output/linux-64/ros-jazzy-isaac-ros-tensor-rt-4.5.0-py312hed801ba_0.conda
+  subdir: linux-64
+  sha256: 2ccc6a7bba6f11785696562d5597628018529a5c54b2b39b116833a1e3674550
+  md5: 15ee15a2c3eedc012e5e456775c2e515
+  depends:
+  - __glibc >=2.38
+  - ros-jazzy-ament-index-cpp
+  - ros-jazzy-isaac-ros-common
+  - ros-jazzy-isaac-ros-managed-nitros
+  - ros-jazzy-isaac-ros-nitros-tensor-list-type
+  - ros-jazzy-rclcpp
+  - ros-jazzy-rclcpp-components
+  - tensorrt
+  - cuda-version >=13.3,<14
+  - libgcc >=15
+  - libstdcxx >=15
+  - cuda-cudart >=13.3.29,<14.0a0
+  - cuda-nvtx >=13.3.29,<14.0a0
+  - python_abi 3.12.* *_cp312
+  channel: file:///home/wolfv/Programs/isaac-forge/output
+  license: Apache-2.0
+  size: 244998
+  timestamp: 1785346371426
 - conda: /home/wolfv/Programs/isaac-forge/output/linux-64/ros-jazzy-isaac-ros-vpi-utils-4.5.0-hcf1e741_0.conda
   subdir: linux-64
   sha256: 27eef6013421486763bbd8984524eea897db2eb148d00504e0cef5a3ca9ce4e1
@@ -1191,6 +1219,19 @@ packages:
   license: Apache-2.0
   size: 117784
   timestamp: 1785310619954
+- conda: /home/wolfv/Programs/isaac-forge/output/linux-64/tensorrt-10.13.3.9-hcf1e741_0.conda
+  subdir: linux-64
+  sha256: d23e0e5c2bc264d1b4384e62e277c8960cac897b6f294be45daab30fb9cca7fb
+  md5: b84c0c97a3a51d272a7d71a44658e6d3
+  depends:
+  - __glibc >=2.38
+  - cuda-version 13.*
+  - cuda-cudart
+  - libcublas
+  channel: file:///home/wolfv/Programs/isaac-forge/output
+  license: LicenseRef-NVIDIA-TensorRT
+  size: 1544656773
+  timestamp: 1785346232939
 - conda: /home/wolfv/Programs/isaac-forge/output/linux-64/vpi-4.0.5-hb0f4dca_0.conda
   subdir: linux-64
   sha256: 6b2d87e2ab57862df60d462cba5ae90e4045a175784d416fe98a905b7a2081c5
@@ -4107,6 +4148,20 @@ packages:
   run_exports: {}
   size: 32775
   timestamp: 1777832676995
+- conda: https://conda.anaconda.org/conda-forge/linux-64/ml_dtypes-0.5.4-np2py312h0f77346_1.conda
+  sha256: e4d06cb57b23319ecee6c2a488c43c6e91c215cdc47a47eb08316beaf3412951
+  md5: 657a00c06d327012fb3002e5600b2976
+  depends:
+  - python
+  - __glibc >=2.17,<3.0.a0
+  - libgcc >=14
+  - libstdcxx >=14
+  - python_abi 3.12.* *_cp312
+  - numpy >=1.23,<3
+  license: MPL-2.0 AND Apache-2.0
+  run_exports: {}
+  size: 344784
+  timestamp: 1771362527782
 - conda: https://conda.anaconda.org/conda-forge/linux-64/mpg123-1.32.9-hc50e24c_0.conda
   sha256: 39c4700fb3fbe403a77d8cc27352fa72ba744db487559d5d44bf8411bb4ea200
   md5: c7f302fd11eeb0987a6a5e1f3aed6a21
@@ -4168,6 +4223,24 @@ packages:
     - ocl-icd >=2.3.4,<3.0a0
   size: 109598
   timestamp: 1780362789611
+- conda: https://conda.anaconda.org/conda-forge/linux-64/onnx-1.22.0-py312he0a7d46_0.conda
+  sha256: b40e4d1ae3ce4ff087624d49d50f30c7d1c1bcacc468776c2aef60df0d28b552
+  md5: fd57449888172c7d7f0d49b2a741caa2
+  depends:
+  - python
+  - ml_dtypes
+  - protobuf
+  - typing_extensions
+  - libstdcxx >=14
+  - libgcc >=14
+  - __glibc >=2.17,<3.0.a0
+  - python_abi 3.12.* *_cp312
+  - libprotobuf >=6.33.5,<6.33.6.0a0
+  license: Apache-2.0
+  license_family: APACHE
+  run_exports: {}
+  size: 12608882
+  timestamp: 1781615978038
 - conda: https://conda.anaconda.org/conda-forge/linux-64/opencl-headers-2025.06.13-hecca717_0.conda
   sha256: 8de2f0cd8a659b01abf86e7fbb8cea4f28ada62fd288429a2bbc040db1b98dd0
   md5: c930c8052d780caa41216af7de472226
@@ -4365,6 +4438,25 @@ packages:
   run_exports: {}
   size: 115175
   timestamp: 1720805894943
+- conda: https://conda.anaconda.org/conda-forge/linux-64/protobuf-6.33.5-py312ha7b3241_2.conda
+  sha256: 53997629b27a2465989f23e3a6212cfcc19f51c474d8f89905bb99859140ee88
+  md5: 0aee4f9ff95fc4bc78264a93e2a74adf
+  depends:
+  - __glibc >=2.17,<3.0.a0
+  - libabseil * cxx17*
+  - libabseil >=20260107.1,<20260108.0a0
+  - libgcc >=14
+  - libstdcxx >=14
+  - libzlib >=1.3.1,<2.0a0
+  - python >=3.12,<3.13.0a0
+  - python_abi 3.12.* *_cp312
+  constrains:
+  - libprotobuf 6.33.5
+  license: BSD-3-Clause
+  license_family: BSD
+  run_exports: {}
+  size: 481654
+  timestamp: 1773265949321
 - conda: https://conda.anaconda.org/conda-forge/linux-64/psutil-7.2.2-py312h5253ce2_0.conda
   sha256: d834fd656133c9e4eaf63ffe9a117c7d0917d86d89f7d64073f4e3a0020bd8a7
   md5: dd94c506b119130aef5a9382aed648e7

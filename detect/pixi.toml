@@ -20,13 +20,18 @@ libc = { family = "glibc", version = "2.38" }
 # time. packages.json marks four of them `tensorrt` anyway, because it reads manifests
 # without distinguishing the dependency kind.
 #
-# isaac_ros_tensor_rt is still deliberately absent, and still gates the *pipelines*: the
-# decoders here consume tensors an inference node produces, so a full detection graph
-# waits on TensorRT even though every package in it is built. See README.md.
+# isaac_ros_tensor_rt is now here too, so a detection graph has its inference node: the
+# decoders consume the tensors it produces. isaac_ros_triton is the one still missing, and
+# not for want of trying -- ISSUES.md #21.
 [dependencies]
 ros-jazzy-ros-base = "*"
 ros-jazzy-rclcpp-components = "*"
 python = "3.12.*"
+# For check.py's TensorRT engine test: it writes a minimal ONNX graph so the inference node
+# actually builds an engine. That is the only way to exercise
+# libnvinfer_builder_resource.so -- 1.3 GB of the tensorrt package that no file listing or
+# ELF check can validate, because libnvinfer dlopens it rather than linking it.
+onnx = "*"
 
 ros-jazzy-isaac-ros-detectnet = "*"
 ros-jazzy-isaac-ros-yolov8 = "*"
@@ -36,6 +41,10 @@ ros-jazzy-isaac-ros-grounding-dino-interfaces = "*"
 ros-jazzy-isaac-ros-rtdetr-models-install = "*"
 ros-jazzy-isaac-ros-grounding-dino-models-install = "*"
 ros-jazzy-isaac-ros-peoplenet-models-install = "*"
+
+# The inference backend the detectors' launch graphs compose. Present now that
+# recipes/tensorrt exists -- see ISSUES.md #21 for why isaac_ros_triton is not.
+ros-jazzy-isaac-ros-tensor-rt = "*"
 
 # Needed by the detectors, and built here too.
 ros-jazzy-isaac-ros-dnn-image-encoder = "*"

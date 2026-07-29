@@ -11,14 +11,14 @@ context:
   version: "4.5.0"
 
 package:
-  name: ros-jazzy-gxf-isaac-utils
+  name: ros-jazzy-gxf-isaac-flatscan-localization
   version: ${{ version }}
 
 source:
-  # ros-jazzy-gxf-isaac-utils
-  - url: https://isaac.download.nvidia.com/isaac-ros/release-4/pool/main/r/ros-jazzy-gxf-isaac-utils/ros-jazzy-gxf-isaac-utils_4.5.0-0noble.20260706195029650_amd64.deb
+  # ros-jazzy-gxf-isaac-flatscan-localization
+  - url: https://isaac.download.nvidia.com/isaac-ros/release-4/pool/main/r/ros-jazzy-gxf-isaac-flatscan-localization/ros-jazzy-gxf-isaac-flatscan-localization_4.5.0-0noble.20260706194740637_amd64.deb
     file_name: pkg0.deb
-    sha256: 44052c49f1feb44309e4c2259dbc8f82757f01b83400344f9fd7711b93df0976
+    sha256: 0ffa369bde2d971c6625797b316a2855bdc2cdf9b5bdd1fba3bc9a739a482387
 
 build:
   number: 0
@@ -47,18 +47,16 @@ requirements:
     # a hard requirement on the host glibc, hence a run dep rather than a
     # run_constraints entry.
     - __glibc >=2.38
-    - ros-jazzy-gxf-isaac-messages
     - ros-jazzy-isaac-ros-common
     - ros-jazzy-isaac-ros-gxf
-    - yaml-cpp
 
 tests:
   - package_contents:
       files:
         # ROS dirs use underscores, conda package names use dashes.
-        - share/gxf_isaac_utils/package.xml
+        - share/gxf_isaac_flatscan_localization/package.xml
 
 about:
   homepage: https://github.com/NVIDIA-ISAAC-ROS
-  summary: NvIsaacUtilsExtension
+  summary: Extension containing flatscan localization related components.
   license: LicenseRef-NVIDIA-Isaac-ROS

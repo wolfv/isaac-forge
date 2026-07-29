@@ -295,7 +295,6 @@ PACKAGES = [
     ("ros-jazzy-isaac-ros-nitros-battery-state-type", "isaac_ros_nitros", "isaac_ros_nitros_type/isaac_ros_nitros_battery_state_type"),
     ("ros-jazzy-isaac-ros-nitros-correlated-timestamp-type", "isaac_ros_nitros", "isaac_ros_nitros_type/isaac_ros_nitros_correlated_timestamp_type"),
     ("ros-jazzy-isaac-ros-nitros-encoder-ticks-type", "isaac_ros_nitros", "isaac_ros_nitros_type/isaac_ros_nitros_encoder_ticks_type"),
-    ("ros-jazzy-gxf-isaac-utils", "isaac_ros_nitros", "isaac_ros_gxf_extensions/gxf_isaac_utils"),
     ("ros-jazzy-isaac-ros-nitros-topic-tools", "isaac_ros_nitros", "isaac_ros_nitros_topic_tools"),
     ("ros-jazzy-isaac-ros-pynitros", "isaac_ros_nitros", "isaac_ros_pynitros"),
     ("ros-jazzy-isaac-ros-nitros-bridge-ros2", "isaac_ros_nitros", "isaac_ros_nitros_bridge/isaac_ros_nitros_bridge_ros2"),

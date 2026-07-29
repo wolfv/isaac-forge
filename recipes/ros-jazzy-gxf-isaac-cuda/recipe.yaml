@@ -11,14 +11,14 @@ context:
   version: "4.5.0"
 
 package:
-  name: ros-jazzy-gxf-isaac-utils
+  name: ros-jazzy-gxf-isaac-cuda
   version: ${{ version }}
 
 source:
-  # ros-jazzy-gxf-isaac-utils
-  - url: https://isaac.download.nvidia.com/isaac-ros/release-4/pool/main/r/ros-jazzy-gxf-isaac-utils/ros-jazzy-gxf-isaac-utils_4.5.0-0noble.20260706195029650_amd64.deb
+  # ros-jazzy-gxf-isaac-cuda
+  - url: https://isaac.download.nvidia.com/isaac-ros/release-4/pool/main/r/ros-jazzy-gxf-isaac-cuda/ros-jazzy-gxf-isaac-cuda_4.5.0-0noble.20260706191416585_amd64.deb
     file_name: pkg0.deb
-    sha256: 44052c49f1feb44309e4c2259dbc8f82757f01b83400344f9fd7711b93df0976
+    sha256: 9ecbfd068138ae048c713fffcb53ea28578b4f521993c68359f67609b4fd83af
 
 build:
   number: 0
@@ -47,18 +47,16 @@ requirements:
     # a hard requirement on the host glibc, hence a run dep rather than a
     # run_constraints entry.
     - __glibc >=2.38
-    - ros-jazzy-gxf-isaac-messages
     - ros-jazzy-isaac-ros-common
     - ros-jazzy-isaac-ros-gxf
-    - yaml-cpp
 
 tests:
   - package_contents:
       files:
         # ROS dirs use underscores, conda package names use dashes.
-        - share/gxf_isaac_utils/package.xml
+        - share/gxf_isaac_cuda/package.xml
 
 about:
   homepage: https://github.com/NVIDIA-ISAAC-ROS
-  summary: NvIsaacUtilsExtension
+  summary: GXF extension for Cuda related components in GXF Core.
   license: LicenseRef-NVIDIA-Isaac-ROS

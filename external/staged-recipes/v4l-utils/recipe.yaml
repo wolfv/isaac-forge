@@ -1,0 +1,120 @@
+schema_version: 1
+
+# v4l-utils for conda-forge.
+#
+# conda-forge currently has no Video4Linux package at all, which blocks anything
+# needing libv4l2 -- including NVIDIA's NVDEC path in Isaac ROS, whose nvv4l2
+# libraries are libv4l plugins and link libv4l2.so.0.
+#
+# Built from source. Only the libraries and the CLI tools are enabled; the Qt GUIs
+# (qv4l2, qvidcap) and the DVB stack are turned off to keep the dependency
+# footprint small. Enable them later in the feedstock if anyone asks.
+#
+# Outputs follow the conda-forge split-package convention:
+#   libv4l      runtime shared libraries
+#   v4l-utils   the CLI tools (v4l2-ctl, v4l2-compliance, ...)
+# with headers and pkg-config in libv4l so downstream builds only need that.
+
+context:
+  version: "1.32.0"
+
+recipe:
+  name: v4l-utils
+  version: ${{ version }}
+
+source:
+  - url: https://linuxtv.org/downloads/v4l-utils/v4l-utils-${{ version }}.tar.xz
+    sha256: 6828828a17775526eb93fb258a9294d1d1073d633c344dd71ecd4e7a1ffb7dfc
+
+build:
+  number: 0
+
+outputs:
+  - package:
+      name: libv4l
+      version: ${{ version }}
+    build:
+      script: build_lib.sh
+      # libv4l2 dlopens conversion plugins from its own plugin directory.
+      dynamic_linking:
+        missing_dso_allowlist:
+          - "*"
+    requirements:
+      build:
+        - ${{ compiler('c') }}
+        - ${{ compiler('cxx') }}
+        - meson
+        - ninja
+        - pkg-config
+      host:
+        - libjpeg-turbo
+        - libudev  # [linux]
+      run_exports:
+        # libv4l2 keeps a stable .so.0 across the 1.x series.
+        - ${{ pin_subpackage('libv4l', upper_bound='x') }}
+    tests:
+      - package_contents:
+          lib:
+            - v4l1
+            - v4l2
+            - v4lconvert
+          include:
+            - libv4l1.h
+            - libv4l2.h
+            - libv4lconvert.h
+          files:
+            - lib/pkgconfig/libv4l2.pc
+      - script:
+          - test -n "$(pkg-config --modversion libv4l2)"
+          # $CC comes from the compiler activation; ${{ compiler('c') }} is a
+          # package name, not a binary.
+          - ${CC} $(pkg-config --cflags --libs libv4l2) -o smoke smoke.c
+          - ./smoke
+        requirements:
+          build:
+            - ${{ compiler('c') }}
+            - pkg-config
+        files:
+          recipe:
+            - smoke.c
+
+  - package:
+      name: v4l-utils
+      version: ${{ version }}
+    build:
+      script: build_tools.sh
+    requirements:
+      build:
+        - ${{ compiler('c') }}
+        - ${{ compiler('cxx') }}
+        - meson
+        - ninja
+        - pkg-config
+      host:
+        - ${{ pin_subpackage('libv4l', exact=True) }}
+        - libjpeg-turbo
+        - libudev  # [linux]
+      run:
+        - ${{ pin_subpackage('libv4l', exact=True) }}
+    tests:
+      - script:
+          - v4l2-ctl --version
+
+about:
+  homepage: https://linuxtv.org/wiki/index.php/V4l-utils
+  repository: https://git.linuxtv.org/v4l-utils.git
+  summary: Userspace tools and libraries for Video4Linux
+  description: |
+    v4l-utils is a collection of userspace utilities and libraries for the
+    Video4Linux2 API. libv4l2 provides format conversion and device quirk handling
+    on top of raw V4L2, so applications see a consistent set of pixel formats
+    regardless of what the hardware reports.
+  license: LGPL-2.1-or-later AND GPL-2.0-or-later
+  license_file:
+    # The libraries are LGPL-2.1-or-later; the utilities are GPL-2.0-or-later.
+    - COPYING.libv4l
+    - COPYING
+
+extra:
+  recipe-maintainers:
+    - wolfv

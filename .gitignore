@@ -1,0 +1,13 @@
+src/
+output/
+.pixi/
+.buildtmp/
+.srccache/
+demo/.cache/
+slam/data/
+bench/assets/
+bench/ws/
+verify/.pixi/
+upstream/*/
+__pycache__/
+*.pyc

@@ -1,0 +1,131 @@
+From 99c8315efc7bd7d1f22024da018112e3706ec1e3 Mon Sep 17 00:00:00 2001
+From: Wolf Vollprecht <w.vollprecht@gmail.com>
+Date: Tue, 28 Jul 2026 23:29:16 +0200
+Subject: [PATCH 1/2] h264_decoder: link the nvbuf libraries by name so
+ DT_NEEDED stays relocatable
+
+libdecoder_node.so records absolute paths as DT_NEEDED entries:
+
+    $ readelf -d libdecoder_node.so | grep NEEDED
+      /usr/lib/x86_64-linux-gnu/libnvbufsurface.so
+      /usr/lib/x86_64-linux-gnu/libnvbuf_fdmap.so
+      /usr/lib/x86_64-linux-gnu/libnvbufsurftransform.so
+
+so it loads only when those libraries sit at exactly that path. An absolute
+DT_NEEDED cannot be redirected by RPATH, RUNPATH or LD_LIBRARY_PATH, which makes
+DecoderNode unusable from any relocated prefix:
+
+    Failed to load library: dlopen error:
+    /usr/lib/x86_64-linux-gnu/libnvbufsurface.so: cannot open shared object file
+
+The cause is that these libraries ship without a DT_SONAME:
+
+    libnvbufsurface.so         SONAME: <NONE>
+    libnvbuf_fdmap.so          SONAME: <NONE>
+    libnvbufsurftransform.so   SONAME: <NONE>
+    libnvv4l2.so               SONAME: libv4l2.so.0
+
+With no soname to record, the linker falls back to writing the path it was given
+by IMPORTED_LOCATION. libnvv4l2.so has one and comes out as a plain
+libv4l2.so.0, which is why only some entries are absolute.
+
+Linking the three by name against a search directory records a plain DT_NEEDED
+instead, after which the normal search order applies. Measured against a
+soname-less library:
+
+    absolute path on the link line  -> DT_NEEDED /abs/path/libfoo.so
+    -L<dir> -l:libfoo.so           -> DT_NEEDED libfoo.so
+
+libnvv4l2.so and libcuvidv4l2.so keep their imported targets and are unchanged.
+
+Only the x86_64 branch changes behaviour. The aarch64 branch keeps the original
+absolute-path form because the Jetson nvbuf_fdmap is versioned
+(libnvbuf_fdmap.so.1.0.0) and whether an unversioned symlink sits beside it could
+not be verified here -- so `-l:` is not assumed to resolve. That branch would
+benefit from the same change if the layout can be confirmed.
+
+Note this is a consumer-side workaround. Giving the nvv4l2 libraries a DT_SONAME
+would fix every downstream consumer at once and need no changes here -- which is
+what build_install_gxf_release.sh in the gxf repo already does for the GXF
+libraries, with the comment "Patchelf SONAMEs into shared libraries for name
+resolution".
+
+Found while packaging Isaac ROS as conda packages, where DecoderNode was the only
+component in the stack that could not be relocated.
+
+Signed-off-by: Wolf Vollprecht <w.vollprecht@gmail.com>
+---
+ isaac_ros_h264_decoder/CMakeLists.txt | 40 +++++++++++++++++++++++----
+ 1 file changed, 34 insertions(+), 6 deletions(-)
+
+diff --git a/isaac_ros_h264_decoder/CMakeLists.txt b/isaac_ros_h264_decoder/CMakeLists.txt
+index f3af334..30bfd55 100644
+--- a/isaac_ros_h264_decoder/CMakeLists.txt
++++ b/isaac_ros_h264_decoder/CMakeLists.txt
+@@ -38,13 +38,40 @@ add_library(nvbufsurftransform SHARED IMPORTED)
+ add_library(nvv4l2 SHARED IMPORTED)
+ add_library(cuvidv4l2 SHARED IMPORTED)
+ 
++# libnvbuf_fdmap, libnvbufsurface and libnvbufsurftransform ship without a
++# DT_SONAME. When a shared library has no soname the linker records whatever path
++# it was handed, so linking them by absolute IMPORTED_LOCATION bakes absolute
++# paths into decoder_node's DT_NEEDED entries:
++#
++#   $ readelf -d libdecoder_node.so | grep NEEDED
++#     /usr/lib/x86_64-linux-gnu/libnvbufsurface.so
++#     /usr/lib/x86_64-linux-gnu/libnvbuf_fdmap.so
++#     /usr/lib/x86_64-linux-gnu/libnvbufsurftransform.so
++#
++# decoder_node then loads only when those libraries sit at exactly that path, and
++# an absolute DT_NEEDED cannot be redirected by RPATH, RUNPATH or LD_LIBRARY_PATH,
++# which makes the node unusable from any relocated prefix.
++#
++# Linking them by name against a search directory records a plain DT_NEEDED
++# instead, so the normal search order applies. NVBUF_LINK_LIBS below selects that
++# form on x86_64. libnvv4l2.so is unaffected either way: it carries a soname of
++# its own (libv4l2.so.0) and already resolves correctly.
++#
++# The aarch64 branch is deliberately left on the original absolute-path form. The
++# Jetson nvbuf_fdmap is versioned (libnvbuf_fdmap.so.1.0.0) and whether an
++# unversioned symlink exists alongside it could not be verified here, so `-l:` is
++# not assumed to resolve. Applying the same treatment there would be worthwhile if
++# you can confirm the layout.
+ if(${ARCHITECTURE} STREQUAL "x86_64")
+-  set_property(TARGET nvbuf_fdmap PROPERTY IMPORTED_LOCATION /usr/lib/x86_64-linux-gnu/libnvbuf_fdmap.so)
+-  set_property(TARGET nvbufsurface PROPERTY IMPORTED_LOCATION /usr/lib/x86_64-linux-gnu/libnvbufsurface.so)
+-  set_property(TARGET nvbufsurftransform PROPERTY IMPORTED_LOCATION /usr/lib/x86_64-linux-gnu/libnvbufsurftransform.so)
++  set(NVBUF_LIB_DIR /usr/lib/x86_64-linux-gnu)
++  set(NVBUF_LINK_LIBS
++    -l:libnvbufsurface.so
++    -l:libnvbuf_fdmap.so
++    -l:libnvbufsurftransform.so)
+   set_property(TARGET nvv4l2 PROPERTY IMPORTED_LOCATION /usr/lib/x86_64-linux-gnu/libnvv4l2.so)
+   set_property(TARGET cuvidv4l2 PROPERTY IMPORTED_LOCATION /usr/lib/x86_64-linux-gnu/libcuvidv4l2.so)
+ elseif(${ARCHITECTURE} STREQUAL "aarch64")
++  set(NVBUF_LINK_LIBS nvbufsurface nvbuf_fdmap nvbufsurftransform)
+   set_property(TARGET nvbuf_fdmap PROPERTY IMPORTED_LOCATION /usr/lib/aarch64-linux-gnu/nvidia/libnvbuf_fdmap.so.1.0.0)
+   set_property(TARGET nvbufsurface PROPERTY IMPORTED_LOCATION /usr/lib/aarch64-linux-gnu/nvidia/libnvbufsurface.so)
+   set_property(TARGET nvbufsurftransform PROPERTY IMPORTED_LOCATION /usr/lib/aarch64-linux-gnu/nvidia/libnvbufsurftransform.so)
+@@ -65,15 +92,16 @@ target_include_directories(decoder_node PRIVATE
+   ${CMAKE_CURRENT_SOURCE_DIR}/../codec/libv4l2/include
+ )
+ 
++if(DEFINED NVBUF_LIB_DIR)
++  target_link_directories(decoder_node PRIVATE ${NVBUF_LIB_DIR})
++endif()
+ target_link_libraries(decoder_node
+   CUDA::cuda_driver
+   CUDA::cudart
+   vpi
+   cuvidv4l2
+   nvv4l2
+-  nvbufsurface
+-  nvbuf_fdmap
+-  nvbufsurftransform
++  ${NVBUF_LINK_LIBS}
+ )
+ 
+ rclcpp_components_register_nodes(decoder_node "nvidia::isaac_ros::h264_decoder::DecoderNode")
+-- 
+2.55.0
+

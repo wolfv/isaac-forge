@@ -1,0 +1,23 @@
+[workspace]
+name = "isaac-forge-bench"
+description = "Isaac ROS performance benchmark on RoboStack, using NVIDIA's own harness"
+channels = ["../output", "https://prefix.dev/robostack-jazzy", "conda-forge"]
+platforms = ["linux-64"]
+
+[system-requirements]
+libc = { family = "glibc", version = "2.38" }
+
+[dependencies]
+ros-jazzy-ros-base = "*"
+ros-jazzy-rclcpp-components = "*"
+ros-jazzy-rosbag2-storage-mcap = "*"
+ros-jazzy-rosbag2-py = "*"
+ros-jazzy-rosbag2-compression-zstd = "*"
+ros-jazzy-isaac-ros-image-proc-benchmark = "*"
+ros-jazzy-isaac-ros-image-proc = "*"
+python = "3.12.*"
+numpy = "*"
+
+[tasks.bench]
+description = "Run NVIDIA's resize benchmark against our conda-built packages"
+cmd = "env ISAAC_ROS_WS=$PWD/ws launch_test bench_resize.py"

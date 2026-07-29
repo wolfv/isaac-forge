@@ -1,0 +1,98 @@
+name: release
+
+# Builds every recipe in recipes/ and publishes the new ones to
+# https://prefix.dev/channels/isaac-forge.
+#
+# The filename matters: the prefix.dev trusted publisher is bound to `release.yml`.
+# Renaming this file breaks authentication.
+
+on:
+  push:
+    branches: [main]
+    tags: ["v*"]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  # Required for trusted publishing. rattler-build exchanges the GitHub OIDC token
+  # with prefix.dev itself, so there is no API key anywhere in this repo.
+  id-token: write
+
+# Never run two publishes at once, and never cancel one midway through uploading.
+concurrency:
+  group: release
+  cancel-in-progress: false
+
+jobs:
+  build-and-publish:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 360
+
+    steps:
+      - uses: actions/checkout@v4
+
+      # The GXF, NITROS and VPI host environments are multi-GB each, and VPI alone
+      # unpacks to ~1 GB. A default runner does not have room.
+      - name: Free runner disk space
+        run: |
+          df -h /
+          sudo rm -rf \
+            /usr/share/dotnet \
+            /usr/local/lib/android \
+            /opt/ghc \
+            /usr/local/share/boost \
+            /usr/local/.ghcup \
+            "${AGENT_TOOLSDIRECTORY:-/opt/hostedtoolcache}"
+          sudo apt-get clean
+          df -h /
+
+      - uses: prefix-dev/setup-pixi@v0.8.14
+        with:
+          # pixi.lock pins rattler-build, so CI builds with the same version as local.
+          locked: true
+          cache: true
+
+      # -c ./output is what lets recipes resolve against packages built earlier in this
+      # same run; isaac-forge covers ones built in previous runs. rattler-build indexes
+      # the directory itself, but it has to exist before being named as a channel.
+      - name: Build all recipes
+        run: |
+          mkdir -p output
+          pixi run rattler-build build \
+            --recipe-dir recipes \
+            --output-dir output \
+            -m variants.yaml \
+            --skip-existing all \
+            -c ./output \
+            -c https://prefix.dev/isaac-forge \
+            -c https://prefix.dev/robostack-jazzy \
+            -c conda-forge
+
+      # Build trees are large and are not needed to upload.
+      - name: Drop build trees
+        if: always()
+        run: rm -rf output/bld output/src_cache output/.tmp
+
+      # Versions here are fixed and build numbers are 0, so a second push to main
+      # produces identical filenames. --skip-existing all above means those are never
+      # rebuilt, so this list is empty on a no-op run rather than a duplicate upload.
+      - name: Publish new packages to prefix.dev/isaac-forge
+        run: |
+          shopt -s nullglob
+          pkgs=(output/*/*.conda)
+          if [ "${#pkgs[@]}" -eq 0 ]; then
+            echo "No new packages -- everything already exists in the channel."
+            exit 0
+          fi
+          echo "Publishing ${#pkgs[@]} package(s):"
+          printf '  %s\n' "${pkgs[@]}"
+          pixi run rattler-build upload prefix -c isaac-forge "${pkgs[@]}"
+
+      - name: Upload build log
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: rattler-build-log
+          path: output/rattler-build-log.txt
+          if-no-files-found: ignore
+          retention-days: 14

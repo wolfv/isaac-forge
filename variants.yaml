@@ -1,0 +1,25 @@
+# Variant pinning for every recipe in this repo, so no recipe.yaml names a concrete
+# compiler package. This is conda-forge's pinning model, shrunk to what we need.
+#
+# Pass it with `-m variants.yaml`; the pixi tasks already do. rattler-build only
+# auto-discovers a `variants.yaml` sitting *next to* a recipe, not a shared one.
+#
+# Both keys are load-bearing:
+#
+#   cuda_compiler          rattler-build's built-in default is `cuda`, which expands to
+#                          `cuda_linux-64` -- a package that does not exist, so a build
+#                          without this fails to resolve. That is the intended failure:
+#                          loud, at solve time. conda-forge does not hit it only because
+#                          its global pinning sets this same value.
+#
+#   cuda_compiler_version  conda-forge's *global* pinning is still 12.9, and CUDA 12.9 is
+#                          precisely the release whose cuda_runtime_api.h aliases
+#                          cudaGetDeviceProperties to cudaGetDeviceProperties_v2. Taking
+#                          that default silently compiles CUDA 12 call signatures into a
+#                          CUDA 13 process -- see the root cause in README.md. 13.0
+#                          matches conda-forge's in-flight cuda130.yaml migration, and
+#                          Isaac ROS 4.5 is CUDA 13 throughout.
+cuda_compiler:
+  - cuda-nvcc
+cuda_compiler_version:
+  - "13.0"

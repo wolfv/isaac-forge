@@ -1,0 +1,96 @@
+schema_version: 1
+
+# NVIDIA VPI (Vision Programming Interface) 4.x, repacked from the official
+# Jetson apt repository. VPI is the single biggest chokepoint in the Isaac ROS
+# dependency graph: `isaac_ros_common` declares libnvvpi4/vpi4-dev, and that
+# puts VPI under 218 of the 252 Isaac ROS packages.
+#
+# The shared object is installed byte-for-byte as NVIDIA shipped it -- nothing is
+# patched or relinked, see the `dynamic_linking` block below. Verified identical
+# to the deb payload (sha256 c6e889f2...). Because the RPATH is left alone, the
+# loader path is handled by an activation script instead.
+
+context:
+  version: "4.0.5"
+  pool: https://repo.download.nvidia.com/jetson/x86_64/noble/pool/main
+
+package:
+  name: vpi
+  version: ${{ version }}
+
+source:
+  # Runtime library. `file_name` stops rattler-build from trying to unpack the
+  # .deb itself -- we do that in the build script with bsdtar.
+  - url: ${{ pool }}/libn/libnvvpi4/libnvvpi4_${{ version }}_amd64.deb
+    file_name: libnvvpi4.deb
+    sha256: 7c6f94dacf9d85a9563a39b3f7f6fb6dbb8554622fd83a9c61fd17bea63f1572
+  # Headers and the generated CMake package config.
+  - url: ${{ pool }}/v/vpi4-dev/vpi4-dev_${{ version }}_amd64.deb
+    file_name: vpi4-dev.deb
+    sha256: f962b787a3c9139ce6a12cba7cc7a463b610bd296448d248d45de9276bbae37e
+
+build:
+  number: 0
+  script: build.sh
+  dynamic_linking:
+    # Keep NVIDIA's binary untouched: no RPATH rewriting, no relinking.
+    binary_relocation: false
+    # libnvvpi.so.4 NEEDs only libc/libm/libdl/librt/libpthread/ld-linux.
+    # Everything CUDA (libnppc, libcufft, libcudart, libcuda) is dlopen'd at
+    # runtime, so it never appears in the ELF NEEDED list.
+    missing_dso_allowlist:
+      - "*"
+
+requirements:
+  build:
+    - libarchive          # provides bsdtar, which reads .deb (ar) archives
+  run:
+    # dlopen'd at runtime -- see the `Recommends:` field of the libnvvpi4 deb:
+    #   libnpp.so.12|libnpp.so.13, libcufft.so.11|libcufft.so.12
+    - libnpp
+    - libcufft
+    - cuda-version 13.*
+
+tests:
+  - package_contents:
+      lib:
+        # Matches libnvvpi.so / libnvvpi.so.4 / libnvvpi.so.4.0.5
+        - nvvpi
+      include:
+        - vpi/VPI.h
+        - vpi/algo/ConvertImageFormat.h
+      files:
+        - lib/libnvvpi.so.${{ version }}
+        - lib/cmake/vpi/vpi-config.cmake
+        - lib/cmake/vpi/vpi-config-version.cmake
+        - etc/conda/activate.d/vpi-activate.sh
+        - etc/conda/deactivate.d/vpi-deactivate.sh
+
+  # The functional check: find_package(vpi) must succeed and yield a usable
+  # imported target, because that is exactly what isaac_ros_common and
+  # isaac_ros_nitros do. This cannot be expressed as a contents check.
+  - script:
+      - cmake -S test -B build-test -DCMAKE_PREFIX_PATH="${PREFIX}"
+    requirements:
+      run:
+        - cmake
+        - ${{ compiler('c') }}
+    files:
+      recipe:
+        - test/
+
+about:
+  homepage: https://developer.nvidia.com/embedded/vpi
+  summary: NVIDIA Vision Programming Interface (VPI) runtime and development files
+  description: |
+    VPI is NVIDIA's computer-vision and image-processing library with backends
+    for CPU, CUDA, PVA, VIC and OFA. This package repacks the official amd64
+    debian packages from the NVIDIA Jetson apt repository without modifying the
+    shipped binaries.
+
+    Redistribution is restricted -- see the bundled VPI EULA and the note at the
+    top of the recipe.
+  license: LicenseRef-NVIDIA-VPI-EULA
+  license_file:
+    - VPI_EULA.txt
+    - third-party-licenses/

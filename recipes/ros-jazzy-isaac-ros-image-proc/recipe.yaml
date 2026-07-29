@@ -1,0 +1,117 @@
+schema_version: 1
+
+# isaac_ros_image_proc, built FROM SOURCE against RoboStack.
+#
+# Repacking this one fails on OpenCV. NVIDIA's deb links Ubuntu noble's OpenCV 4.6
+# (libopencv_core.so.406t64 and friends); conda-forge is at 4.13/5.x, so those
+# sonames do not exist and RectifyNode / AlignDepthToColorNode refuse to dlopen.
+#
+# Two ways out: ship a .406 soname-compat package repacked from Ubuntu's debs, or
+# rebuild against the OpenCV RoboStack already has. Rebuilding wins easily here:
+#
+#   * The package is Apache-2.0 with real source.
+#   * OpenCV is used by exactly ONE target -- find_package(OpenCV REQUIRED) feeds
+#     only rectify_node. Every other node uses CV-CUDA.
+#   * A compat package would pull Ubuntu's whole imaging stack (jpeg, png, tiff,
+#     ffmpeg, gtk) into the prefix alongside conda's copies, and any process
+#     loading both would have two OpenCVs sharing the cv:: namespace.
+#
+# Same pattern as ros-jazzy-isaac-ros-visual-slam: repack the proprietary
+# foundation, source-build the Apache-2.0 layer that has a soname disagreement.
+# See FINDINGS.md sections 5 and 6.
+
+context:
+  version: "4.5.0"
+  tag: v4.5-0
+
+package:
+  name: ros-jazzy-isaac-ros-image-proc
+  version: ${{ version }}
+
+source:
+  - url: https://github.com/NVIDIA-ISAAC-ROS/isaac_ros_image_pipeline/archive/refs/tags/${{ tag }}.tar.gz
+    sha256: 66a0ea87a075c4eb428faa4b987768928ae0250e6ab801db4bcbeef8fa8924b1
+    target_directory: src
+
+build:
+  number: 0
+  script: build.sh
+
+requirements:
+  build:
+    - ${{ compiler('c') }}
+    - ${{ compiler('cxx') }}
+    # CMakeLists.txt declares project(... LANGUAGES C CXX CUDA) and marks
+    # alpha_blend.cu.cpp as CUDA, so a real nvcc is required.
+    - ${{ compiler('cuda') }}
+    - cmake
+    - ninja
+    - pkg-config
+  host:
+    # Proprietary foundation, repacked from NVIDIA's debs.
+    - ros-jazzy-isaac-ros-nitros
+    - ros-jazzy-isaac-ros-nitros-image-type
+    - ros-jazzy-isaac-ros-nitros-camera-info-type
+    - ros-jazzy-isaac-ros-nitros-tensor-list-type
+    - ros-jazzy-isaac-ros-cvcuda-utils
+    - ros-jazzy-isaac-ros-managed-nitros
+    - ros-jazzy-isaac-ros-common
+    - ros-jazzy-negotiated
+    # RoboStack
+    - ros-jazzy-ament-cmake-auto
+    - ros-jazzy-ament-index-cpp
+    - ros-jazzy-rclcpp
+    - ros-jazzy-rclcpp-components
+    - ros-jazzy-message-filters
+    - ros-jazzy-sensor-msgs
+    # The whole point: RoboStack's OpenCV, not Ubuntu's 4.6.
+    #
+    # Pinned to 4.13 deliberately. robostack-jazzy's cv_bridge requires
+    # libopencv >=4.13.0,<4.13.1, and cv_bridge and this package routinely end up
+    # in the same process. Building against conda-forge's newer OpenCV 5.0 would
+    # put two OpenCVs sharing the cv:: namespace into one address space -- the same
+    # hazard that made a .406 compat package unattractive. Track whatever RoboStack
+    # ships; this pin should move when the distro mutex does.
+    - libopencv 4.13.*
+    - libcvcuda
+    - cuda-version 13.*
+    - cuda-cudart-dev
+    # isaac_ros_nitros/types/type_utility.hpp includes nvtx3/nvToolsExt.h.
+    - cuda-nvtx-dev
+  run:
+    - __glibc >=2.38
+    - ros-jazzy-isaac-ros-nitros
+    - ros-jazzy-isaac-ros-nitros-image-type
+    - ros-jazzy-isaac-ros-nitros-camera-info-type
+    - ros-jazzy-isaac-ros-nitros-tensor-list-type
+    - ros-jazzy-isaac-ros-cvcuda-utils
+    - ros-jazzy-isaac-ros-managed-nitros
+    - ros-jazzy-isaac-ros-common
+    - ros-jazzy-rclcpp
+    - ros-jazzy-rclcpp-components
+    - libcvcuda
+
+tests:
+  - package_contents:
+      files:
+        - share/isaac_ros_image_proc/package.xml
+        - lib/librectify_node.so
+        - lib/libresize_node.so
+        - share/ament_index/resource_index/rclcpp_components/isaac_ros_image_proc
+
+  # RectifyNode is the node that could not load when repacked. Assert it now links
+  # RoboStack's OpenCV and that nothing resolves outside the prefix.
+  - script:
+      - bash check_opencv.sh
+    requirements:
+      run:
+        - patchelf
+    files:
+      recipe:
+        - check_opencv.sh
+
+about:
+  homepage: https://github.com/NVIDIA-ISAAC-ROS/isaac_ros_image_pipeline
+  summary: NVIDIA-accelerated ROS 2 image processing nodes, built against RoboStack OpenCV
+  license: Apache-2.0
+  license_file: src/LICENSE

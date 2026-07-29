@@ -1,0 +1,33 @@
+[workspace]
+name = "isaac-forge-slam"
+description = "cuVSLAM on NVIDIA's r2b Galileo dataset, running on RoboStack"
+channels = ["../output", "https://prefix.dev/robostack-jazzy", "conda-forge"]
+platforms = ["linux-64"]
+
+# The repacked Isaac binaries reference GLIBC_2.38 symbols (Ubuntu 24.04).
+[system-requirements]
+libc = { family = "glibc", version = "2.38" }
+
+[dependencies]
+ros-jazzy-ros-base = "*"
+ros-jazzy-rclcpp-components = "*"
+ros-jazzy-rosbag2-storage-mcap = "*"
+ros-jazzy-foxglove-bridge = "*"
+ros-jazzy-tf2-ros = "*"
+# Built by this repo
+ros-jazzy-isaac-ros-visual-slam = "*"
+ros-jazzy-isaac-ros-image-proc = "*"
+ros-jazzy-isaac-ros-h264-decoder = "*"
+python = "3.12.*"
+numpy = "*"
+
+# CPU H.264 decode, used only by the USE_NVDEC=0 fallback in h264_bridge.py. NVDEC
+# itself works now: the hardcoded /usr/lib/x86_64-linux-gnu DT_NEEDED entries are gone
+# (source-built with the upstream patch) and the decoder no longer references a CUDA 12
+# symbol. Kept because it is a useful cross-check on cuVSLAM independent of NVDEC.
+[dependencies.av]
+version = "*"
+
+[tasks.slam]
+description = "cuVSLAM on the r2b Galileo dataset: decode, track, measure the trajectory"
+cmd = "bash run_slam.sh"

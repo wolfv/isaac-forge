@@ -1,0 +1,60 @@
+From 991e4df84716199fc119f0ebcd34ad42776a9bfa Mon Sep 17 00:00:00 2001
+From: Wolf Vollprecht <w.vollprecht@gmail.com>
+Date: Wed, 29 Jul 2026 09:40:29 +0200
+Subject: [PATCH] gxf_isaac_gems: make MachineEpsilon specializations inline
+
+epsilon.hpp declares a variable template and two explicit specializations:
+
+    template <typename K>
+    constexpr K MachineEpsilon = K(0);
+    template <>
+    constexpr float MachineEpsilon<float> = 5.9604644775390625e-8f;
+    template <>
+    constexpr double MachineEpsilon<double> = 1.11022302462515654e-16;
+
+In C++17 `constexpr` implies `inline` for variables, but an explicit
+specialization of a variable template is not a template -- it is an ordinary
+variable declaration, and the implicit inline does not apply to it. Each
+translation unit including the header therefore emits its own definition with
+external linkage, and linking two such objects together fails:
+
+    ld: detection3_d_array_message.cpp.o:(.rodata+0x38): multiple definition of
+        'nvidia::isaac::MachineEpsilon<double>';
+        nitros_detection3_d_array.cpp.o:(.rodata+0x48): first defined here
+    ld: detection3_d_array_message.cpp.o:(.rodata+0x40): multiple definition of
+        'nvidia::isaac::MachineEpsilon<float>'; ...
+    collect2: error: ld returned 1 exit status
+
+Adding `inline` gives the specializations vague linkage so the definitions are
+merged, which is what the primary template already gets.
+
+Hit while building isaac_ros_nitros_detection3_d_array_type from source with GCC
+15 and binutils ld. It is latent rather than new: any two translation units in one
+target that both include epsilon.hpp will collide, so it depends on how the
+sources happen to be grouped.
+
+Signed-off-by: Wolf Vollprecht <w.vollprecht@gmail.com>
+---
+ .../gxf_isaac_gems/gxf/gems/core/epsilon.hpp                 | 5 +++--
+ 1 file changed, 3 insertions(+), 2 deletions(-)
+
+diff --git a/isaac_ros_gxf_extensions/gxf_isaac_gems/gxf/gems/core/epsilon.hpp b/isaac_ros_gxf_extensions/gxf_isaac_gems/gxf/gems/core/epsilon.hpp
+index 74d5d37..a29923d 100644
+--- a/isaac_ros_gxf_extensions/gxf_isaac_gems/gxf/gems/core/epsilon.hpp
++++ b/isaac_ros_gxf_extensions/gxf_isaac_gems/gxf/gems/core/epsilon.hpp
+@@ -32,9 +32,10 @@ namespace isaac {
+ template <typename K>
+ constexpr K MachineEpsilon = K(0);
+ template <>
+-constexpr float MachineEpsilon<float> = 5.9604644775390625e-8f;
++inline constexpr float MachineEpsilon<float> = 5.9604644775390625e-8f;
+ template <>
+-constexpr double MachineEpsilon<double> = 1.1102230246251565404236316680908203125e-16;
++inline constexpr double MachineEpsilon<double> =
++    1.1102230246251565404236316680908203125e-16;
+ 
+ // Returns true if a floating point value can be considered to be zero under floating point
+ // rounding errors. This function compares against a custom epsilon.
+-- 
+2.55.0
+

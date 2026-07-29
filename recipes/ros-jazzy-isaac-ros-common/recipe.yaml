@@ -1,0 +1,93 @@
+schema_version: 1
+
+# isaac_ros_common, built FROM SOURCE.
+#
+# Small package -- two translation units and a pile of CMake helpers -- but it sits
+# under almost the whole stack, so getting it off a repack matters.
+#
+# Source-building also fixes ISSUES.md #5 for free. The repacked deb bakes an
+# absolute path into the ament resource index:
+#
+#   share/ament_index/resource_index/isaac_ros_common_cmake_path/isaac_ros_common
+#     -> /opt/ros/jazzy/share/isaac_ros_common/cmake
+#
+# which every Isaac CMakeLists include()s, and which we had to rewrite at package
+# time. Built from source, CMakeLists.txt registers it as
+# ${CMAKE_INSTALL_PREFIX}/share/isaac_ros_common/cmake, so it is simply correct.
+#
+# Licensed under the NVIDIA Isaac ROS Software License: compiling published source is
+# fine, but it may not be modified, so this recipe carries no patches. If a build fix
+# is ever needed here it has to go upstream.
+
+context:
+  version: "4.5.0"
+  tag: v4.5-0
+
+package:
+  name: ros-jazzy-isaac-ros-common
+  version: ${{ version }}
+
+source:
+  - url: https://github.com/NVIDIA-ISAAC-ROS/isaac_ros_common/archive/refs/tags/${{ tag }}.tar.gz
+    sha256: b7a2bb09bad33c3654750a412c2c902064e8256088e1b1391ecd1dbcd803d0f7
+    target_directory: src
+
+build:
+  number: 0
+  script: build.sh
+
+requirements:
+  build:
+    - ${{ compiler('c') }}
+    - ${{ compiler('cxx') }}
+    # CMakeLists.txt calls enable_language(CUDA) at line 24.
+    - ${{ compiler('cuda') }}
+    - cmake
+    - ninja
+    - pkg-config
+  host:
+    # The version_info.yaml generator (isaac_ros_common-version-info.cmake) runs a
+    # Python script that imports yaml.
+    - python
+    - pyyaml
+    - ros-jazzy-ament-cmake-auto
+    - ros-jazzy-rclcpp
+    - vpi
+    - cuda-version 13.*
+    - cuda-cudart-dev
+    - cuda-nvtx-dev
+  run:
+    - __glibc >=2.38
+    - ros-jazzy-rclcpp
+    - vpi
+
+tests:
+  - package_contents:
+      files:
+        - share/isaac_ros_common/package.xml
+        - share/isaac_ros_common/cmake/isaac_ros_common-extras.cmake
+        - share/isaac_ros_common/cmake/isaac_ros_common-version-info.cmake
+      lib:
+        - isaac_ros_common
+
+  # The ament resource must point into this prefix, not /opt/ros/jazzy. This is the
+  # thing the repack had to rewrite by hand.
+  - script:
+      - |
+        res="${PREFIX}/share/ament_index/resource_index/isaac_ros_common_cmake_path/isaac_ros_common"
+        test -f "${res}" || { echo "FAIL: resource missing"; exit 1; }
+        got="$(cat "${res}")"
+        echo "  cmake_path = ${got}"
+        case "${got}" in
+          /opt/ros/jazzy/*) echo "FAIL: still points at /opt/ros/jazzy"; exit 1 ;;
+          "${PREFIX}"/*)    echo "PASS: resource points into the prefix" ;;
+          *)                echo "FAIL: unexpected path"; exit 1 ;;
+        esac
+        test -f "${got}/isaac_ros_common-version-info.cmake" \
+          || { echo "FAIL: cmake dir does not contain the expected file"; exit 1; }
+
+about:
+  homepage: https://github.com/NVIDIA-ISAAC-ROS/isaac_ros_common
+  summary: Common utilities and CMake infrastructure for Isaac ROS, built from source
+  license: LicenseRef-NVIDIA-Isaac-ROS
+  license_file: src/LICENSE

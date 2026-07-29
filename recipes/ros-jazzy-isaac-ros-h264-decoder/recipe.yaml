@@ -1,0 +1,133 @@
+schema_version: 1
+
+# isaac_ros_h264_decoder, built FROM SOURCE against RoboStack.
+#
+# This replaces a deb repack that had to rewrite DT_NEEDED strings inside NVIDIA's
+# libdecoder_node.so, because the shipped binary hardcodes absolute paths:
+#
+#   /usr/lib/x86_64-linux-gnu/libnvbufsurface.so
+#   /usr/lib/x86_64-linux-gnu/libnvbuf_fdmap.so
+#   /usr/lib/x86_64-linux-gnu/libnvbufsurftransform.so
+#
+# Editing bytes in a vendor binary works but is not something to carry. Building
+# from source and applying the upstream fix produces a correct binary instead of a
+# corrected one.
+#
+# The patch below is exactly the commit prepared for upstream (see
+# ../../upstream/README.md and ISSUES.md #2), so building this package also
+# build-verifies the PR. The root cause is that three nvv4l2 libraries ship with no
+# DT_SONAME, which makes the linker record the absolute path it was handed; linking
+# them by name against a search directory records a plain soname instead.
+#
+# Apache-2.0 with public source, so nothing here is a licensing question.
+
+context:
+  version: "4.5.0"
+  tag: v4.5-0
+
+package:
+  name: ros-jazzy-isaac-ros-h264-decoder
+  version: ${{ version }}
+
+source:
+  - url: https://github.com/NVIDIA-ISAAC-ROS/isaac_ros_compression/archive/refs/tags/${{ tag }}.tar.gz
+    sha256: f02bc1dfe2f210fa2cc1655ec2ac8a529805033f573a6d4959739acee427e2d9
+    target_directory: src
+    patches:
+      # Both are the commits prepared for upstream, so building this package
+      # build-verifies the PR. See ../../upstream/README.md and ISSUES.md #2.
+      - patches/0001-h264_decoder-link-the-nvbuf-libraries-by-name-so-DT_.patch
+      - patches/0002-h264_decoder-allow-NVBUF_LIB_DIR-to-be-overridden.patch
+
+build:
+  number: 0
+  script: build.sh
+
+requirements:
+  build:
+    - ${{ compiler('c') }}
+    - ${{ compiler('cxx') }}
+    # This package has no .cu sources, so nothing here needs to be *compiled* by the
+    # CUDA compiler. It is present for its activation script, which puts
+    # $PREFIX/targets/<arch>/include on CFLAGS/CXXFLAGS and exports the CMAKE_ARGS
+    # that build.sh passes to cmake. Without it, `find_package(CUDAToolkit)` falls
+    # back to its /usr/local/cuda guess and silently compiles against whatever CUDA
+    # the *host machine* has -- which is how a CUDA 12 header reached this build and
+    # produced an undefined cudaGetDeviceProperties_v2 against libcudart.so.13.
+    # check_relocatable.sh asserts that regression cannot come back. See README.md.
+    - ${{ compiler('cuda') }}
+    - cmake
+    - ninja
+    - pkg-config
+  host:
+    # Proprietary foundation, repacked from NVIDIA's debs (no source published).
+    - ros-jazzy-isaac-ros-nitros
+    - ros-jazzy-isaac-ros-nitros-image-type
+    - ros-jazzy-isaac-ros-nitros-compressed-image-type
+    - ros-jazzy-isaac-ros-common
+    - ros-jazzy-isaac-ros-image-proc
+    - ros-jazzy-negotiated
+    # NVDEC. nvv4l2 has no public source, so it stays a repack; libv4l is OSS and
+    # repacked from Ubuntu only because conda-forge has no v4l package yet.
+    - nvv4l2
+    - libv4l
+    - vpi
+    # RoboStack
+    - ros-jazzy-ament-cmake-auto
+    - ros-jazzy-rclcpp
+    - ros-jazzy-rclcpp-components
+    - ros-jazzy-image-transport
+    - ros-jazzy-image-geometry
+    - ros-jazzy-cv-bridge
+    - ros-jazzy-message-filters
+    - ros-jazzy-sensor-msgs
+    - ros-jazzy-sensor-msgs-py
+    # Match RoboStack's cv_bridge pin, as isaac_ros_image_proc does -- two OpenCVs
+    # sharing the cv:: namespace in one process is the hazard to avoid.
+    - libopencv 4.13.*
+    # Compiled against directly: isaac_ros_gxf's gxf/core/expected_macro.hpp does
+    # #include "magic_enum.hpp". It also arrives transitively as a run dep of
+    # ros-jazzy-isaac-ros-gxf, but relying on that is what made this break invisible --
+    # declare it, and see build.sh for why the include dir needs stating too.
+    - magic_enum
+    - cuda-version 13.*
+    - cuda-cudart-dev
+    - cuda-nvtx-dev
+  run:
+    - __glibc >=2.38
+    - ros-jazzy-isaac-ros-nitros
+    - ros-jazzy-isaac-ros-nitros-image-type
+    - ros-jazzy-isaac-ros-nitros-compressed-image-type
+    - ros-jazzy-isaac-ros-common
+    - ros-jazzy-rclcpp
+    - ros-jazzy-rclcpp-components
+    - nvv4l2
+    - libv4l
+    - vpi
+
+tests:
+  - package_contents:
+      files:
+        - share/isaac_ros_h264_decoder/package.xml
+        - lib/libdecoder_node.so
+        - share/ament_index/resource_index/rclcpp_components/isaac_ros_h264_decoder
+
+  # The whole point of building from source: DT_NEEDED must contain no absolute
+  # paths, without anyone editing the binary afterwards.
+  - script:
+      - bash check_relocatable.sh
+    requirements:
+      run:
+        - patchelf
+    files:
+      recipe:
+        - check_relocatable.sh
+
+about:
+  homepage: https://github.com/NVIDIA-ISAAC-ROS/isaac_ros_compression
+  summary: NVDEC-accelerated H.264 decoder for ROS 2, built from source
+  description: |
+    Hardware H.264 decoding via NVDEC, built from source with the upstream fix for
+    absolute DT_NEEDED entries applied so the node can load from any prefix.
+  license: Apache-2.0
+  license_file: src/LICENSE

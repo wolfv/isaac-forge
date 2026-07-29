@@ -1,0 +1,37 @@
+[workspace]
+name = "isaac-forge"
+description = "Isaac ROS 4.5 packaged on top of the RoboStack conda ecosystem"
+channels = ["conda-forge"]
+platforms = ["linux-64"]
+
+# ---------------------------------------------------------------------------
+# Development / build environment.
+#
+# This workspace builds the packages; it is not the runtime environment.
+# Layer 0 (vendored NVIDIA binaries) is built with rattler-build from
+# `recipes/`. Layer 2 (the Isaac ROS packages themselves) is built from source
+# with pixi-build-ros against robostack-jazzy — see `ws/pixi.toml`.
+# ---------------------------------------------------------------------------
+
+[dependencies]
+rattler-build = ">=0.58.2"
+python = ">=3.12"
+git = "*"
+git-lfs = "*"
+libarchive = "*"   # bsdtar, reads .deb directly
+
+# -m variants.yaml pins cuda_compiler/cuda_compiler_version. rattler-build only
+# auto-discovers a variants.yaml next to a recipe, not a shared one, so it has to be
+# passed explicitly. Leaving it off does not silently pick a different CUDA -- it fails
+# to resolve `cuda_linux-64`, which is the intended loud failure. See variants.yaml.
+[tasks.layer0]
+description = "Build all Layer 0 vendored-NVIDIA-binary packages"
+cmd = "rattler-build build --recipe-dir recipes --output-dir output -m variants.yaml"
+
+[tasks.vpi]
+description = "Build just the VPI package"
+cmd = "rattler-build build --recipe recipes/vpi/recipe.yaml --output-dir output -m variants.yaml"
+
+[tasks.inventory]
+description = "Regenerate packages.json from the cloned sources in src/"
+cmd = "python scripts/inventory.py"

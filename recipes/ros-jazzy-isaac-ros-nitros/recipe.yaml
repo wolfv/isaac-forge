@@ -1,0 +1,134 @@
+schema_version: 1
+
+# isaac_ros_nitros: library compiled FROM SOURCE, vendored blobs taken from the deb.
+#
+# NITROS is the foundation of the whole stack, so getting libisaac_ros_nitros.so off a
+# repack is the single biggest win available. But it cannot be a pure source build,
+# for a reason worth spelling out:
+#
+# CMakeLists.txt registers three ament resources pointing at prebuilt SDKs vendored
+# into the repo --
+#
+#   ament_index_register_resource(cuvslam     CONTENT share/isaac_ros_nitros/cuvslam)
+#   ament_index_register_resource(cuapriltags CONTENT share/isaac_ros_nitros/cuapriltags)
+#   ament_index_register_resource(cumotion    CONTENT share/isaac_ros_nitros/cumotion)
+#
+# -- and those are git-lfs objects. A GitHub release tarball contains LFS *pointers*,
+# not content: libcuvslam.so arrives as 132 bytes of text reading
+#
+#   version https://git-lfs.github.com/spec/v1
+#   oid sha256:d870759dc6d78b9fe55dbb842cac3b6cd6d804bde04dd8b546b5f2c466834f5e
+#   size 876726
+#
+# Installing that would leave text files where libraries belong and break cuVSLAM,
+# cuAprilTags and cuMotion in a way that only shows up at runtime.
+#
+# So: compile the library from the tarball, then overlay the three blob directories
+# from the official deb. Nothing is lost by doing so -- cuVSLAM and cuMotion have no
+# published source at all, they are part of the irreducible binary floor either way.
+# What we gain is that libisaac_ros_nitros.so itself is built against RoboStack rather
+# than dropped in from Ubuntu.
+#
+# Licensed under the NVIDIA Isaac ROS Software License: source may be compiled but not
+# modified, so this recipe carries no patches.
+
+context:
+  version: "4.5.0"
+  tag: v4.5-0
+  deb: https://isaac.download.nvidia.com/isaac-ros/release-4/pool/main/r/ros-jazzy-isaac-ros-nitros/ros-jazzy-isaac-ros-nitros_4.5.0-0noble.20260706155832051_amd64.deb
+
+package:
+  name: ros-jazzy-isaac-ros-nitros
+  version: ${{ version }}
+
+source:
+  - url: https://github.com/NVIDIA-ISAAC-ROS/isaac_ros_nitros/archive/refs/tags/${{ tag }}.tar.gz
+    sha256: a8814fd02843a1098d00173671f03115b3b3575aabb078be371a7f977ad1e5c2
+    target_directory: src
+  # Only for the git-lfs blobs the tarball cannot carry.
+  - url: ${{ deb }}
+    file_name: nitros.deb
+    sha256: 404eea642a9af0443e527f0442fa67c9c062d733f460f7979c5b16ca046b3723
+
+build:
+  number: 0
+  script: build.sh
+  dynamic_linking:
+    missing_dso_allowlist:
+      # GXF extensions live in sibling packages' share/ trees; cuVSLAM and friends
+      # are dlopen'd or resolved via the ament index.
+      - libgxf_*.so
+      - libcuvslam.so
+      - libcumotion.so*
+      - libnvvpi.so.*
+
+requirements:
+  build:
+    - ${{ compiler('c') }}
+    - ${{ compiler('cxx') }}
+    - ${{ compiler('cuda') }}
+    - cmake
+    - ninja
+    - pkg-config
+    - libarchive          # bsdtar, to lift the blobs out of the deb
+  host:
+    - python
+    - pyyaml
+    - ros-jazzy-ament-cmake-auto
+    - ros-jazzy-ament-index-cpp
+    - ros-jazzy-rclcpp
+    - ros-jazzy-rclcpp-components
+    - ros-jazzy-std-msgs
+    - ros-jazzy-diagnostic-msgs
+    - ros-jazzy-negotiated
+    # Source-built now.
+    - ros-jazzy-isaac-ros-common
+    # Blob-only: GXF core and the extensions NVIDIA publishes no source for.
+    - ros-jazzy-isaac-ros-gxf
+    - ros-jazzy-gxf-isaac-optimizer
+    - ros-jazzy-gxf-isaac-message-compositor
+    - ros-jazzy-gxf-isaac-gxf-helpers
+    - ros-jazzy-gxf-isaac-sight
+    - ros-jazzy-gxf-isaac-atlas
+    - vpi
+    # NITROS does find_package(Eigen3 3.3 REQUIRED NO_MODULE); conda-forge's eigen is
+    # at 5.x, whose config rejects a 3.3 request on the major-version bump.
+    - eigen 3.4.*
+    - yaml-cpp
+    - cuda-version 13.*
+    - cuda-cudart-dev
+    - cuda-nvtx-dev
+  run:
+    - __glibc >=2.38
+    - ros-jazzy-rclcpp
+    - ros-jazzy-rclcpp-components
+    - ros-jazzy-ament-index-cpp
+    - ros-jazzy-negotiated
+    - ros-jazzy-isaac-ros-common
+    - ros-jazzy-isaac-ros-gxf
+    - ros-jazzy-gxf-isaac-optimizer
+    - ros-jazzy-gxf-isaac-message-compositor
+    - ros-jazzy-gxf-isaac-gxf-helpers
+    - ros-jazzy-gxf-isaac-sight
+    - ros-jazzy-gxf-isaac-atlas
+    - vpi
+
+tests:
+  - package_contents:
+      files:
+        - share/isaac_ros_nitros/package.xml
+      lib:
+        - isaac_ros_nitros
+
+  # The failure this recipe exists to avoid: LFS pointers installed as libraries.
+  - script:
+      - bash check_blobs.sh
+    files:
+      recipe:
+        - check_blobs.sh
+
+about:
+  homepage: https://github.com/NVIDIA-ISAAC-ROS/isaac_ros_nitros
+  summary: NVIDIA Isaac Transport for ROS (NITROS), library built from source
+  license: LicenseRef-NVIDIA-Isaac-ROS
+  license_file: src/LICENSE

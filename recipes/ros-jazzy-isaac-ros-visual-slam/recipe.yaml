@@ -1,0 +1,137 @@
+schema_version: 1
+
+# isaac_ros_visual_slam, built FROM SOURCE against RoboStack.
+#
+# This is the one package in the demo closure that is not repacked, and the reason
+# is Boost. NVIDIA's deb links libboost_thread.so.1.83.0 / libboost_chrono.so.1.83.0
+# (Ubuntu noble), while robostack-jazzy resolves Boost 1.84+ -- and pinning
+# libboost=1.83 cannot solve, because RoboStack's ros2-distro-mutex constrains
+# libboost 1.84.*. Repacked, the node only loaded because Fedora happened to ship
+# 1.83 in /lib64, which is host leakage rather than a working package.
+#
+# Building from source removes the mismatch entirely: the wrapper is compiled
+# against whatever Boost RoboStack provides. It is cheap to do because the package
+# is Apache-2.0 with real source (10 .cpp) and cuVSLAM itself enters as a prebuilt
+# imported .so from ros-jazzy-isaac-ros-nitros -- we are not rebuilding SLAM, just
+# the thin ROS node around it.
+#
+# See FINDINGS.md sections 5 and 6: this is the concrete case for the hybrid
+# repack-the-foundation / source-build-the-Apache-layer split.
+
+context:
+  version: "4.5.0"
+  tag: v4.5-0
+
+package:
+  name: ros-jazzy-isaac-ros-visual-slam
+  version: ${{ version }}
+
+source:
+  # Release tarball rather than a git clone: sha256-pinned, no git or git-lfs
+  # needed in the build environment, and the repo's LFS test rosbags (600 MB)
+  # are not part of the archive.
+  - url: https://github.com/NVIDIA-ISAAC-ROS/isaac_ros_visual_slam/archive/refs/tags/${{ tag }}.tar.gz
+    sha256: 8708fb6b016138483d24e785fa8549243839fe312d63786df2bba8840b5703f9
+    target_directory: src
+
+build:
+  number: 0
+  script: build.sh
+
+requirements:
+  build:
+    - ${{ compiler('c') }}
+    - ${{ compiler('cxx') }}
+    # Nothing here is compiled by nvcc: this package has no .cu sources. CMakeLists.txt
+    # only calls find_package(CUDAToolkit) for headers and libraries, and cuVSLAM
+    # arrives as a prebuilt .so. The CUDA compiler is in build: for its activation
+    # script, which puts $PREFIX/targets/<arch>/include on CXXFLAGS and exports the
+    # CMAKE_ARGS that build.sh passes to cmake. Without it, FindCUDAToolkit falls back
+    # to its /usr/local/cuda guess and compiles against the host machine's CUDA.
+    - ${{ compiler('cuda') }}
+    - cmake
+    - ninja
+    - pkg-config
+    - patchelf
+  host:
+    # The proprietary foundation, repacked from NVIDIA's debs.
+    - ros-jazzy-isaac-ros-nitros              # also supplies cuVSLAM + its headers
+    - ros-jazzy-isaac-ros-nitros-image-type
+    - ros-jazzy-isaac-ros-managed-nitros
+    - ros-jazzy-isaac-ros-common
+    - ros-jazzy-isaac-common
+    - ros-jazzy-isaac-ros-image-proc
+    - ros-jazzy-isaac-ros-visual-slam-interfaces
+    - ros-jazzy-negotiated
+    # RoboStack
+    - ros-jazzy-ament-cmake-auto
+    - ros-jazzy-rclcpp
+    - ros-jazzy-rclcpp-components
+    - ros-jazzy-cv-bridge
+    - ros-jazzy-message-filters
+    - ros-jazzy-tf2-ros
+    - ros-jazzy-tf2-msgs
+    - ros-jazzy-tf2-geometry-msgs
+    - ros-jazzy-nav-msgs
+    - ros-jazzy-sensor-msgs
+    - ros-jazzy-geometry-msgs
+    - ros-jazzy-diagnostic-msgs
+    - ros-jazzy-visualization-msgs
+    # foxglove_bridge is <exec_depend> only in package.xml -- used by the launch
+    # files for visualisation, never linked. Keeping it out of host also avoids a
+    # protobuf conflict with the OpenCV that cv_bridge pins.
+    # conda-forge. Whatever Boost RoboStack pins, we compile against it -- which is
+    # the entire point of building this one from source.
+    - libboost-devel
+    - eigen
+    - cuda-version 13.*
+    - cuda-cudart-dev
+    # isaac_ros_nitros/types/type_utility.hpp includes nvtx3/nvToolsExt.h.
+    - cuda-nvtx-dev
+  run:
+    - __glibc >=2.38
+    # libcuvslam.so NEEDs libcusolver.so.12 and libcublas.so.13. It ships inside
+    # ros-jazzy-isaac-ros-nitros, but only this package links against it, so the
+    # CUDA math libraries are declared here.
+    - libcusolver
+    - libcublas
+    - ros-jazzy-isaac-ros-nitros
+    - ros-jazzy-isaac-ros-nitros-image-type
+    - ros-jazzy-isaac-ros-managed-nitros
+    - ros-jazzy-isaac-ros-common
+    - ros-jazzy-isaac-common
+    - ros-jazzy-isaac-ros-visual-slam-interfaces
+    - ros-jazzy-rclcpp
+    - ros-jazzy-rclcpp-components
+    - ros-jazzy-tf2-ros
+    - ros-jazzy-nav-msgs
+    - ros-jazzy-sensor-msgs
+    - ros-jazzy-visualization-msgs
+
+tests:
+  - package_contents:
+      files:
+        - share/isaac_ros_visual_slam/package.xml
+        - lib/libvisual_slam_node.so
+        # The composable-node registration pluginlib reads.
+        - share/ament_index/resource_index/rclcpp_components/isaac_ros_visual_slam
+
+  # The point of building from source: no leaked host Boost. Assert that the
+  # node's Boost dependencies resolve inside the prefix.
+  - script:
+      - bash check_boost.sh
+    files:
+      recipe:
+        - check_boost.sh
+
+about:
+  homepage: https://github.com/NVIDIA-ISAAC-ROS/isaac_ros_visual_slam
+  summary: Visual SLAM/odometry based on NVIDIA-accelerated cuVSLAM
+  description: |
+    ROS 2 wrapper around NVIDIA's cuVSLAM library, built from source so that it
+    links the Boost provided by RoboStack rather than Ubuntu's 1.83.
+
+    cuVSLAM itself is a prebuilt NVIDIA binary supplied by
+    ros-jazzy-isaac-ros-nitros and is not rebuilt here.
+  license: Apache-2.0
+  license_file: src/LICENSE

@@ -350,7 +350,14 @@ PATCHES = {
     # target with two TUs including it. Breaks
     # isaac_ros_nitros_detection3_d_array_type at link time under GCC 15.
     # Apache-2.0, so ours to fix; see ISSUES.md and upstream/README.md.
-    "ros-jazzy-gxf-isaac-gems": ["patches/0001-epsilon-odr-inline.patch"],
+    # 0002: find_package(Eigen3 3.3 REQUIRED NO_MODULE) reads as a floor and, in config
+    # mode, acts as an upper bound too -- Eigen's SameMajorVersion rule makes eigen 5
+    # *reject* a "3.3" request. NO_MODULE forces config mode, so eigen3_cmake_module's
+    # module-mode FindEigen3.cmake cannot rescue this one the way it can elsewhere. The
+    # target is INTERFACE and compiles nothing, so no Eigen version reaches a binary here;
+    # the floor only stops it configuring. Same over-constraint as ISSUES.md #13.
+    "ros-jazzy-gxf-isaac-gems": ["patches/0001-epsilon-odr-inline.patch",
+                                 "patches/0002-drop-eigen-3.3-version-floor.patch"],
     # test_utils.py raises at module scope when ISAAC_ROS_WS is unset, and __init__.py
     # re-exports it, so importing the package fails in any environment that does not
     # export that variable -- which is every conda environment. Apache-2.0, ours to fix;

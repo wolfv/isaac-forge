@@ -1,0 +1,116 @@
+From f09a5e83c705bb25e4e2f054c50264326b10bdd9 Mon Sep 17 00:00:00 2001
+From: Wolf Vollprecht <w.vollprecht@gmail.com>
+Date: Wed, 29 Jul 2026 13:21:02 +0200
+Subject: [PATCH] isaac_ros_common: use FindCUDAToolkit instead of the removed
+ FindCUDA module
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+isaac_ros_common-extras.cmake calls find_package(CUDA), the module CMake
+deprecated in 3.10 and removed in 4.0. To keep it working the file resurrects it
+by forcing a deprecated policy to OLD:
+
+    # The FindCUDA module is removed
+    if(POLICY CMP0146)
+      cmake_policy(SET CMP0146 OLD)
+    endif()
+
+CMake already warns that this is on borrowed time:
+
+    CMake Warning (deprecated) at isaac_ros_common-extras.cmake:23 (cmake_policy):
+      The OLD behavior for policy CMP0146 will be removed from a future version
+      of CMake.
+
+When that removal lands, every Isaac ROS package fails to configure, because
+this file is included by isaac_ros_commonConfig.cmake and therefore runs for any
+package that calls ament_auto_find_build_dependencies().
+
+There is a second, present-day consequence. FindCUDA locates the toolkit through
+CUDA_TOOLKIT_ROOT_DIR and expects a monolithic layout, so it cannot discover a
+CUDA toolkit installed as separate components:
+
+    CMake Error at cmake-4.4/Modules/FindCUDA.cmake:883 (message):
+      Specify CUDA_TOOLKIT_ROOT_DIR
+    Call Stack (most recent call first):
+      isaac_ros_common-extras.cmake:39 (find_package)
+
+On a host that happens to have /usr/local/cuda, FindCUDA silently picks that up
+instead — including when it is a different CUDA major version than the one the
+build was configured against. That failure is invisible until a CUDA symbol does
+not resolve at dlopen time.
+
+FindCUDAToolkit, added in CMake 3.17, handles both: it discovers component-based
+installations and honours CMAKE_FIND_ROOT_PATH and CMAKE_PREFIX_PATH, so it
+resolves against the toolkit the build was actually pointed at.
+
+This swaps the module and its two variables, which are otherwise equivalent:
+
+    CUDA_INCLUDE_DIRS -> CUDAToolkit_INCLUDE_DIRS
+    CUDA_VERSION      -> CUDAToolkit_VERSION
+
+and drops the CMP0146 block, which exists only to keep FindCUDA alive.
+
+Tested by building isaac_ros_common and the packages that consume these extras
+against a component-based CUDA 13.3 toolkit, where find_package(CUDA) fails.
+
+Note, not changed here to keep this diff to one concern: CUDA_MIN_VERSION is set
+to "11.4" on the line above but never passed to find_package, so no minimum is
+actually enforced. Happy to follow up separately.
+
+Signed-off-by: Wolf Vollprecht <w.vollprecht@gmail.com>
+---
+ .../cmake/isaac_ros_common-extras.cmake           | 15 +++++----------
+ 1 file changed, 5 insertions(+), 10 deletions(-)
+
+diff --git a/isaac_ros_common/cmake/isaac_ros_common-extras.cmake b/isaac_ros_common/cmake/isaac_ros_common-extras.cmake
+index 37cc62b..8ea4ccd 100644
+--- a/isaac_ros_common/cmake/isaac_ros_common-extras.cmake
++++ b/isaac_ros_common/cmake/isaac_ros_common-extras.cmake
+@@ -18,11 +18,6 @@
+ # Common flags and cmake commands for all Isaac ROS packages.
+ message(STATUS "Loading isaac_ros_common extras")
+ 
+-# The FindCUDA module is removed
+-if(POLICY CMP0146)
+-  cmake_policy(SET CMP0146 OLD)
+-endif()
+-
+ # Default to C++17
+ if(NOT CMAKE_CXX_STANDARD)
+   set(CMAKE_CXX_STANDARD 17)
+@@ -36,8 +31,8 @@ message( STATUS "CMAKE_BUILD_TYPE: ${CMAKE_BUILD_TYPE}" )
+ 
+ # for #include <cuda_runtime.h>
+ set(CUDA_MIN_VERSION "11.4")
+-find_package(CUDA REQUIRED)
+-include_directories("${CUDA_INCLUDE_DIRS}")
++find_package(CUDAToolkit REQUIRED)
++include_directories("${CUDAToolkit_INCLUDE_DIRS}")
+ 
+ # CUDA 13 CCCL migration: ensure host compiler can find <cuda/std/...>, <thrust/...>, <cub/...>
+ # Prefer linking the CCCL CMake target when available; otherwise add CTK's cccl include path.
+@@ -45,7 +40,7 @@ find_package(CCCL CONFIG QUIET)
+ if(TARGET CCCL::CCCL)
+   link_libraries(CCCL::CCCL)
+ else()
+-  include_directories("${CUDA_INCLUDE_DIRS}/cccl")
++  include_directories("${CUDAToolkit_INCLUDE_DIRS}/cccl")
+ endif()
+ 
+ # Setup cuda architectures
+@@ -55,9 +50,9 @@ endif()
+ if(NOT DEFINED CMAKE_CUDA_ARCHITECTURES)
+   if(${CMAKE_SYSTEM_PROCESSOR} STREQUAL "aarch64")
+     set(CMAKE_CUDA_ARCHITECTURES "87;110;120")
+-  elseif(${CUDA_VERSION} GREATER_EQUAL 13.0)
++  elseif(${CUDAToolkit_VERSION} GREATER_EQUAL 13.0)
+     set(CMAKE_CUDA_ARCHITECTURES "120;100;89;86;80;75")
+-  elseif(${CUDA_VERSION} GREATER_EQUAL 11.8)
++  elseif(${CUDAToolkit_VERSION} GREATER_EQUAL 11.8)
+     set(CMAKE_CUDA_ARCHITECTURES "89;86;80;75;70")
+   else()
+     set(CMAKE_CUDA_ARCHITECTURES "86;80;75;70")
+-- 
+2.55.0
+

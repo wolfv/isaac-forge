@@ -14,6 +14,7 @@ See [`PR_LINKS.md`](PR_LINKS.md) for the compare URLs.
 | `isaac_ros_nitros` | `fix/epsilon-odr-inline` | #10 | `inline` on the `MachineEpsilon` specializations | **verified** — unblocks `nitros_detection3_d_array_type`, which would not link without it |
 | `isaac_ros_nova` | `fix/license-tag-stray-quotes` | #4a | strip quotes from a `<license>` tag | trivial, no build impact |
 | `ros2/launch` (jazzy) | `backport/pycollect-makemodule-pytest8` | #9 | backport the pytest 8 hook signature from rolling | **verified** — reproduced with pytest 9.1.1 |
+| `isaac_ros_common` | `fix/findcudatoolkit` | #12 | `find_package(CUDA)` → `find_package(CUDAToolkit)`, drop the `CMP0146 OLD` block | **verified** — `isaac_ros_common` and `gxf_isaac_gems` both build against a component-based CUDA 13.3 toolkit, where `find_package(CUDA)` fails with `Specify CUDA_TOOLKIT_ROOT_DIR` |
 
 ## Not prepared, deliberately
 
@@ -27,7 +28,11 @@ See [`PR_LINKS.md`](PR_LINKS.md) for the compare URLs.
   the per-file Apache-2.0 `third_party/cmake/*.cmake` are modifiable, and switching
   those five URLs to public mirrors needs hashes we cannot verify without risking their
   build. Report, don't patch.
-- **#5** — `isaac_ros_common` is proprietary. NVIDIA's pen.
+- **#5** — the ament-index path is in `isaac_ros_common`'s CMake install rules, which
+  carry no per-file Apache header. NVIDIA's pen. Note this is narrower than it first
+  looked: the package *declares* the Isaac ROS license, but two of its four `.cmake`
+  files carry their own `SPDX-License-Identifier: Apache-2.0`, which is what made #12
+  patchable. Check the file header, not just `package.xml`.
 - **#6** — turned out not to be an upstream bug at all. Building `osrf/negotiated` from
   source installs `libnegotiated.so` into plain `lib/`; the multiarch subdirectory comes
   from NVIDIA's deb build configuration. Nothing to send to OSRF.

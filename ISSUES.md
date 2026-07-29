@@ -28,10 +28,11 @@ sign-off. We are happy to send the PRs.
 | 5 | Absolute `/opt/ros/jazzy` in the ament index | `isaac_ros_common` | NVIDIA Isaac ROS Software License (no modification) | **NVIDIA only** |
 | 6 | `negotiated` deb uses a multiarch subdir | your deb build config | n/a | **NVIDIA** (not an upstream bug — see below) |
 | 9 | `launch_testing` pytest 8 hook signature | `ros2/launch` (jazzy branch) | **Apache-2.0** (not NVIDIA's) | **us — PR prepared, backport from rolling** |
-| 10 | Every `v4.x` GXF tag points at 3.2-era source | `NVIDIA-ISAAC-ROS/gxf` tags | n/a — tagging, then a source release | **NVIDIA only** |
+| 11 | Every `v4.x` GXF tag points at 3.2-era source | `NVIDIA-ISAAC-ROS/gxf` tags | n/a — tagging, then a source release | **NVIDIA only** |
+| 12 | `isaac_ros_common` uses CMake's removed `FindCUDA`, picking up host CUDA | `isaac_ros_common/cmake/isaac_ros_common-extras.cmake:22,39` | **Apache-2.0** (per-file header) | **us — PR prepared** |
 
-Only #4b, #5 and #10 need NVIDIA to hold the pen — #4b because the intended license is
-genuinely ambiguous from outside and we will not guess at it, and #10 because it is a
+Only #4b, #5 and #11 need NVIDIA to hold the pen — #4b because the intended license is
+genuinely ambiguous from outside and we will not guess at it, and #11 because it is a
 tagging and source-release decision in your repo. Item 2 has both a consumer-side fix we
 can PR today and a cleaner root-cause fix only NVIDIA can make.
 
@@ -324,7 +325,7 @@ considerably. Is that on the roadmap, or is the Apache-2.0 tag on the wrapper on
 
 ---
 
-## 10. Every `v4.x` tag on the public GXF repo points at 3.2-era source
+## 11. Every `v4.x` tag on the public GXF repo points at 3.2-era source
 
 **Severity:** this is the single thing keeping the largest binary package in our
 prebuilt floor. Unlike #8, the source here *is* published — it is just four minor
@@ -390,6 +391,93 @@ third-party dependency fetches are fine. 15 of the 16 modules in
 `find_package` directly without fetching. The only build-config friction is that
 `CMakePresets.json` offers no CUDA 13 preset — the newest is `x86_64_cuda_12_2`, for a
 stack that is CUDA 13 throughout (see #7).
+
+---
+
+## 12. `isaac_ros_common` resurrects CMake's removed `FindCUDA`, and silently adopts the build machine's CUDA
+
+**Severity:** breaks every Isaac ROS package on a machine without `/usr/local/cuda`, and
+on machines that have one, quietly compiles against it instead of the toolkit the build
+was configured with. This one bit us for real — see the note at the end.
+
+`isaac_ros_common/cmake/isaac_ros_common-extras.cmake` does:
+
+```cmake
+# The FindCUDA module is removed
+if(POLICY CMP0146)
+  cmake_policy(SET CMP0146 OLD)
+endif()
+...
+find_package(CUDA REQUIRED)
+include_directories("${CUDA_INCLUDE_DIRS}")
+```
+
+`FindCUDA` was deprecated in CMake 3.10 and **removed in CMake 4.0**. The comment is
+accurate about that, and the file keeps it alive by forcing a deprecated policy to `OLD`.
+CMake already warns this will stop working:
+
+```
+CMake Warning (deprecated) at isaac_ros_common-extras.cmake:23 (cmake_policy):
+  The OLD behavior for policy CMP0146 will be removed from a future version of CMake.
+```
+
+This file is included by `isaac_ros_commonConfig.cmake`, so it runs for **every** package
+that calls `ament_auto_find_build_dependencies()`. When `CMP0146` goes, the whole stack
+stops configuring at once.
+
+### The present-day problem
+
+`FindCUDA` finds the toolkit through `CUDA_TOOLKIT_ROOT_DIR` and expects a monolithic
+layout. Against a component-based CUDA installation it simply fails:
+
+```
+CMake Error at cmake-4.4/Modules/FindCUDA.cmake:883 (message):
+  Specify CUDA_TOOLKIT_ROOT_DIR
+Call Stack (most recent call first):
+  isaac_ros_common-extras.cmake:39 (find_package)
+  isaac_ros_commonConfig.cmake:41 (include)
+  ament_auto_find_build_dependencies.cmake:67 (find_package)
+```
+
+Worse is the case where it *succeeds*. On any machine with `/usr/local/cuda`, `FindCUDA`
+picks that up with no diagnostic — **even when it is a different CUDA major version than
+the build was configured against**. We shipped a package that referenced
+`cudaGetDeviceProperties_v2` because a CUDA 12.9 header at `/usr/local/cuda` reached a
+CUDA 13 build this way. CUDA 12's `cuda_runtime_api.h` aliases
+`cudaGetDeviceProperties` to the `_v2` name; CUDA 13 dropped the alias, so
+`libcudart.so.13` does not export it and the node failed at `dlopen` with an undefined
+symbol. Nothing about the build looked wrong.
+
+### Fix, PR ready
+
+Use `FindCUDAToolkit` (CMake 3.17+), which discovers component-based installations and
+honours `CMAKE_FIND_ROOT_PATH` / `CMAKE_PREFIX_PATH`:
+
+```
+find_package(CUDA REQUIRED)  ->  find_package(CUDAToolkit REQUIRED)
+CUDA_INCLUDE_DIRS            ->  CUDAToolkit_INCLUDE_DIRS
+CUDA_VERSION                 ->  CUDAToolkit_VERSION
+```
+
+and delete the `CMP0146` block, which exists only to keep `FindCUDA` alive. That is the
+whole change: 5 insertions, 10 deletions. Prepared as
+`upstream/isaac_ros_common` branch `fix/findcudatoolkit`, DCO signed off, and verified by
+building `isaac_ros_common` plus its consumers against a component-based CUDA 13.3
+toolkit where `find_package(CUDA)` fails outright.
+
+This file carries its own `SPDX-License-Identifier: Apache-2.0` header — two of the four
+`.cmake` files in the package do — so unlike #5 it is modifiable, and we can send the PR.
+
+### One consequence worth knowing when you review it
+
+Fixing the discovery exposes a second thing that the host-CUDA fallback was masking.
+Because these extras call `find_package(CUDAToolkit REQUIRED)` unconditionally, a package
+needs a CUDA toolkit at configure time **even if it uses no CUDA at all**.
+`gxf_isaac_gems` is the clearest example: header-only, no CUDA anywhere in its own
+`CMakeLists.txt`, and it still cannot configure without `cudart`. That is arguably fine as
+a design choice, but it is undocumented, and it means "depends on `isaac_ros_common`"
+silently implies "depends on the CUDA toolkit". Making the CUDA requirement conditional,
+or documenting it, would help anyone packaging this stack.
 
 ---
 

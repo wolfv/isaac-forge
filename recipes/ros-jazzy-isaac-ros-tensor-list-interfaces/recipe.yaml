@@ -47,6 +47,7 @@ requirements:
   build:
     - ${{ compiler('c') }}
     - ${{ compiler('cxx') }}
+    - ${{ compiler('cuda') }}
     - cmake
     - ninja
     - pkg-config
@@ -58,6 +59,11 @@ requirements:
     - ros-jazzy-std-msgs
     - python
     - pyyaml
+    # isaac_ros_common-extras.cmake calls find_package(CUDAToolkit REQUIRED)
+    # for every consumer, so a CUDA toolkit is needed even where this package
+    # uses no CUDA of its own.
+    - cuda-version 13.*
+    - cuda-cudart-dev
   run:
     - __glibc >=2.38
     - ros-jazzy-isaac-ros-common

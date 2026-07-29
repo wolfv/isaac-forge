@@ -31,3 +31,7 @@ https://github.com/NVIDIA-ISAAC-ROS/isaac_ros_nova/compare/main...wolfv:isaac_ro
 **launch_testing: backport pytest 8 pycollect_makemodule signature**
 
 https://github.com/ros2/launch/compare/jazzy...wolfv:launch:backport/pycollect-makemodule-pytest8?expand=1
+
+## #12 — isaac_ros_common: FindCUDAToolkit instead of the removed FindCUDA
+
+https://github.com/NVIDIA-ISAAC-ROS/isaac_ros_common/compare/main...wolfv:isaac_ros_common:fix/findcudatoolkit

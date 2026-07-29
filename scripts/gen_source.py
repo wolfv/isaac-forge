@@ -163,6 +163,19 @@ def detect(cml: str, pkgxml: str, path: str) -> set[str]:
         traits.add("opencv")
     if re.search(r"find_package\(\s*cvcuda|nvcv", cml):
         traits.add("cvcuda")
+    # Depending on isaac_ros_common means needing a CUDA toolkit at configure time even
+    # if this package never touches CUDA itself. isaac_ros_commonConfig.cmake includes
+    # isaac_ros_common-extras.cmake, which calls find_package(CUDAToolkit REQUIRED)
+    # unconditionally, so it runs for every consumer. gxf_isaac_gems is the clearest
+    # case: header-only, no CUDA anywhere in its own CMakeLists, and it still cannot
+    # configure without cudart.
+    #
+    # This was invisible for a long time because the unpatched extras used the removed
+    # FindCUDA module, which silently resolved against the build machine's
+    # /usr/local/cuda. Once that is fixed to look inside the prefix, the missing
+    # declaration turns into a hard `missing: CUDA_CUDART` error.
+    if re.search(r"isaac_ros_common", cml) or "isaac_ros_common" in pkgxml:
+        traits.add("cuda")
     return traits
 
 

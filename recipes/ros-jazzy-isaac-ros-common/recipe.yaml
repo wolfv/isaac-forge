@@ -15,9 +15,11 @@ schema_version: 1
 # time. Built from source, CMakeLists.txt registers it as
 # ${CMAKE_INSTALL_PREFIX}/share/isaac_ros_common/cmake, so it is simply correct.
 #
-# Licensed under the NVIDIA Isaac ROS Software License: compiling published source is
-# fine, but it may not be modified, so this recipe carries no patches. If a build fix
-# is ever needed here it has to go upstream.
+# The package declares the NVIDIA Isaac ROS Software License, but the file patched
+# below carries its own `SPDX-License-Identifier: Apache-2.0` header -- two of the four
+# .cmake files here do. The patch is therefore to Apache-2.0 code and is the commit
+# prepared for upstream, so building this package also build-verifies the PR. See
+# ../../upstream/README.md and ISSUES.md #12.
 
 context:
   version: "4.5.0"
@@ -31,6 +33,14 @@ source:
   - url: https://github.com/NVIDIA-ISAAC-ROS/isaac_ros_common/archive/refs/tags/${{ tag }}.tar.gz
     sha256: b7a2bb09bad33c3654750a412c2c902064e8256088e1b1391ecd1dbcd803d0f7
     target_directory: src
+    patches:
+      # isaac_ros_common-extras.cmake calls find_package(CUDA) -- removed in CMake 4 --
+      # and keeps it alive with `cmake_policy(SET CMP0146 OLD)`. FindCUDA resolves the
+      # toolkit through CUDA_TOOLKIT_ROOT_DIR and expects a monolithic layout, so in a
+      # conda prefix it either fails outright or silently adopts the build machine's
+      # /usr/local/cuda. This file is included via isaac_ros_commonConfig.cmake by every
+      # package calling ament_auto_find_build_dependencies(), so the leak was stack-wide.
+      - patches/0001-isaac_ros_common-use-FindCUDAToolkit-instead-of-the-.patch
 
 build:
   number: 0

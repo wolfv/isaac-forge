@@ -24,6 +24,8 @@ build:
     - export AMENT_PREFIX_PATH="${PREFIX}${AMENT_PREFIX_PATH:+:${AMENT_PREFIX_PATH}}"
     - export CMAKE_PREFIX_PATH="${PREFIX}${CMAKE_PREFIX_PATH:+:${CMAKE_PREFIX_PATH}}"
     - cd src/isaac_ros_nitros_type/isaac_ros_nitros_flat_scan_type
+    # ${CMAKE_ARGS} carries the compiler activation's CMAKE_FIND_ROOT_PATH, which is
+    # what points find_package(CUDAToolkit) at the prefix rather than /usr/local/cuda.
     - >
       cmake -S . -B build -G Ninja ${CMAKE_ARGS:-}
       -DCMAKE_BUILD_TYPE=Release
@@ -68,7 +70,7 @@ requirements:
     - cuda-version 13.*
     - cuda-cudart-dev
     - cuda-nvtx-dev
-    - eigen 3.4.*
+    - eigen
     - python
     - pyyaml
     - yaml-cpp
@@ -93,5 +95,5 @@ tests:
 
 about:
   homepage: https://github.com/NVIDIA-ISAAC-ROS/isaac_ros_nitros
-  summary: Isaac ROS NITROS Flat Scan Type
+  summary: "Isaac ROS NITROS Flat Scan Type"
   license: LicenseRef-NVIDIA-Isaac-ROS

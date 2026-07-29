@@ -45,6 +45,12 @@ CLOSED_GXF = {
 }
 
 # Open-source ROS packages that robostack-jazzy does not carry yet.
+#
+# `negotiated`, `topic_based_ros2_control` and `robotiq_controllers` are still listed:
+# robostack does not have them, which is what this set records. isaac-forge builds all
+# three itself, so they no longer block anything here -- see the "external ROS, built here"
+# row in README.md. Of the three, only `topic_based_ros2_control` cannot be contributed to
+# robostack, because rosdistro has no jazzy release of it (ISSUES.md #15).
 MISSING_ROS = {
     "negotiated",
     "hesai_ros_driver",
@@ -62,6 +68,19 @@ MISSING_ROS = {
     "vision_msgs_rviz_plugins",
     "cvcuda0-dev",
 }
+
+# Packages whose name is claimed by two different repos in src/. `info` below is keyed by
+# package name, so the second one scanned wins -- and for nvblox_msgs the loser is the one
+# that matters. isaac_ros_noetic_interfaces ships a catkin `nvblox_msgs` for ROS 1;
+# isaac_ros_nvblox ships the jazzy one, whose only dependencies are isaac_ros_common and
+# rosidl. Everything that depends on nvblox_msgs therefore shows up here with a `ros1`
+# blocker it does not have: isaac_ros_cumotion and isaac_ros_cumotion_object_attachment are
+# both built and both ROS 2 only.
+#
+# Skipping the ROS 1 copy is narrower than keying `info` on (repo, name), and leaves the
+# rest of this script looking packages up by bare name, the way package.xml does.
+NAME_COLLISIONS = {"nvblox_msgs"}
+ROS1_REPO = "isaac_ros_noetic_interfaces"
 
 OPEN_LICENSES = ("Apache", "MIT")
 
@@ -82,6 +101,11 @@ def scan() -> dict[str, dict]:
         if not name:
             continue
         rel = os.path.relpath(path, SRC)
+        repo = rel.split(os.sep)[0]
+
+        # See NAME_COLLISIONS: the ROS 1 copy must not displace the jazzy one.
+        if name in NAME_COLLISIONS and repo == ROS1_REPO:
+            continue
 
         deps: set[str] = set()
         conditional: set[str] = set()
@@ -91,7 +115,7 @@ def scan() -> dict[str, dict]:
             (conditional if "condition" in attrs else deps).add(dep.strip())
 
         info[name] = {
-            "repo": rel.split(os.sep)[0],
+            "repo": repo,
             "path": os.path.dirname(rel),
             "license": tag(text, "license"),
             "version": tag(text, "version"),

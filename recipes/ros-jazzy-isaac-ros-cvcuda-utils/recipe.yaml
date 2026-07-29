@@ -24,6 +24,8 @@ build:
     - export AMENT_PREFIX_PATH="${PREFIX}${AMENT_PREFIX_PATH:+:${AMENT_PREFIX_PATH}}"
     - export CMAKE_PREFIX_PATH="${PREFIX}${CMAKE_PREFIX_PATH:+:${CMAKE_PREFIX_PATH}}"
     - cd src/isaac_ros_cvcuda_utils
+    # ${CMAKE_ARGS} carries the compiler activation's CMAKE_FIND_ROOT_PATH, which is
+    # what points find_package(CUDAToolkit) at the prefix rather than /usr/local/cuda.
     - >
       cmake -S . -B build -G Ninja ${CMAKE_ARGS:-}
       -DCMAKE_BUILD_TYPE=Release
@@ -81,5 +83,5 @@ tests:
 
 about:
   homepage: https://github.com/NVIDIA-ISAAC-ROS/isaac_ros_image_pipeline
-  summary: Utilities for performing CVCUDA operations in Isaac ROS packages
+  summary: "Utilities for performing CVCUDA operations in Isaac ROS packages"
   license: LicenseRef-NVIDIA-Isaac-ROS

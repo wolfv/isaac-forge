@@ -16,10 +16,44 @@
 #                          precisely the release whose cuda_runtime_api.h aliases
 #                          cudaGetDeviceProperties to cudaGetDeviceProperties_v2. Taking
 #                          that default silently compiles CUDA 12 call signatures into a
-#                          CUDA 13 process -- see the root cause in README.md. 13.0
-#                          matches conda-forge's in-flight cuda130.yaml migration, and
-#                          Isaac ROS 4.5 is CUDA 13 throughout.
+#                          CUDA 13 process -- see the root cause in README.md. Isaac ROS
+#                          4.5 is CUDA 13 throughout, so any 13.x avoids that.
+#
+#                          Raised 13.0 -> 13.3 to match the runtime the packages actually
+#                          resolve. Every CUDA recipe here asks for `cuda-version 13.*`
+#                          and gets cuda-cudart-dev 13.3.29, so nvcc was three minors
+#                          *older* than the cudart it compiled against in all 20 of them.
+#                          That is invisible right up to the first package that does
+#                          device linking: isaac_ros_foundationpose sets
+#                          CUDA_SEPARABLE_COMPILATION on its nvdiffrast/cudaraster
+#                          target, and nvlink refuses to read a device object stamped
+#                          newer than itself --
+#
+#                            nvlink fatal : Input file '.../libcudadevrt.a:
+#                            cuda_device_runtime.o' newer than toolkit (133 vs 130)
+#
+#                          Moving the toolkit up rather than the runtime down is the only
+#                          direction available: every already-built ros-jazzy-isaac-*
+#                          package carries `cuda-cudart >=13.3.29`, so a host env pinned
+#                          to 13.0 does not solve at all. 13.0 was chosen to match
+#                          conda-forge's in-flight cuda130.yaml migration; that migration
+#                          is about the CUDA *major*, which is unchanged.
+#
+#                          NOTE: this is in the build string, so packages built before it
+#                          carry a different hash than a fresh build produces -- same
+#                          situation as the python pin below, and the same fix (one
+#                          rebuild). Nothing in output/ is wrong, only differently named.
+#   python                 robostack-jazzy is built for CPython 3.12 only -- every
+#                          ros-jazzy-* package carrying python is tagged py312. The C++
+#                          recipes get 3.12 for free, because rclpy and the rosidl
+#                          python generators constrain it. The ament_python recipes do
+#                          not: their host env is python + pip + setuptools, so python
+#                          floats to whatever conda-forge ships today (3.14), and the
+#                          resulting package cannot be installed next to any ROS python
+#                          package at all. Pin it here rather than in each recipe.
 cuda_compiler:
   - cuda-nvcc
 cuda_compiler_version:
-  - "13.0"
+  - "13.3"
+python:
+  - "3.12.* *_cpython"

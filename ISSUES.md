@@ -30,11 +30,25 @@ sign-off. We are happy to send the PRs.
 | 9 | `launch_testing` pytest 8 hook signature | `ros2/launch` (jazzy branch) | **Apache-2.0** (not NVIDIA's) | **us — PR prepared, backport from rolling** |
 | 11 | Every `v4.x` GXF tag points at 3.2-era source | `NVIDIA-ISAAC-ROS/gxf` tags | n/a — tagging, then a source release | **NVIDIA only** |
 | 12 | `isaac_ros_common` uses CMake's removed `FindCUDA`, picking up host CUDA | `isaac_ros_common/cmake/isaac_ros_common-extras.cmake:22,39` | **Apache-2.0** (per-file header) | **us — PR prepared** |
+| 13 | cuMotion's `find_dependency(Eigen3 3.3)` rejects Eigen 5, though Eigen 5 works | `cumotionConfig.cmake:27` (shipped in `isaac_ros_nitros`) | **Apache-2.0** (per-file header) | **us — patch prepared, verified against Eigen 5** |
+| 14 | `ros_python_utils` raises at import time unless `ISAAC_ROS_WS` is set | `isaac_ros_manipulation_ros_python_utils/test_utils.py:62` | **Apache-2.0** | **us — patch prepared** |
+| 15 | `topic_based_ros2_control` declared on jazzy, never released for jazzy | `isaac_ros_manipulation_*_robot_description/package.xml` | metadata in a public repo | **us, via PR** |
+| 16 | Manipulation python packages under- and over-declare dependencies | `isaac_ros_launch_utils`, `isaac_common_py`, `ros_python_utils` | **Apache-2.0** / metadata | **us, via PR** |
+| 17 | GXF headers include `magic_enum.hpp` by bare name, broken by magic_enum 0.9.7+ | `isaac_ros_gxf` prebuilt `gxf/core/expected_macro.hpp:24` | prebuilt blob, no source | **NVIDIA only** |
+| 18 | Inference backends declared as `<depend>`, making TensorRT a *build* dependency of two packages that never call it | `isaac_ros_dope/package.xml:47`, `isaac_ros_centerpose/package.xml:49-50` | **Apache-2.0** | **us — patches prepared** |
+| 19 | `isaac_ros_tensor_proc` links `isaac_ros_cvcuda_utils` without declaring it | `isaac_ros_tensor_proc/CMakeLists.txt:44`, `package.xml` | **Apache-2.0** | **us, via PR** |
+| 20 | `install_isaac_ros_asset()` downloads models and runs `trtexec` as part of `ALL` | `isaac_ros_common/cmake/isaac_ros_common-extras-assets.cmake` | NVIDIA Isaac ROS Software License (no modification) | **NVIDIA only** |
 
-Only #4b, #5 and #11 need NVIDIA to hold the pen — #4b because the intended license is
+Only #4b, #5, #11, #17 and #20 need NVIDIA to hold the pen — #4b because the intended license is
 genuinely ambiguous from outside and we will not guess at it, and #11 because it is a
 tagging and source-release decision in your repo. Item 2 has both a consumer-side fix we
 can PR today and a cleaner root-cause fix only NVIDIA can make.
+
+**Nothing here now stops a package from existing.** #13 looked like it did — cuMotion
+appeared to be locked to Eigen 3 while ROS moves to Eigen 5 — until we built the stack
+against Eigen 5.0.1 and checked cuMotion's IK output against independently computed forward
+kinematics: exact to 0.000 mm. It is a CMake over-constraint, not an ABI wall. The one thing
+we would still like from NVIDIA is confirmation of that reading.
 
 ---
 
@@ -481,6 +495,231 @@ or documenting it, would help anyone packaging this stack.
 
 ---
 
+## 13. cuMotion's Eigen version request is stricter than its ABI needs
+
+**Severity:** looked like a hard blocker on `isaac_ros_cumotion_moveit`; turned out to be a
+metadata over-constraint. Two lines of fix, and **we ran it against Eigen 5.0.1 and checked
+the answers**. Found while packaging `isaac_ros_manipulation`.
+
+> **Result first, because it changes the ask.** Compiled against Eigen 5.0.1 and linked
+> against the Eigen 3 `libcumotion.so.1.1.0` as shipped, cuMotion loads, plans, and solves
+> IK **exactly**: the returned joint values put the gripper 0.000 mm from the requested
+> pose (`manip/fk_check.py`, independent numpy forward kinematics). So the request below is
+> not "rebuild cuMotion" — it is "let consumers use Eigen 5, because it already works".
+
+`libcumotion.so.1.1.0`, shipped inside `isaac_ros_nitros`, exports an API made of Eigen
+types. 23 of its 31 headers include `Eigen/Core`, and the types appear in *virtual*
+signatures — so they are part of the vtable ABI, not an implementation detail:
+
+```cpp
+// cumotion/kinematics.h
+virtual bool withinCSpaceLimits(const Eigen::VectorXd &cspace_position, ...) const = 0;
+// cumotion/trajectory.h
+virtual bool sample(double t, Eigen::VectorXd *cspace_position, ...) const = 0;
+// cumotion/rotation3.h
+explicit Rotation3(const Eigen::Quaterniond &quaternion, bool skip_normalization = false);
+```
+
+`cumotionConfig.cmake` states the requirement:
+
+```cmake
+include(CMakeFindDependencyMacro)
+find_dependency(Eigen3 3.3)
+```
+
+Eigen's own `Eigen3Config.cmake` uses `SameMajorVersion` compatibility, so a `3.3` request
+**rejects** Eigen 5:
+
+```
+Could not find a configuration file for package "Eigen3" that is compatible
+with requested version "3.3".
+  $PREFIX/share/eigen3/cmake/Eigen3Config.cmake, version: 5.0.1
+```
+
+Eigen 5.0 shipped in 2025 and ROS distributions are moving to it: `robostack-jazzy`'s
+`moveit_core` now carries `eigen-abi >=5.0.1.80,<5.0.1.81`. Taken at face value that costs
+three packages — `isaac_ros_cumotion_moveit` (needs `moveit_core`),
+`isaac_ros_manipulation_gear_assembly` (needs `ur_robot_driver` →
+`joint_trajectory_controller` → `rsl`) and, through the first,
+`isaac_ros_manipulation_flexiv_driver_utils`.
+
+### What actually happens with Eigen 5
+
+Three of cuMotion's entry points that our code calls have Eigen types in their signatures.
+Demangled from `libcumotion_impl.so`, compiled against Eigen 5.0.1:
+
+```
+U cumotion::Pose3::Pose3(cumotion::Rotation3 const&, Eigen::Matrix<double, 3, 1, 0, 3, 1> const&)
+U cumotion::Obstacle::AttributeValue::AttributeValue(Eigen::Matrix<double, 3, 1, 0, 3, 1> const&)
+U cumotion::Rotation3::Rotation3(Eigen::Quaternion<double, 0> const&, bool)
+```
+
+Those mangled names are what the Eigen 3 `libcumotion.so.1` exports, unchanged —
+`Eigen::Matrix<double,3,1,0,3,1>` and `Eigen::Quaternion<double,0>` have the same template
+signature in both versions, so they link. They are also passed by const reference, so what
+crosses the boundary is a pointer to three or four doubles, and that layout did not change
+either. `dlopen(..., RTLD_NOW)` resolves every symbol in the plugin and the planner.
+
+Then the numbers. `manip/ik.sh` asks cuMotion for IK on the UR5e + Robotiq 2F-85 it ships,
+and `manip/fk_check.py` recomputes the pose from the returned joint angles with an
+independent numpy forward-kinematics implementation:
+
+| built against | IK solutions | position error at the gripper |
+|---|---|---|
+| Eigen 3.4.0 (matching the shipped `.so`) | 26 | 0.026 mm |
+| **Eigen 5.0.1** | 26 | **0.000 mm** |
+
+Same solution count, both geometrically correct, and the two builds return *different*
+branches of the 26 — which is expected when `num_solutions_to_return: 1` picks one from a
+parallel search, and is stable across runs within a build.
+
+### So the fix is one line, in the file that carries the constraint
+
+`recipes/ros-jazzy-isaac-ros-nitros/build.sh` drops the floor from the config it installs:
+
+```bash
+sed -i 's/find_dependency(Eigen3 3\.3)/find_dependency(Eigen3)/' \
+  "${PREFIX}/share/isaac_ros_nitros/cumotion/lib/cmake/cumotion/cumotionConfig.cmake"
+```
+
+It asserts the old text is present first, so if a future cuMotion changes or removes the
+constraint the build fails loudly rather than silently skipping the patch. Fixing it in the
+config rather than in each consumer means it holds for anything that finds cuMotion, now or
+later, and `find_dependency` without a version still accepts Eigen 3.
+
+Worth knowing if you reach for the alternative: ROS's `eigen3_cmake_module` ships a
+module-mode `FindEigen3.cmake` that treats a requested version as a floor rather than
+applying Eigen's same-major rule, so putting its `Modules` directory on `CMAKE_MODULE_PATH`
+*also* makes the build pass. That route is order-dependent and silent — it works only if
+something found `Eigen3` unversioned first, which is exactly why
+`isaac_ros_cumotion_object_attachment` built clean against Eigen 5 while `isaac_ros_cumotion`
+failed in the same tree, for reasons neither package states. We used it, understood it, and
+then removed it in favour of the line above.
+
+**What would help, in order of preference:**
+
+1. **Relax `find_dependency(Eigen3 3.3)` in `cumotionConfig.cmake`** — drop the version, or
+   raise the ceiling. One line, and it is the whole issue.
+2. **Say which Eigen each cuMotion release was built against**, and confirm whether the
+   layouts above are considered ABI. We have evidence it works; you have the source.
+
+One caveat we cannot close from outside: this is verified for the code paths `manip/`
+exercises (robot model loading, collision spheres, IK, trajectory-optimizer construction),
+not for every entry point in a 31-header API.
+
+## 14. `isaac_ros_manipulation_ros_python_utils` cannot be imported without `ISAAC_ROS_WS`
+
+**Severity:** breaks `import isaac_ros_manipulation_ros_python_utils` in any environment
+that does not export a workspace variable — which is every non-container install. Trivial
+fix, Apache-2.0 file, **patch prepared**.
+
+`isaac_ros_manipulation_ros_python_utils/test_utils.py` raises at module scope:
+
+```python
+ISAAC_ROS_WS = os.environ.get('ISAAC_ROS_WS')
+if ISAAC_ROS_WS is None:
+    raise RuntimeError('ISAAC_ROS_WS environment variable is not set')
+```
+
+`__init__.py` re-exports `test_utils`, so the raise fires on plain
+
+```console
+$ python -c "import isaac_ros_manipulation_ros_python_utils"
+RuntimeError: ISAAC_ROS_WS environment variable is not set
+```
+
+and takes down every package that imports the utilities with it —
+`isaac_ros_manipulation_orchestration`, `_robot_utils`, `_pick_and_place`, `_servers` and
+both driver-utility packages. A smoke test as simple as importing the module cannot pass.
+
+The variable has exactly one use in the file: composing an asset path for the
+gear-assembly FoundationPose mesh. Moving the check to that use keeps the error for the
+code path that needs the assets and lets the library import.
+`recipes/ros-jazzy-isaac-ros-manipulation-ros-python-utils/patches/0001-defer-isaac-ros-ws-check.patch`
+does that, in six lines.
+
+## 15. `topic_based_ros2_control` is declared on jazzy but was never released for jazzy
+
+**Severity:** `rosdep install` cannot resolve the dependencies of two packages on the
+target distro. Metadata only.
+
+`isaac_ros_manipulation_ur_robot_description` and
+`isaac_ros_manipulation_flexiv_robot_description` both declare
+
+```xml
+<exec_depend>topic_based_ros2_control</exec_depend>
+```
+
+`topic_based_ros2_control` is in `ros/rosdistro` for **humble only** (0.2.0-1). There is no
+jazzy release, and ros-controls has since superseded it with
+`topic_based_hardware_interfaces`. Isaac ROS 4.5 targets jazzy, so on the documented
+distribution these two packages have a dependency no package manager can satisfy — it works
+inside NVIDIA's container because the source is vendored into the workspace.
+
+Either depend on the successor, note that the source has to be cloned, or ask
+ros-controls for a jazzy release of the original. We build it from the upstream commit
+(`recipes/ros-jazzy-topic-based-ros2-control`) because it is BSD-3-Clause, four
+dependencies wide, and builds clean on jazzy as-is.
+
+## 16. The manipulation python packages under- and over-declare their dependencies
+
+**Severity:** cosmetic for a container build, load-bearing for anyone resolving
+dependencies from metadata. Metadata only.
+
+Three separate patterns, all found by building the packages and watching what actually
+failed to import:
+
+- **Under-declared.** `isaac_ros_launch_utils` declares exactly one dependency,
+  `<build_depend>isaac_ros_common</build_depend>`, while importing `launch`, `launch_ros`,
+  `launch_xml`, `ament_index_python` and `yaml`. Its `package.xml` describes a package that
+  cannot import itself. `isaac_common_py` is the same shape.
+- **Over-declared.** `isaac_ros_manipulation_ros_python_utils` declares
+  `python3-torch-pip-shim`, and no module in it imports torch. On a metadata-driven install
+  that is a multi-gigabyte dependency for nothing.
+- **Test harness as a runtime dependency.** The same package declares `isaac_ros_test` as a
+  full `<depend>`, not a `<test_depend>` — and it is right to, because `test_utils.py`
+  imports `IsaacROSBaseTest` at module level. But `isaac_ros_test` pulls torch, onnx and
+  onnxscript, so a test harness ends up in the runtime closure of the whole manipulation
+  stack. Splitting the test helpers out of `__init__.py` would cost nothing and drop the
+  runtime closure substantially.
+
+We derive python run dependencies from module-level imports rather than from `package.xml`
+(`scripts/gen_source.py`), because the manifests are not reliable enough to resolve
+against. Function-level imports are treated as optional, which is what they are —
+`ros_python_utils` reaches for the UR and Flexiv driver utilities that way, and both of
+those depend on it in turn, so taking those as hard dependencies would invent a cycle.
+
+## 17. GXF's vendored headers include `magic_enum.hpp` by bare filename
+
+**Severity:** breaks every source build that touches a GXF header as soon as `magic_enum`
+0.9.7+ is in the environment. Bit us on a rebuild that had worked weeks earlier with nothing
+changed on our side.
+
+`isaac_ros_gxf` ships prebuilt headers, and `gxf/core/expected_macro.hpp:24` has:
+
+```cpp
+#include "magic_enum.hpp"  // NOLINT(build/include)
+```
+
+magic_enum moved its headers into a `magic_enum/` subdirectory in 0.9.7 (conda-forge follows
+upstream), so the include stops resolving:
+
+```
+$PREFIX/share/isaac_ros_gxf/gxf/include/gxf/core/expected_macro.hpp:24:10:
+  fatal error: magic_enum.hpp: No such file or directory
+```
+
+Two things make this worse than a version bump usually is. The header is a prebuilt blob, so
+a consumer cannot fix the include; and it is not target-scoped, so linking
+`magic_enum::magic_enum` does not help — the directory has to be on `CXXFLAGS` for every
+translation unit that transitively includes a GXF header. Our workaround is
+`-I$PREFIX/include/magic_enum` in `recipes/ros-jazzy-isaac-ros-nitros/build.sh`.
+
+`#include <magic_enum/magic_enum.hpp>` upstream, with a fallback for older versions, would
+close it.
+
+---
+
 ## Appendix: not NVIDIA's, but affects running your benchmarks
 
 `launch_testing`'s pytest plugin declares `pytest_pycollect_makemodule(path, parent)`,
@@ -503,3 +742,111 @@ Finally, the benchmark scripts say they need
 `assets/datasets/r2b_dataset/r2b_storage` without saying where it lives. It is on NGC
 under `r2bdataset2023`, while `r2b_galileo` is under `r2bdataset2024` — worth naming
 the resource in the docstring.
+
+## 18. TensorRT is a *build* dependency of two packages that never call it
+
+**Severity:** blocks `isaac_ros_dope` and `isaac_ros_centerpose` from being built at all
+anywhere TensorRT (and, for centerpose, Triton) is unavailable — which is every platform
+NVIDIA does not ship `libnvinfer` debs for, and every packaging of the stack outside your
+container. Apache-2.0 metadata, one line each, **patches prepared**.
+
+Both packages declare their inference backend as a build dependency:
+
+```xml
+<!-- isaac_ros_dope/package.xml -->
+<depend>isaac_ros_tensor_rt</depend>
+
+<!-- isaac_ros_centerpose/package.xml -->
+<depend>isaac_ros_tensor_rt</depend>
+<depend>isaac_ros_triton</depend>
+```
+
+Neither uses them. `isaac_ros_dope` builds one target from one source file, and between
+that file and its header the complete include list is `ament_index_cpp`, `Eigen/Dense`,
+`geometry_msgs`, `isaac_ros_common/qos.hpp`, `isaac_ros_nitros/nitros_node.hpp`,
+`isaac_ros_nitros_tensor_list_type`, `isaac_ros_tensor_list_interfaces`, `opencv2`,
+`rclcpp`, `rclcpp_components`, `sensor_msgs`, `tf2_ros`, `vision_msgs`.
+`isaac_ros_centerpose` builds two targets from five source files, with the same result.
+Not one header from either backend. The decoders take a `TensorList` off a topic and
+solve PnP on it; the inference is a separate composable node the launch file puts in the
+same container. `grep -r 'tensor_rt\|nvinfer\|triton'` over both `src/` and `include/`
+trees returns nothing.
+
+Because `ament_auto_find_build_dependencies()` turns every `<depend>` into a REQUIRED
+`find_package`, a package whose entire dependency set is OpenCV, Eigen and NITROS cannot
+be *configured* without TensorRT present. `ament_auto_add_library` then links every found
+dependency, so the shipped `.so` also picks up a `DT_NEEDED` on a library it has no symbol
+from. For centerpose it is worse: TensorRT and Triton are *alternative* backends chosen by
+which launch file you run, and it has to build against both.
+
+`<exec_depend>` is what package format 3 has for this. It keeps `rosdep install` and the
+launch files exactly as they are — exec dependencies are still installed — and lets the
+build need only what the code includes. Two patches, one line and two lines:
+
+- `recipes/ros-jazzy-isaac-ros-dope/patches/0001-tensor-rt-is-a-runtime-dependency.patch`
+- `recipes/ros-jazzy-isaac-ros-centerpose/patches/0001-tensor-rt-and-triton-are-runtime-dependencies.patch`
+
+With them applied, both packages build and every component loads — see `pose/`. This is
+the same class of finding as #16, and it is the difference between two packages existing
+and not existing.
+
+## 19. `isaac_ros_tensor_proc` links a package it does not declare
+
+**Severity:** hard configure failure outside a workspace that happens to have the package
+already. Apache-2.0, one line.
+
+`isaac_ros_tensor_proc/CMakeLists.txt` builds `reshape_node` with
+
+```cmake
+ament_target_dependencies(reshape_node rclcpp rclcpp_components isaac_ros_cvcuda_utils)
+```
+
+and `package.xml` never mentions `isaac_ros_cvcuda_utils`. Since
+`ament_auto_find_build_dependencies()` only finds what the manifest declares, and
+`ament_target_dependencies` hard-errors on a package `find_package` has not located,
+configure fails outright rather than degrading. In a colcon workspace holding the whole of
+Isaac ROS it is masked, because some sibling package pulls `isaac_ros_cvcuda_utils` in
+first — build the package on its own and it fails.
+
+The generator adds it explicitly (`EXTRA_DEPS` in `scripts/gen_source.py`) rather than
+relying on a sibling; the manifest should declare it.
+
+## 20. `install_isaac_ros_asset()` downloads models and runs `trtexec` during the build
+
+**Severity:** `isaac_ros_foundationpose_models_install` cannot be built outside your dev
+container. The function lives in `isaac_ros_common/cmake`, which is under the
+proprietary header, so this one is **NVIDIA's to fix**.
+
+`install_isaac_ros_asset(install_foundationpose_models)` does two things at build time:
+
+1. `execute_process`es the asset script with `--print-install-paths` at *configure* time.
+   Every path in that script derives from `$ISAAC_ROS_WS`, so with the variable unset —
+   which it is in any environment that is not your container — configure aborts with
+
+   ```
+   CMake Error at .../isaac_ros_common-extras-assets.cmake:34 (message):
+     ERROR: ISAAC_ROS_WS is not set.
+   ```
+
+2. Hangs the script off `add_custom_target(... ALL)`, so the default build target
+   downloads `refine_model.onnx` and `score_model.onnx` from NGC behind a EULA prompt and
+   runs `trtexec` over both.
+
+Step 1 is a bug — a build should not require an environment variable that has no default.
+Step 2 is a design question, and the answer matters more: a TensorRT engine plan is
+specialised to the GPU, driver and TensorRT version that produced it, so a `.plan` baked
+into a binary artifact is wrong for every machine except the builder's. Model download and
+engine generation belong on the target system, which is also how your own documentation
+describes them:
+
+```console
+ros2 run isaac_ros_foundationpose_models_install install_foundationpose_models.sh
+```
+
+A guard that keeps the `ament_index_register_resource` and skips the dry-run and the `ALL`
+target when the assets cannot be fetched — or an opt-in
+`-DISAAC_ROS_DOWNLOAD_ASSETS=ON` — would make the package buildable everywhere without
+changing anything for container users.
+`recipes/ros-jazzy-isaac-ros-foundationpose-models-install/patches/0001-register-asset-script-without-downloading-it.patch`
+does it consumer-side, in the one file that is Apache-2.0, and says so in its commit
+message: it is a packaging deviation, not a fix, because the fix cannot be made here.

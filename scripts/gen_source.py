@@ -16,6 +16,8 @@ populated the source cache.
 from __future__ import annotations
 
 import argparse
+import ast
+import json
 import os
 import re
 import sys
@@ -48,10 +50,45 @@ REPOS = {
     "ros2_benchmark": dict(
         url="https://github.com/NVIDIA-ISAAC-ROS/ros2_benchmark/archive/refs/tags/v4.5-0.tar.gz",
         sha256="9077a56c57337a7d34a5da1068d06e9b2ed550180e8566012e93f6f6dd1d4d63"),
+    "isaac_ros_manipulation": dict(
+        url="https://github.com/NVIDIA-ISAAC-ROS/isaac_ros_manipulation/archive/refs/tags/v4.5-0.tar.gz",
+        sha256="00d45ee0c52efe40688d90958538092c713ad1eec0fe62befcdfe74a1c33225f"),
+    "isaac_ros_cumotion": dict(
+        url="https://github.com/NVIDIA-ISAAC-ROS/isaac_ros_cumotion/archive/refs/tags/v4.5-0.tar.gz",
+        sha256="3ef770f800665ad25569291f935ef8c47f752a301575aaca1c26df5199c2b520"),
+    "isaac_ros_image_segmentation": dict(
+        url="https://github.com/NVIDIA-ISAAC-ROS/isaac_ros_image_segmentation/archive/refs/tags/v4.5-0.tar.gz",
+        sha256="4ef02550da5192b6d31566e992e2cbf06b2c35b43d7605a53d1eba4a0f28bd1b"),
+    "isaac_ros_pose_estimation": dict(
+        url="https://github.com/NVIDIA-ISAAC-ROS/isaac_ros_pose_estimation/archive/refs/tags/v4.5-0.tar.gz",
+        sha256="7e6855053fbc1e9af5683c36e6e5642e2d5db9de8783753371ddeb4c565aee13"),
+    "isaac_ros_dnn_inference": dict(
+        url="https://github.com/NVIDIA-ISAAC-ROS/isaac_ros_dnn_inference/archive/refs/tags/v4.5-0.tar.gz",
+        sha256="e19397a4f685fffc66cd68d1a8489fc2939878ea6299c376d04ab5d19c09ce06"),
     "negotiated": dict(
         url="https://github.com/osrf/negotiated/archive/"
             "eac198b55dcd052af5988f0f174902913c5f20e7.tar.gz",
-        sha256="01aed43adef3e6ef3d9e1879d3a2910d6acdcf802e6ea2905ab4626e21d7af05"),
+        sha256="01aed43adef3e6ef3d9e1879d3a2910d6acdcf802e6ea2905ab4626e21d7af05",
+        homepage="https://github.com/osrf/negotiated"),
+    "isaac_ros_nvblox": dict(
+        url="https://github.com/NVIDIA-ISAAC-ROS/isaac_ros_nvblox/archive/refs/tags/v4.5-0.tar.gz",
+        sha256="4a668d140bec4df889f1b1a0a1059d841c19546ec8ac7e26de830a694fc855b8"),
+    # robotiq_controllers *is* released for jazzy, and RoboStack already ships its sibling
+    # robotiq_description from the same repo -- it is simply not selected. Adding it to
+    # RoboStack is the right long-term fix; this builds the released tag meanwhile.
+    "robotiq_controllers": dict(
+        url="https://github.com/ros2-gbp/ros2_robotiq_gripper-release/archive/refs/tags/"
+            "release/jazzy/robotiq_controllers/0.0.1-3.tar.gz",
+        sha256="e429584dc4ededa45c8a75cdc760a55460e91326c6e8e5f81b1d9fc8fd8c167b",
+        homepage="https://github.com/PickNikRobotics/ros2_robotiq_gripper"),
+    # Not NVIDIA's, and not in RoboStack either -- see the note on
+    # ros-jazzy-topic-based-ros2-control below. Pinned to a commit because there is no
+    # jazzy release to pin to.
+    "topic_based_ros2_control": dict(
+        url="https://github.com/PickNikRobotics/topic_based_ros2_control/archive/"
+            "6bd8d55e1c4ad3188770fe5c8b93b942bcede4a2.tar.gz",
+        sha256="32168384d0913bd052533289b3d3b9a330ba47055d613f771a7697d6f65c214c",
+        homepage="https://github.com/PickNikRobotics/topic_based_ros2_control"),
 }
 
 # conda package name -> (repo, path within the repo). Order here is the build order:
@@ -89,6 +126,107 @@ PACKAGES = [
     ("ros-jazzy-ros2-benchmark", "ros2_benchmark", "ros2_benchmark"),
     ("ros-jazzy-isaac-ros-benchmark", "isaac_ros_benchmark", "isaac_ros_benchmark"),
     ("ros-jazzy-isaac-ros-image-proc-benchmark", "isaac_ros_benchmark", "benchmarks/isaac_ros_image_proc_benchmark"),
+    # --- the manipulation stack ------------------------------------------------
+    # Interfaces it needs from sibling repos, then the manipulation packages
+    # themselves. isaac_ros_manipulation_bringup and _asset_bringup are absent on
+    # purpose: their closure is the entire DNN + nvblox stack, which needs TensorRT
+    # and Triton. See README.md.
+    # topic_based_ros2_control is the ros2_control hardware interface both robot
+    # description packages name for their Isaac Sim configuration. It has never been
+    # released for jazzy -- rosdistro carries it for humble only, and ros-controls has
+    # since superseded it with topic_based_hardware_interfaces -- so RoboStack, which
+    # builds what rosdistro releases, cannot have it and `rosdep install` on jazzy cannot
+    # resolve it either. It is BSD-licensed, four dependencies wide and builds clean, so
+    # it is built here from the upstream commit. See ISSUES.md.
+    ("ros-jazzy-topic-based-ros2-control", "topic_based_ros2_control", "."),
+    # The gripper controller isaac_ros_manipulation_gear_assembly loads.
+    ("ros-jazzy-robotiq-controllers", "robotiq_controllers", "."),
+    ("ros-jazzy-isaac-ros-cumotion-interfaces", "isaac_ros_cumotion", "isaac_ros_cumotion_interfaces"),
+    ("ros-jazzy-isaac-ros-segment-anything2-interfaces", "isaac_ros_image_segmentation", "isaac_ros_segment_anything2_interfaces"),
+    ("ros-jazzy-isaac-ros-manipulation-interfaces", "isaac_ros_manipulation", "isaac_ros_manipulation_interfaces"),
+    # ament_python leaves
+    ("ros-jazzy-isaac-common-py", "isaac_ros_common", "isaac_common_py"),
+    ("ros-jazzy-isaac-ros-launch-utils", "isaac_ros_common", "isaac_ros_launch_utils"),
+    # isaac_ros_test is a test harness, but not an optional one:
+    # isaac_ros_manipulation_ros_python_utils/test_utils.py imports IsaacROSBaseTest at
+    # module level and __init__.py re-exports it, so `import
+    # isaac_ros_manipulation_ros_python_utils` fails without it. That is also where the
+    # pytorch dependency comes from -- isaac_ros_test/__init__.py pulls in
+    # mock_model_generator, which imports torch.
+    ("ros-jazzy-isaac-ros-test", "isaac_ros_common", "isaac_ros_test"),
+    ("ros-jazzy-isaac-ros-manipulation-test-utils", "isaac_ros_manipulation", "isaac_ros_manipulation_test_utils"),
+    ("ros-jazzy-isaac-ros-manipulation-ur-isaac-sim-utils", "isaac_ros_manipulation", "isaac_ros_manipulation_robots/isaac_ros_manipulation_ur_isaac_sim_utils"),
+    ("ros-jazzy-isaac-ros-manipulation-ros-python-utils", "isaac_ros_manipulation", "isaac_ros_manipulation_ros_python_utils"),
+    ("ros-jazzy-isaac-ros-manipulation-object-following", "isaac_ros_manipulation", "isaac_ros_manipulation_object_following"),
+    ("ros-jazzy-isaac-ros-manipulation-pose-to-pose", "isaac_ros_manipulation", "isaac_ros_manipulation_pose_to_pose"),
+    ("ros-jazzy-isaac-ros-manipulation-robot-utils", "isaac_ros_manipulation", "isaac_ros_manipulation_robots/isaac_ros_manipulation_robot_utils"),
+    ("ros-jazzy-isaac-ros-manipulation-ur-robot-description", "isaac_ros_manipulation", "isaac_ros_manipulation_robots/isaac_ros_manipulation_ur_robot_description"),
+    ("ros-jazzy-isaac-ros-manipulation-flexiv-robot-description", "isaac_ros_manipulation", "isaac_ros_manipulation_robots/isaac_ros_manipulation_flexiv_robot_description"),
+    ("ros-jazzy-isaac-ros-manipulation-ur-driver-utils", "isaac_ros_manipulation", "isaac_ros_manipulation_robots/isaac_ros_manipulation_ur_driver_utils"),
+    ("ros-jazzy-isaac-ros-manipulation-orchestration", "isaac_ros_manipulation", "isaac_ros_manipulation_orchestration"),
+    ("ros-jazzy-isaac-ros-manipulation-pick-and-place", "isaac_ros_manipulation", "isaac_ros_manipulation_pick_and_place"),
+    # C++ / rosidl on top of the python utilities
+    ("ros-jazzy-isaac-ros-manipulation-servers", "isaac_ros_manipulation", "isaac_ros_manipulation_servers"),
+    ("ros-jazzy-isaac-ros-manipulation-dnn-policy", "isaac_ros_manipulation", "isaac_ros_manipulation_dnn_policy"),
+    # --- cuMotion, which the last two manipulation packages need -----------------
+    # The cuMotion library itself is already packaged: libcumotion.so.1.1.0, its headers
+    # and its CMake config ship inside ros-jazzy-isaac-ros-nitros, registered in the
+    # ament index as the `cumotion` resource, exactly like cuVSLAM. These four packages
+    # are the ROS layer over it and build from source.
+    #
+    # nvblox_msgs comes from isaac_ros_nvblox and is a plain rosidl package. packages.json
+    # marks everything that depends on it `ros1`, which is an artefact of the inventory
+    # keying packages by name: isaac_ros_noetic_interfaces ships a *different*
+    # nvblox_msgs, a catkin package, and it wins the name collision. The jazzy one has no
+    # ROS 1 dependency at all.
+    ("ros-jazzy-nvblox-msgs", "isaac_ros_nvblox", "nvblox_msgs"),
+    ("ros-jazzy-isaac-ros-cumotion-robot-description", "isaac_ros_cumotion", "isaac_ros_cumotion_robot_description"),
+    ("ros-jazzy-isaac-ros-cumotion", "isaac_ros_cumotion", "isaac_ros_cumotion"),
+    ("ros-jazzy-isaac-ros-cumotion-object-attachment", "isaac_ros_cumotion", "isaac_ros_cumotion_object_attachment"),
+    # Needs cuMotion's object attachment and the Robotiq gripper controller, so it comes
+    # after both.
+    ("ros-jazzy-isaac-ros-manipulation-gear-assembly", "isaac_ros_manipulation", "isaac_ros_manipulation_gear_assembly"),
+    # Last of the manipulation packages: it needs isaac_ros_cumotion_moveit, so it only
+    # became reachable once cuMotion built against eigen 5.
+    ("ros-jazzy-isaac-ros-manipulation-flexiv-driver-utils", "isaac_ros_manipulation", "isaac_ros_manipulation_robots/isaac_ros_manipulation_flexiv_driver_utils"),
+    # The MoveIt plugin: cuMotion (Eigen 3 ABI) and moveit_core (Eigen 5) in one
+    # translation unit. Only buildable because of the eigen decision in TRAIT_DEPS.
+    ("ros-jazzy-isaac-ros-cumotion-moveit", "isaac_ros_cumotion", "isaac_ros_cumotion_moveit"),
+    # --- pose estimation, and the two DNN-inference packages it needs ------------
+    #
+    # isaac_ros_dnn_inference is where TensorRT lives, so the whole repo reads as
+    # blocked -- but only two of its four packages touch it. isaac_ros_tensor_proc and
+    # isaac_ros_dnn_image_encoder are CV-CUDA tensor plumbing with no inference engine
+    # anywhere in their manifests or their CMakeLists, and everything under them
+    # (isaac_ros_image_proc, managed_nitros, nitros, the type adapters, libcvcuda) is
+    # already built here. isaac_ros_tensor_rt and isaac_ros_triton are the two that are
+    # genuinely blocked and are absent on purpose.
+    #
+    # That distinction is what puts isaac_ros_foundationpose in reach: TensorRT appears
+    # in its manifest only as an <exec_depend>, never as a <depend>, so nothing about
+    # TensorRT runs at configure time. See DROP_DEPS for what that costs at runtime.
+    ("ros-jazzy-isaac-ros-tensor-proc", "isaac_ros_dnn_inference", "isaac_ros_tensor_proc"),
+    ("ros-jazzy-isaac-ros-dnn-image-encoder", "isaac_ros_dnn_inference", "isaac_ros_dnn_image_encoder"),
+    # Pure CPU pose filtering -- six composable nodes over vision_msgs and tf2, with no
+    # Isaac dependency beyond isaac_ros_common's cmake. The one package in
+    # isaac_ros_pose_estimation that never needed anything from the DNN stack.
+    ("ros-jazzy-isaac-ros-pose-proc", "isaac_ros_pose_estimation", "isaac_ros_pose_proc"),
+    # Asset-download scripts. Nothing to compile, but it is a <depend> of
+    # isaac_ros_foundationpose, so ament_auto_find_build_dependencies needs it present at
+    # configure time.
+    ("ros-jazzy-isaac-ros-foundationpose-models-install", "isaac_ros_pose_estimation",
+     "isaac_ros_foundationpose_models_install"),
+    ("ros-jazzy-isaac-ros-foundationpose", "isaac_ros_pose_estimation", "isaac_ros_foundationpose"),
+    # The last two looked blocked on TensorRT and Triton, and are not. Neither includes a
+    # single header from isaac_ros_tensor_rt or isaac_ros_triton: each builds an
+    # OpenCV-and-Eigen decoder node that takes a TensorList off a topic and emits poses,
+    # and the inference is a separate composable node the launch file puts beside it. The
+    # manifests declare those backends as <depend> rather than <exec_depend>, and
+    # ament_auto_find_build_dependencies turns every <depend> into a REQUIRED
+    # find_package -- so an over-declaration, not a real dependency, is the whole blocker.
+    # PATCHES demotes them; see the patch commit messages, both prepared for upstream.
+    ("ros-jazzy-isaac-ros-dope", "isaac_ros_pose_estimation", "isaac_ros_dope"),
+    ("ros-jazzy-isaac-ros-centerpose", "isaac_ros_pose_estimation", "isaac_ros_centerpose"),
 ]
 
 DEP_TAG = re.compile(
@@ -109,19 +247,103 @@ TRAIT_DEPS = {
     # The CUDA *compiler* is not listed here -- it belongs in build:, and is added as
     # ${{ compiler('cuda') }} below. Only the libraries and headers go in host.
     "cuda":   ["cuda-version 13.*", "cuda-cudart-dev", "cuda-nvtx-dev"],
-    "eigen":  ["eigen 3.4.*"],
+    # Unpinned, which means eigen 5 today -- and that is a measured decision.
+    #
+    # cuMotion's API is Eigen-typed: libcumotion.so takes and returns Eigen::VectorXd,
+    # Vector3d and Quaterniond, and NVIDIA compiled it against Eigen 3. Its
+    # cumotionConfig.cmake said so with `find_dependency(Eigen3 3.3)`, which eigen's
+    # SameMajorVersion rule turns into a hard rejection of the eigen 5.0.1 robostack-jazzy
+    # now uses -- and taking that at face value costs isaac_ros_cumotion_moveit,
+    # isaac_ros_manipulation_gear_assembly and isaac_ros_manipulation_flexiv_driver_utils.
+    #
+    # The constraint is stricter than the ABI. What crosses the boundary is
+    # Eigen::Matrix<double,3,1,0,3,1> and Eigen::Quaternion<double,0> by const reference:
+    # identical template signature (hence the symbols link) and identical layout in both
+    # versions. recipes/ros-jazzy-isaac-ros-nitros/build.sh removes the floor from the
+    # installed config, and manip/ik.sh + manip/fk_check.py check the consequence -- cuMotion
+    # returns the same 26 IK solutions and lands 0.000 mm from the requested pose. See
+    # ISSUES.md #13.
+    "eigen":  ["eigen"],
     "vpi":    ["vpi"],
     "yamlcpp": ["yaml-cpp"],
     "rosidl": ["ros-jazzy-rosidl-default-generators", "ros-jazzy-rosidl-default-runtime"],
     "python": ["python", "pyyaml"],
     "ament_auto": ["ros-jazzy-ament-cmake-auto"],
     "opencv": ["libopencv 4.13.*"],
-    "cvcuda": ["libcvcuda", "libcvcuda-dev"],
+    # Pinned, and the floor is load-bearing rather than cosmetic. conda-forge's
+    # libcvcuda-dev 0.16 ships lib/cmake/{cvcuda,nvcv_types}/*-config.cmake; the 0.14
+    # deb repack this repo used before it (still sitting in some output/ trees) ships
+    # only headers and two .so symlinks. isaac_ros_foundationpose is the first package
+    # here to call find_package(nvcv_types REQUIRED) rather than naming the libraries
+    # directly, so with the older one in a local channel -- which outranks conda-forge --
+    # it fails at configure with "Could not find a package configuration file provided
+    # by nvcv_types". Say the version, so an unindexed leftover cannot win.
+    "cvcuda": ["libcvcuda >=0.16", "libcvcuda-dev >=0.16"],
+    # Compiled against directly, through isaac_ros_gxf's expected_macro.hpp. It also
+    # arrives transitively as a run dep of ros-jazzy-isaac-ros-gxf, but relying on that is
+    # what kept the include-path problem invisible -- declare it, and see the magicenum
+    # note in detect() for why the include directory has to be stated too.
+    "magicenum": ["magic_enum"],
 }
 
 
-# Patches applied to a package's source, all of them prepared for upstream. Keyed by
-# conda package name; paths are relative to the recipe directory.
+# Dependencies a package needs but does not declare. Keyed by conda package name.
+#
+# Every entry here is an upstream manifest bug, not a packaging preference: the build
+# fails without it. Kept separate from TRAIT_DEPS because these are not detectable from
+# the CMakeLists by pattern -- they come from ament_target_dependencies() naming a
+# package that ament_auto_find_build_dependencies() was never told to find.
+EXTRA_DEPS = {
+    # reshape_node calls
+    #   ament_target_dependencies(reshape_node rclcpp rclcpp_components isaac_ros_cvcuda_utils)
+    # and package.xml never mentions isaac_ros_cvcuda_utils. ament_target_dependencies
+    # hard-errors on a package find_package() has not located, so configure fails outright
+    # rather than degrading. See ISSUES.md.
+    "ros-jazzy-isaac-ros-tensor-proc": ["ros-jazzy-isaac-ros-cvcuda-utils"],
+}
+
+# Declared dependencies deliberately left out, with the reason. Keyed by conda package
+# name -> {rosdep key: why}.
+#
+# This is only ever for <exec_depend>s that name a *sibling demo pipeline* rather than
+# something the package's own code loads. A run dependency on an unbuildable package makes
+# the environment unsolvable, so keeping the manifest verbatim would cost the package
+# itself for no gain -- and everything dropped here is reachable by installing it
+# alongside once it exists.
+DROP_DEPS = {
+    "ros-jazzy-isaac-ros-foundationpose": {
+        # The three inference/perception stages of NVIDIA's reference launch graph, all
+        # of which need TensorRT. The FoundationPose node consumes their *topics*; it
+        # neither links nor dlopens them, and its own two engine files are loaded by a
+        # separate isaac_ros_tensor_rt node in the same launch file.
+        "isaac_ros_tensor_rt": "needs TensorRT; a separate node in the launch graph",
+        "isaac_ros_rtdetr": "needs TensorRT; supplies the detection2_d input topic",
+        "isaac_ros_dnn_stereo_decoder": "needs TensorRT; ESS depth, one of two depth options",
+        # Not blocked, just not built here yet -- and equally launch-only.
+        "isaac_ros_stereo_image_proc": "launch-only; the other depth option",
+        "isaac_ros_nitros_topic_tools": "launch-only topic throttling",
+        # rviz2 resolves fine from robostack-jazzy, but it is a visualization tool for
+        # the demo launch files, and making a composable-node library drag in Qt to
+        # install is not a trade worth taking.
+        "rviz2": "launch-only visualization",
+    },
+    # Demoted to <exec_depend> by this package's patch, which is the correct manifest but
+    # still leaves an unbuildable run dep. The decoder does not load them; the launch file
+    # composes them as separate nodes, so installing them alongside once TensorRT exists is
+    # all that is needed.
+    "ros-jazzy-isaac-ros-dope": {
+        "isaac_ros_tensor_rt": "needs TensorRT; a separate node in the launch graph",
+    },
+    "ros-jazzy-isaac-ros-centerpose": {
+        "isaac_ros_tensor_rt": "needs TensorRT; one of two interchangeable backends",
+        "isaac_ros_triton": "needs Triton; the other backend",
+    },
+}
+
+# Patches applied to a package's source, keyed by conda package name; paths are relative
+# to the recipe directory. All but one are prepared for upstream; the exception says so in
+# its own commit message, and the reason it cannot go upstream is that the code that needs
+# fixing is under NVIDIA's proprietary header.
 PATCHES = {
     # Explicit specializations of a variable template are not implicitly inline, so
     # epsilon.hpp produces multiple definitions of MachineEpsilon<float|double> in any
@@ -129,7 +351,65 @@ PATCHES = {
     # isaac_ros_nitros_detection3_d_array_type at link time under GCC 15.
     # Apache-2.0, so ours to fix; see ISSUES.md and upstream/README.md.
     "ros-jazzy-gxf-isaac-gems": ["patches/0001-epsilon-odr-inline.patch"],
+    # test_utils.py raises at module scope when ISAAC_ROS_WS is unset, and __init__.py
+    # re-exports it, so importing the package fails in any environment that does not
+    # export that variable -- which is every conda environment. Apache-2.0, ours to fix;
+    # see ISSUES.md.
+    "ros-jazzy-isaac-ros-manipulation-ros-python-utils": [
+        "patches/0001-defer-isaac-ros-ws-check.patch"],
+    # install_isaac_ros_asset() dry-runs the asset script at configure time (which needs
+    # $ISAAC_ROS_WS) and then makes `ALL` download the FoundationPose ONNX models from NGC
+    # and run trtexec over them. A build cannot do that, and a TensorRT engine plan is
+    # specific to the GPU it was built on, so it should not: the patch registers the ament
+    # resource and leaves the download to the target system.
+    "ros-jazzy-isaac-ros-foundationpose-models-install": [
+        "patches/0001-register-asset-script-without-downloading-it.patch"],
+    # Demote the inference backends from <depend> to <exec_depend>. Neither decoder
+    # includes a header from them; declaring them as build dependencies is what makes
+    # ament_auto_find_build_dependencies require TensorRT (and, for centerpose, Triton) to
+    # configure a package that only does PnP. See ISSUES.md.
+    "ros-jazzy-isaac-ros-dope": [
+        "patches/0001-tensor-rt-is-a-runtime-dependency.patch"],
+    "ros-jazzy-isaac-ros-centerpose": [
+        "patches/0001-tensor-rt-and-triton-are-runtime-dependencies.patch"],
 }
+
+# Files a package must ship beyond share/<pkg>/package.xml, checked declaratively at the
+# end of the build. Worth listing wherever a specific file is the reason the package
+# exists, or wherever a patch is what puts it there -- a passing build says the compiler
+# was happy, not that the payload arrived.
+EXTRA_TEST_FILES = {
+    # The whole package is this one script plus the ament resource pointing at it, and
+    # both come from the patch rather than from upstream's install_isaac_ros_asset. If
+    # either goes missing, `ros2 run ... install_foundationpose_models.sh` breaks and
+    # nothing else would notice.
+    "ros-jazzy-isaac-ros-foundationpose-models-install": [
+        "lib/isaac_ros_foundationpose_models_install/install_foundationpose_models.sh",
+        "share/ament_index/resource_index/install_foundationpose_models/"
+        "isaac_ros_foundationpose_models_install",
+    ],
+}
+
+
+def homepage_of(repo: str) -> str:
+    return REPOS[repo].get("homepage", f"https://github.com/NVIDIA-ISAAC-ROS/{repo}")
+
+
+def license_id(declared: str) -> str:
+    """SPDX id for a package.xml <license> string.
+
+    Everything NVIDIA ships is either Apache-2.0 or the NVIDIA Isaac ROS Software
+    License, which has no SPDX id -- hence the LicenseRef. The non-NVIDIA packages built
+    here are not covered by that dichotomy: topic_based_ros2_control declares a bare
+    "BSD" whose LICENSE text carries the no-endorsement clause, so BSD-3-Clause.
+    """
+    if declared.startswith("Apache"):
+        return "Apache-2.0"
+    if declared.strip() in ("BSD", "BSD-3-Clause"):
+        return "BSD-3-Clause"
+    if declared.strip() == "MIT":
+        return "MIT"
+    return "LicenseRef-NVIDIA-Isaac-ROS"
 
 
 def src_dir(repo: str) -> str:
@@ -176,6 +456,22 @@ def detect(cml: str, pkgxml: str, path: str) -> set[str]:
     # declaration turns into a hard `missing: CUDA_CUDART` error.
     if re.search(r"isaac_ros_common", cml) or "isaac_ros_common" in pkgxml:
         traits.add("cuda")
+    # Anything that includes a NITROS type header ends up compiling
+    # isaac_ros_gxf's gxf/core/expected_macro.hpp, which does
+    #
+    #     #include "magic_enum.hpp"
+    #
+    # NVIDIA's ros-jazzy-magic-enum deb puts that header at the top of an include dir;
+    # conda-forge's magic_enum puts it in include/magic_enum/, and its CMake package
+    # exports only a target, no *_INCLUDE_DIRS variable. So the directory reaches a
+    # consumer only if the consumer links magic_enum::magic_enum through isaac_ros_gxf's
+    # imported target -- and a package that picks the gxf headers up through ament
+    # include dirs instead does not. isaac_ros_tensor_proc is that case, and it fails with
+    # `expected_macro.hpp:24: fatal error: magic_enum.hpp: No such file or directory`.
+    # ros-jazzy-isaac-ros-h264-decoder hit this first and fixes it by hand in its
+    # build.sh; this is the same two lines, decided from the manifest instead.
+    if re.search(r"isaac_ros_(gxf|nitros)", pkgxml):
+        traits.add("magicenum")
     return traits
 
 
@@ -184,8 +480,8 @@ def detect(cml: str, pkgxml: str, path: str) -> set[str]:
 # system package is assumed to be a ROS package and gets the ros-jazzy- prefix.
 SYSTEM = {
     "cuda-toolkit": "cuda-version 13.*",
-    "eigen": "eigen 3.4.*",
-    "eigen3": "eigen 3.4.*",
+    "eigen": "eigen",
+    "eigen3": "eigen",
     "yaml-cpp": "yaml-cpp",
     "boost": "libboost-devel",
     "libopencv-dev": "libopencv 4.13.*",
@@ -211,13 +507,19 @@ def ros_name(dep: str) -> str:
     return "ros-jazzy-" + dep.replace("_", "-")
 
 
-def deps_of(pkgxml: str, name: str) -> list[str]:
+def deps_of(pkgxml: str, name: str, kinds: set[str] | None = None) -> list[str]:
     out: list[str] = []
     for kind, attrs, dep in DEP_TAG.findall(pkgxml):
         dep = dep.strip()
         if kind == "test_depend" or dep in TEST_ONLY or "condition" in attrs:
             continue
+        if kinds is not None and kind not in kinds:
+            continue
         if dep in DROP:
+            continue
+        if dep in DROP_DEPS.get(name, {}):
+            print(f"     note {name}: dropping declared '{dep}' "
+                  f"({DROP_DEPS[name][dep]})")
             continue
         if dep in SYSTEM:
             mapped = SYSTEM[dep]
@@ -235,7 +537,195 @@ def deps_of(pkgxml: str, name: str) -> list[str]:
         if mapped == name or mapped in out:
             continue
         out.append(mapped)
+    # Only on the unfiltered call, which is the one that feeds host and run. The
+    # kinds-filtered calls exist to pick build tooling out of the manifest, and an
+    # undeclared dependency is by definition not in the manifest.
+    if kinds is None:
+        for extra in EXTRA_DEPS.get(name, []):
+            if extra not in out:
+                print(f"     note {name}: adding undeclared dep '{extra}'")
+                out.append(extra)
     return sorted(out)
+
+
+# Third-party python distributions whose import name differs from the conda package,
+# or which no package.xml in this corpus bothers to declare.
+PY_IMPORTS = {
+    "yaml": "pyyaml",
+    "numpy": "numpy",
+    "scipy": "scipy",
+    "matplotlib": "matplotlib-base",
+    "cv2": "py-opencv",
+    "PIL": "pillow",
+    "torch": "pytorch",
+    "psutil": "psutil",
+}
+
+# ROS python modules whose conda package is not just ros-jazzy-<module>. The tf2_ros
+# python module lives in tf2_ros_py; ros-jazzy-tf2-ros is the C++ package and installs
+# no python at all, so guessing from the module name gives an env that cannot import it.
+ROS_PY_IMPORTS = {
+    "tf2_ros": "ros-jazzy-tf2-ros-py",
+}
+
+# Subdirectories of a module that ship with it but are never imported by it.
+NOT_IMPORTED = {"test", "tests", "examples"}
+
+
+def py_run_deps(base: str, module: str, name: str) -> list[str]:
+    """Runtime deps read out of the module's own import statements.
+
+    The manipulation and isaac_ros_common python packages under-declare badly:
+    isaac_ros_launch_utils lists exactly one dependency (isaac_ros_common, build-only)
+    while importing launch, launch_ros, launch_xml, ament_index_python and yaml. A
+    package.xml-only reading of the deps produces something that imports nothing.
+    Anything that is not stdlib and not a known PyPI distribution is taken to be a ROS
+    package, which in this corpus it always is; a wrong guess fails at solve time, which
+    is where we want it to fail.
+
+    Only *module-level* imports count. Imports inside a function body are how these
+    packages express optional dependencies -- isaac_ros_manipulation_ros_python_utils
+    reaches for the UR and Flexiv driver utilities that way, and both of those depend on
+    it in turn, so treating a lazy import as a hard dependency would invent a cycle that
+    does not exist.
+    """
+    found: set[str] = set()
+    for root, dirs, files in os.walk(os.path.join(base, module)):
+        dirs[:] = [d for d in dirs if d not in NOT_IMPORTED]
+        for f in files:
+            if not f.endswith(".py"):
+                continue
+            p = os.path.join(root, f)
+            try:
+                tree = ast.parse(open(p, encoding="utf-8", errors="replace").read())
+            except SyntaxError as e:
+                print(f"     note {name}: cannot parse {f} for imports ({e})")
+                continue
+            for node in tree.body:
+                if isinstance(node, ast.Import):
+                    found |= {a.name.split(".")[0] for a in node.names}
+                elif isinstance(node, ast.ImportFrom) and node.level == 0 and node.module:
+                    found.add(node.module.split(".")[0])
+
+    out: list[str] = []
+    for mod in sorted(found):
+        # "" comes from relative imports (`from . import x`), which need nothing.
+        if not mod or mod in sys.stdlib_module_names or mod in (module, "setuptools"):
+            continue
+        if mod in PY_IMPORTS:
+            mapped = PY_IMPORTS[mod]
+        elif mod in ROS_PY_IMPORTS:
+            mapped = ROS_PY_IMPORTS[mod]
+        else:
+            mapped = ros_name(mod)
+            if mapped == name:
+                continue
+            print(f"     note {name}: import '{mod}' assumed to be {mapped}")
+        if mapped not in out:
+            out.append(mapped)
+    return out
+
+
+def emit_python(name: str, repo: str, path: str, base: str, pkgxml: str,
+                version: str, lic: str, summary: str) -> str:
+    """Recipe for an <build_type>ament_python</build_type> package.
+
+    These are setuptools projects whose data_files carry the ROS payload: the ament
+    index marker, package.xml, and the launch/config/urdf trees. `pip install` places
+    all of that correctly under $PREFIX, so no cmake or ament tooling is involved.
+
+    Console scripts land in $PREFIX/bin rather than $PREFIX/lib/<pkg>/, which is where
+    a rosdistro puts them. That is deliberate: it is what RoboStack's own ament_python
+    packages do (checked against ros-jazzy-py-trees-ros), and matching the ecosystem we
+    resolve against matters more than matching the upstream layout. The setup.cfg
+    [install] install_scripts entry that would redirect them is a `setup.py install`
+    setting and has no effect on a wheel build.
+    """
+    deps = deps_of(pkgxml, name)
+    ros_dir = name.replace("ros-jazzy-", "").replace("-", "_")
+    repo_info = REPOS[repo]
+    has_module = os.path.isdir(os.path.join(base, ros_dir))
+
+    # Several of these setup.py files import ament_index_python at *metadata* time to
+    # locate isaac_ros_common's scripts directory, then run its version-info generator
+    # as a build_py subcommand. That makes the ament index a build-time requirement, not
+    # just a runtime one -- hence the host block below and the AMENT_PREFIX_PATH export.
+    host = ["python", "pip", "setuptools"]
+    setup_py = os.path.join(base, "setup.py")
+    setup_src = (open(setup_py, encoding="utf-8", errors="replace").read()
+                 if os.path.isfile(setup_py) else "")
+    if "ament_index_python" in setup_src:
+        # pyyaml is for isaac_ros_version_embed.py, which the generator shells out to.
+        host += ["pyyaml", "ros-jazzy-ament-index-python"]
+        for d in deps_of(pkgxml, name, kinds={"build_depend", "buildtool_depend"}):
+            if d not in host:
+                host.append(d)
+
+    run = list(deps)
+    if has_module:
+        for d in py_run_deps(base, ros_dir, name):
+            if d not in run:
+                run.append(d)
+
+    def block(items, indent=4):
+        return "\n".join(f"{' ' * indent}- {i}" for i in items) or f"{' ' * indent}# none"
+
+    # A pure-data package (urdf/srdf/config only) has no module to import.
+    import_test = f"""
+  - python:
+      imports:
+        - {ros_dir}
+      pip_check: false""" if has_module else ""
+
+    pats = PATCHES.get(name, [])
+    patch_block = ("\n    patches:\n" + "\n".join(f"      - {x}" for x in pats)
+                   if pats else "")
+
+    return f"""schema_version: 1
+
+# {name}, built FROM SOURCE against RoboStack.
+#
+# Generated by scripts/gen_source.py -- edit the generator, not this file.
+# Source: {repo}/{path}
+# Build type: ament_python (setuptools, installed with pip).
+
+context:
+  version: "{version}"
+
+package:
+  name: {name}
+  version: ${{{{ version }}}}
+
+source:
+  - url: {repo_info['url']}
+    sha256: {repo_info['sha256']}
+    target_directory: src{patch_block}
+
+build:
+  number: 0
+  script:
+    - export AMENT_PREFIX_PATH="${{PREFIX}}${{AMENT_PREFIX_PATH:+:${{AMENT_PREFIX_PATH}}}}"
+    - cd src/{path}
+    - ${{{{ PYTHON }}}} -m pip install . --no-deps --no-build-isolation -vv
+
+requirements:
+  host:
+{block(host)}
+  run:
+    - python
+{block(run)}
+
+tests:
+  - package_contents:
+      files:
+        - share/{ros_dir}/package.xml
+        - share/ament_index/resource_index/packages/{ros_dir}{import_test}
+
+about:
+  homepage: {homepage_of(repo)}
+  summary: {summary}
+  license: {lic}
+"""
 
 
 def emit(name: str, repo: str, path: str) -> str | None:
@@ -249,10 +739,15 @@ def emit(name: str, repo: str, path: str) -> str | None:
 
     version = (re.search(r"<version>([^<]+)</version>", pkgxml) or [None, "0"])[1].strip()
     lic_raw = (re.search(r"<license>([^<]+)</license>", pkgxml) or [None, "?"])[1].strip()
-    lic = "Apache-2.0" if lic_raw.startswith("Apache") else "LicenseRef-NVIDIA-Isaac-ROS"
+    lic = license_id(lic_raw)
     summary = re.sub(r"\s+", " ",
                      (re.search(r"<description>([\s\S]*?)</description>", pkgxml)
                       or [None, name])[1]).strip().strip('"')[:110] or name
+    # A description with ": " in it is not a valid unquoted YAML scalar.
+    summary = json.dumps(summary)
+
+    if "<build_type>ament_python</build_type>" in pkgxml.replace(" ", ""):
+        return emit_python(name, repo, path, base, pkgxml, version, lic, summary)
 
     traits = detect(cml, pkgxml, path)
     deps = deps_of(pkgxml, name)
@@ -278,8 +773,16 @@ def emit(name: str, repo: str, path: str) -> str | None:
         build_tools.insert(2, "${{ compiler('cuda') }}")
 
     # Runtime deps: drop build-only tooling.
+    #
+    # eigen is deliberately not among them. It is header-only: the templates are compiled
+    # into our .so and nothing loads eigen at runtime, so a run dependency only serves to
+    # export our build-time Eigen choice into every consumer's solve. With the Eigen 3 pin
+    # cuMotion needs (see TRAIT_DEPS) that made whole environments unsolvable --
+    # isaac_ros_manipulation_gear_assembly wants cuMotion's object attachment *and*
+    # ur_robot_driver, whose joint_trajectory_controller -> rsl chain requires eigen 5.
     run = [d for d in deps if not d.startswith(("ros-jazzy-ament-cmake", "ament_cmake"))
-           and d not in ("ros-jazzy-rosidl-default-generators",)]
+           and d not in ("ros-jazzy-rosidl-default-generators",)
+           and not d.startswith("eigen")]
     if "rosidl" in traits and "ros-jazzy-rosidl-default-runtime" not in run:
         run.append("ros-jazzy-rosidl-default-runtime")
     if "vpi" in traits and "vpi" not in run:
@@ -297,6 +800,16 @@ def emit(name: str, repo: str, path: str) -> str | None:
     pats = PATCHES.get(name, [])
     patch_block = ("    patches:\n" + "\n".join(f"      - {x}" for x in pats)
                    if pats else "")
+
+    extra_files = "".join(f"\n        - {f}" for f in EXTRA_TEST_FILES.get(name, []))
+
+    # See the magicenum note in detect(): the host dep alone is not enough, because
+    # conda-forge's magic_enum nests the header one directory deeper than the
+    # `#include "magic_enum.hpp"` in isaac_ros_gxf expects to find it. That bare-name
+    # include is ISSUES.md #17; this is the consumer-side half of it.
+    magic_enum_include = (
+        '\n    - export CXXFLAGS="${CXXFLAGS:-} -I${PREFIX}/include/magic_enum"'
+        if "magicenum" in traits else "")
 
     return f"""schema_version: 1
 
@@ -321,7 +834,7 @@ build:
   number: 0
   script:
     - export AMENT_PREFIX_PATH="${{PREFIX}}${{AMENT_PREFIX_PATH:+:${{AMENT_PREFIX_PATH}}}}"
-    - export CMAKE_PREFIX_PATH="${{PREFIX}}${{CMAKE_PREFIX_PATH:+:${{CMAKE_PREFIX_PATH}}}}"
+    - export CMAKE_PREFIX_PATH="${{PREFIX}}${{CMAKE_PREFIX_PATH:+:${{CMAKE_PREFIX_PATH}}}}"{magic_enum_include}
     - cd src/{path}
     # ${{CMAKE_ARGS}} carries the compiler activation's CMAKE_FIND_ROOT_PATH, which is
     # what points find_package(CUDAToolkit) at the prefix rather than /usr/local/cuda.
@@ -356,10 +869,10 @@ requirements:
 tests:
   - package_contents:
       files:
-        - share/{ros_dir}/package.xml
+        - share/{ros_dir}/package.xml{extra_files}
 
 about:
-  homepage: https://github.com/NVIDIA-ISAAC-ROS/{repo}
+  homepage: {homepage_of(repo)}
   summary: {summary}
   license: {lic}
 """

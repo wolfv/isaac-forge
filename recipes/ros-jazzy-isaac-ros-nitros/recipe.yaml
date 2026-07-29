@@ -104,6 +104,10 @@ requirements:
     - ros-jazzy-rclcpp-components
     - ros-jazzy-ament-index-cpp
     - ros-jazzy-negotiated
+    # A <depend> in nitros' package.xml, so ament_cmake_export_dependencies-extras.cmake
+    # calls find_package(diagnostic_msgs) for every consumer at configure time. Host-only
+    # is not enough: isaac_ros_cumotion fails to configure without it.
+    - ros-jazzy-diagnostic-msgs
     - ros-jazzy-isaac-ros-common
     - ros-jazzy-isaac-ros-gxf
     - ros-jazzy-gxf-isaac-optimizer

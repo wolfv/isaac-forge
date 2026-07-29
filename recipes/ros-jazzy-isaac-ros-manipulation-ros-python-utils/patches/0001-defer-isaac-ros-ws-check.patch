@@ -1,0 +1,52 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Wolf Vollprecht <w.vollprecht@gmail.com>
+Date: Wed, 29 Jul 2026 14:05:00 +0200
+Subject: [PATCH] ros_python_utils: do not require ISAAC_ROS_WS at import time
+
+isaac_ros_manipulation_ros_python_utils/test_utils.py raises at module scope if
+the ISAAC_ROS_WS environment variable is unset:
+
+    ISAAC_ROS_WS = os.environ.get('ISAAC_ROS_WS')
+    if ISAAC_ROS_WS is None:
+        raise RuntimeError('ISAAC_ROS_WS environment variable is not set')
+
+__init__.py re-exports test_utils, so this makes
+
+    import isaac_ros_manipulation_ros_python_utils
+
+fail outright in any environment that does not happen to have that variable
+exported -- and with it every package that imports the utilities, including
+isaac_ros_manipulation_orchestration, _robot_utils, _pick_and_place and the UR
+and Flexiv driver utilities. A `python -c "import ..."` smoke test on a fresh
+install cannot pass.
+
+The variable has exactly one use in the file: composing an asset path for the
+gear-assembly FoundationPose mesh. Move the check to that use, so the error
+still reaches anyone who needs the assets, but importing the library does not
+depend on the shell it was launched from.
+---
+ .../isaac_ros_manipulation_ros_python_utils/test_utils.py | 7 +++++--
+ 1 file changed, 5 insertions(+), 2 deletions(-)
+
+diff --git a/isaac_ros_manipulation_ros_python_utils/isaac_ros_manipulation_ros_python_utils/test_utils.py b/isaac_ros_manipulation_ros_python_utils/isaac_ros_manipulation_ros_python_utils/test_utils.py
+--- a/isaac_ros_manipulation_ros_python_utils/isaac_ros_manipulation_ros_python_utils/test_utils.py
++++ b/isaac_ros_manipulation_ros_python_utils/isaac_ros_manipulation_ros_python_utils/test_utils.py
+@@ -60,8 +60,6 @@ import yaml
+ 
+ 
+ ISAAC_ROS_WS = os.environ.get('ISAAC_ROS_WS')
+-if ISAAC_ROS_WS is None:
+-    raise RuntimeError('ISAAC_ROS_WS environment variable is not set')
+ 
+ 
+ def get_params_from_config_file_set_in_env(run_test: bool) -> Dict:
+@@ -2466,6 +2464,9 @@ class ManipulationTestHelper:
+         """
+         mesh_file_name = f'{gear_name}.obj'
+ 
++        if ISAAC_ROS_WS is None:
++            raise RuntimeError('ISAAC_ROS_WS environment variable is not set')
++
+         mesh_file_path = f'{ISAAC_ROS_WS}/isaac_ros_assets/' \
+                          f'isaac_ros_manipulation_dnn_policy/{gear_name}/{mesh_file_name}'
+ 

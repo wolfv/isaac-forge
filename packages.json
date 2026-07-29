@@ -687,7 +687,6 @@
   ],
   "blockers": [
    "needs_new_ros_pkg",
-   "ros1",
    "tensorrt",
    "vpi"
   ],
@@ -1381,7 +1380,6 @@
   ],
   "blockers": [
    "needs_new_ros_pkg",
-   "ros1",
    "vpi"
   ],
   "proprietary": true,
@@ -1467,7 +1465,6 @@
   ],
   "blockers": [
    "needs_new_ros_pkg",
-   "ros1",
    "vpi"
   ],
   "proprietary": false,
@@ -1535,7 +1532,6 @@
   ],
   "blockers": [
    "needs_new_ros_pkg",
-   "ros1",
    "vpi"
   ],
   "proprietary": false,
@@ -1582,7 +1578,6 @@
   ],
   "blockers": [
    "needs_new_ros_pkg",
-   "ros1",
    "vpi"
   ],
   "proprietary": false,
@@ -3047,7 +3042,6 @@
   ],
   "blockers": [
    "needs_new_ros_pkg",
-   "ros1",
    "vpi"
   ],
   "proprietary": false,
@@ -4289,7 +4283,6 @@
   ],
   "blockers": [
    "needs_new_ros_pkg",
-   "ros1",
    "tensorrt",
    "triton",
    "vpi"
@@ -4378,7 +4371,6 @@
   ],
   "blockers": [
    "needs_new_ros_pkg",
-   "ros1",
    "vpi"
   ],
   "proprietary": false,
@@ -4457,7 +4449,6 @@
   ],
   "blockers": [
    "needs_new_ros_pkg",
-   "ros1",
    "vpi"
   ],
   "proprietary": false,
@@ -6243,7 +6234,6 @@
   ],
   "blockers": [
    "needs_new_ros_pkg",
-   "ros1",
    "tensorrt",
    "triton",
    "vpi"
@@ -8324,7 +8314,6 @@
   ],
   "blockers": [
    "needs_new_ros_pkg",
-   "ros1",
    "vpi"
   ],
   "proprietary": false,
@@ -8858,7 +8847,6 @@
   ],
   "blockers": [
    "needs_new_ros_pkg",
-   "ros1",
    "tensorrt",
    "triton",
    "vpi"
@@ -8913,7 +8901,6 @@
    "nvblox_msgs"
   ],
   "blockers": [
-   "ros1",
    "vpi"
   ],
   "proprietary": false,
@@ -8921,26 +8908,27 @@
  },
  {
   "name": "nvblox_msgs",
-  "repo": "isaac_ros_noetic_interfaces",
-  "path": "isaac_ros_noetic_interfaces/nvblox_msgs",
+  "repo": "isaac_ros_nvblox",
+  "path": "isaac_ros_nvblox/nvblox_msgs",
   "license": "Apache-2.0",
-  "version": "3.2.0",
+  "version": "4.5.0",
   "direct_deps": [
-   "catkin",
+   "ament_cmake",
    "geometry_msgs",
-   "message_generation",
-   "message_runtime",
-   "roscpp",
-   "rospy",
+   "isaac_ros_common",
+   "rosidl_default_generators",
+   "rosidl_default_runtime",
    "std_msgs"
   ],
   "conditional_deps": [],
-  "internal_closure": [],
+  "internal_closure": [
+   "isaac_ros_common"
+  ],
   "blockers": [
-   "ros1"
+   "vpi"
   ],
   "proprietary": false,
-  "closure_proprietary": false
+  "closure_proprietary": true
  },
  {
   "name": "nvblox_nav2",
@@ -8968,7 +8956,6 @@
    "nvblox_msgs"
   ],
   "blockers": [
-   "ros1",
    "vpi"
   ],
   "proprietary": false,
@@ -9053,7 +9040,6 @@
   ],
   "blockers": [
    "needs_new_ros_pkg",
-   "ros1",
    "vpi"
   ],
   "proprietary": false,
@@ -9122,7 +9108,6 @@
    "nvblox_msgs"
   ],
   "blockers": [
-   "ros1",
    "vpi"
   ],
   "proprietary": false,
@@ -9184,7 +9169,6 @@
   ],
   "blockers": [
    "needs_new_ros_pkg",
-   "ros1",
    "tensorrt",
    "triton",
    "vpi"
@@ -9404,7 +9388,6 @@
    "nvblox_msgs"
   ],
   "blockers": [
-   "ros1",
    "vpi"
   ],
   "proprietary": true,

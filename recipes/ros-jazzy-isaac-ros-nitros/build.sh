@@ -46,6 +46,19 @@ echo "filled ${filled} git-lfs pointer(s) from the deb (${unfilled} left unfille
 
 cd src/isaac_ros_nitros
 
+# GXF's vendored headers include magic_enum by bare filename:
+#
+#   gxf/core/expected_macro.hpp:24:  #include "magic_enum.hpp"
+#
+# conda-forge's magic_enum moved its headers into include/magic_enum/ as of 0.9.7, so that
+# include stops resolving and every TU pulling in a GXF header fails. The header is
+# unmodifiable (it ships inside isaac_ros_gxf as a prebuilt blob) and the include is not
+# target-scoped, so the include directory has to be on CXXFLAGS globally rather than come
+# from magic_enum's CMake target.
+if [ -d "${PREFIX}/include/magic_enum" ]; then
+  export CXXFLAGS="${CXXFLAGS:-} -I${PREFIX}/include/magic_enum"
+fi
+
 export AMENT_PREFIX_PATH="${PREFIX}${AMENT_PREFIX_PATH:+:${AMENT_PREFIX_PATH}}"
 export CMAKE_PREFIX_PATH="${PREFIX}${CMAKE_PREFIX_PATH:+:${CMAKE_PREFIX_PATH}}"
 export CUDACXX="${BUILD_PREFIX}/bin/nvcc"
@@ -61,5 +74,34 @@ cmake -S . -B build -G Ninja ${CMAKE_ARGS:-} \
 
 cmake --build build --parallel "${CPU_COUNT:-2}"
 cmake --install build
+
+# Drop the Eigen 3 floor from NVIDIA's cuMotion CMake config -- ISSUES.md #13.
+#
+# cumotionConfig.cmake opens with `find_dependency(Eigen3 3.3)`. Eigen's own Eigen3Config
+# declares SameMajorVersion compatibility, so that request *rejects* the eigen 5.0.1 that
+# robostack-jazzy is built against, and every cuMotion consumer fails to configure:
+#
+#   Could not find a configuration file for package "Eigen3" that is compatible
+#   with requested version "3.3".
+#     $PREFIX/share/eigen3/cmake/Eigen3Config.cmake, version: 5.0.1
+#
+# The constraint is stricter than the ABI needs. What crosses into libcumotion.so is
+# Eigen::Matrix<double,3,1,0,3,1> and Eigen::Quaternion<double,0> by const reference --
+# same template signature and same layout in eigen 3 and 5, which is why the symbols link
+# at all. Built this way, cuMotion's IK lands 0.000 mm from the requested pose; see
+# manip/fk_check.py. Removing the floor is what lets isaac_ros_cumotion_moveit exist,
+# because moveit_core is eigen 5.
+#
+# Patched here rather than in each consumer so it holds for anything that finds cuMotion,
+# now or later. The file carries an Apache-2.0 SPDX header, so this is ours to change.
+CUMOTION_CONFIG="${PREFIX}/share/isaac_ros_nitros/cumotion/lib/cmake/cumotion/cumotionConfig.cmake"
+if ! grep -q 'find_dependency(Eigen3 3\.3)' "${CUMOTION_CONFIG}"; then
+  echo "cumotionConfig.cmake no longer pins Eigen3 3.3 -- re-read ISSUES.md #13 before" >&2
+  echo "dropping this patch; upstream may have fixed it, or moved the constraint." >&2
+  exit 1
+fi
+sed -i 's/find_dependency(Eigen3 3\.3)/find_dependency(Eigen3)  # version floor removed, see isaac-forge ISSUES.md #13/' \
+  "${CUMOTION_CONFIG}"
+echo "patched cumotionConfig.cmake: find_dependency(Eigen3 3.3) -> find_dependency(Eigen3)"
 
 rm -rf "${STAGE}"

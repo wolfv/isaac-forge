@@ -1,0 +1,54 @@
+[workspace]
+name = "isaac-forge-manip"
+description = "Resolve the Isaac ROS manipulation stack from the built channel and run it"
+channels = ["../output", "https://prefix.dev/robostack-jazzy", "conda-forge"]
+platforms = ["linux-64"]
+
+# The vendored NVIDIA binaries are built on Ubuntu 24.04 and reference GLIBC_2.38,
+# declared as `__glibc >=2.38`. pixi's default floor is lower.
+[system-requirements]
+libc = { family = "glibc", version = "2.38" }
+
+# Everything isaac-forge builds out of NVIDIA-ISAAC-ROS/isaac_ros_manipulation, plus the
+# cuMotion layer underneath it. If this environment solves, the 15 packages are mutually
+# consistent and consistent with robostack-jazzy; `pixi run check` then proves they load.
+[dependencies]
+ros-jazzy-ros-base = "*"
+ros-jazzy-rclcpp-components = "*"
+ros-jazzy-robot-state-publisher = "*"
+python = "3.12.*"
+
+ros-jazzy-isaac-ros-manipulation-interfaces = "*"
+ros-jazzy-isaac-ros-manipulation-ros-python-utils = "*"
+ros-jazzy-isaac-ros-manipulation-orchestration = "*"
+ros-jazzy-isaac-ros-manipulation-pick-and-place = "*"
+ros-jazzy-isaac-ros-manipulation-pose-to-pose = "*"
+ros-jazzy-isaac-ros-manipulation-object-following = "*"
+ros-jazzy-isaac-ros-manipulation-servers = "*"
+ros-jazzy-isaac-ros-manipulation-dnn-policy = "*"
+ros-jazzy-isaac-ros-manipulation-robot-utils = "*"
+ros-jazzy-isaac-ros-manipulation-gear-assembly = "*"
+ros-jazzy-isaac-ros-manipulation-test-utils = "*"
+ros-jazzy-isaac-ros-manipulation-ur-driver-utils = "*"
+ros-jazzy-isaac-ros-manipulation-ur-isaac-sim-utils = "*"
+ros-jazzy-isaac-ros-manipulation-ur-robot-description = "*"
+ros-jazzy-isaac-ros-manipulation-flexiv-robot-description = "*"
+ros-jazzy-isaac-ros-manipulation-flexiv-driver-utils = "*"
+
+ros-jazzy-isaac-ros-cumotion = "*"
+ros-jazzy-isaac-ros-cumotion-interfaces = "*"
+ros-jazzy-isaac-ros-cumotion-object-attachment = "*"
+ros-jazzy-isaac-ros-cumotion-robot-description = "*"
+ros-jazzy-isaac-ros-cumotion-moveit = "*"
+
+[tasks.check]
+description = "Import every python module, list the C++ components, load them into a container"
+cmd = "python check.py"
+
+[tasks.ik]
+description = "Solve inverse kinematics on the GPU for the UR5e + Robotiq 2F-85"
+cmd = "./ik.sh"
+
+[tasks.fk]
+description = "Check the IK solution with independent forward kinematics (pass 6 joint values)"
+cmd = "python fk_check.py"

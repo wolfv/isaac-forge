@@ -24,6 +24,8 @@ build:
     - export AMENT_PREFIX_PATH="${PREFIX}${AMENT_PREFIX_PATH:+:${AMENT_PREFIX_PATH}}"
     - export CMAKE_PREFIX_PATH="${PREFIX}${CMAKE_PREFIX_PATH:+:${CMAKE_PREFIX_PATH}}"
     - cd src/negotiated_interfaces
+    # ${CMAKE_ARGS} carries the compiler activation's CMAKE_FIND_ROOT_PATH, which is
+    # what points find_package(CUDAToolkit) at the prefix rather than /usr/local/cuda.
     - >
       cmake -S . -B build -G Ninja ${CMAKE_ARGS:-}
       -DCMAKE_BUILD_TYPE=Release
@@ -64,6 +66,6 @@ tests:
         - share/negotiated_interfaces/package.xml
 
 about:
-  homepage: https://github.com/NVIDIA-ISAAC-ROS/negotiated
-  summary: A package containing the negotiation message definitions.
+  homepage: https://github.com/osrf/negotiated
+  summary: "A package containing the negotiation message definitions."
   license: Apache-2.0

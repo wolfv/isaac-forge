@@ -68,6 +68,72 @@ machine-readable per-package inventory.
   fallback (`USE_NVDEC=0`, `av`) still works and gives 6.06 m / 280 poses / 95.3% —
   fewer frames reach the tracker, which is the difference in the numbers.
 
+- **[`manip/`](manip/README.md) — the manipulation stack, with cuMotion solving IK on the
+  GPU.** **16 of the 18** packages in `isaac_ros_manipulation`, plus five cuMotion packages,
+  `nvblox_msgs` and the interfaces they need — **28 new conda packages**. The whole set
+  resolves into one environment from `output/` + robostack-jazzy + conda-forge, all 12 python
+  modules import, `ros2 pkg list` sees 21 packages, and the C++ composable nodes dlopen —
+  including NVIDIA's cuMotion planner, which parses the UR5e + Robotiq 2F-85 URDF/XRDF it
+  ships, builds its collision model, and answers an action call:
+
+  ```
+  [cumotion_action_server]: IK succeeded with 26 solutions
+  Goal finished with status: SUCCEEDED
+  ```
+
+  **26 IK solutions**, `planning_time` 17 ms at best (17–155 ms across runs, the spread being
+  first-call GPU warm-up), from `libcumotion.so.1.1.0` as shipped — and the answer is
+  *right*: `manip/fk_check.py` recomputes the pose from the returned joint angles with an
+  independent numpy forward-kinematics implementation and lands **0.000 mm** from the
+  requested gripper pose.
+
+  ```bash
+  cd manip && pixi run check && pixi run ik
+  ```
+
+  Only `bringup` and `asset_bringup` are out of reach, both for the same reason: their
+  closure is the whole DNN + nvblox stack (TensorRT, Triton, FoundationPose, ESS, RT-DETR,
+  SegmentAnything).
+
+  Two open-source ROS packages had to be built to get here, and neither is NVIDIA's:
+  `topic_based_ros2_control` (declared by both robot-description packages but **never
+  released for jazzy** — humble only, `ISSUES.md` #15) and `robotiq_controllers` (released
+  for jazzy, simply not selected in RoboStack; its sibling `robotiq_description` is there).
+  The second belongs in RoboStack proper.
+
+- **cuMotion works against Eigen 5, and that took a measurement to establish.** NVIDIA's
+  `cumotionConfig.cmake` asks for `Eigen3 3.3`, which Eigen's own `SameMajorVersion` config
+  rule turns into a hard rejection of the Eigen 5.0.1 that robostack-jazzy now builds
+  against. Read literally it costs three packages — `isaac_ros_cumotion_moveit` needs
+  `moveit_core`, `gear_assembly` needs the UR driver's controller chain, and
+  `flexiv_driver_utils` needs the first.
+
+  It is an over-constraint, not an ABI wall. The types that actually cross into
+  `libcumotion.so` are `Eigen::Matrix<double,3,1,0,3,1>` and `Eigen::Quaternion<double,0>`
+  passed by const reference — same template signature and same layout in both versions,
+  which is why the symbols link at all. Compiled against Eigen 5.0.1 and linked against the
+  Eigen 3 library as shipped, cuMotion returns the same 26 IK solutions and hits the target
+  pose to 0.000 mm (the Eigen 3.4 build: 0.026 mm — a different valid branch of the 26).
+
+  So we **patch the floor out** where it is written, in the `cumotionConfig.cmake` that
+  `ros-jazzy-isaac-ros-nitros` installs, and assert the old text is there first so a future
+  cuMotion fails loudly instead of silently skipping the patch. One `sed`, and it holds for
+  every consumer. `ISSUES.md` #13 has the evidence and the upstream ask.
+
+  Two things surfaced on the rebuild that this required, both pre-existing: GXF's prebuilt
+  headers `#include "magic_enum.hpp"` by bare name, which stopped resolving when conda-forge's
+  magic_enum moved its headers into a subdirectory in 0.9.7 (`ISSUES.md` #17), and our nitros
+  recipe had `diagnostic_msgs` in `host` but not `run`, though nitros' exported ament
+  dependencies make every consumer look for it.
+
+- **`gen_source.py` now builds `ament_python` packages too**, which is what made the
+  manipulation stack reachable: 12 of its 18 packages are setuptools projects, and the
+  generator only knew how to run CMake. They install with `pip`, console scripts land in
+  `bin/` to match RoboStack's own ament_python packages, and **run dependencies are read
+  out of the module's imports rather than out of `package.xml`** — because these manifests
+  are not reliable enough to resolve against (`ISSUES.md` #16: `isaac_ros_launch_utils`
+  declares one dependency and imports five).
+
 - **[`bench/`](bench/README.md) — NVIDIA's own benchmark harness, with numbers.**
   All 45 packages including `ros2_benchmark` + `isaac_ros_benchmark` build and install.
   The harness profiles the system, buffers the 2.9 GB `r2b_storage` dataset, negotiates
@@ -149,19 +215,21 @@ cuVSLAM — see [`slam/`](slam/README.md).
 
 ### Source-build where source exists
 
-Repacking a vendor binary is the fallback, not the goal. Of the 45 packages:
+Repacking a vendor binary is the fallback, not the goal. Of the 75 recipes:
 
 | | count | |
 |---|---|---|
-| **source-built** | **32** | everything with published source |
+| **source-built** | **60** | everything with published source |
 | blob-only, irreducible | 8 | 7 `gxf_isaac_*` extensions + `isaac_ros_gxf` (prebuilt `.so` only) |
 | no source anywhere | 2 | `vpi`, `nvv4l2` |
 | external OSS, handled properly | 3 | `libcvcuda` + `libcvcuda-dev` from conda-forge, `magic_enum` from conda-forge |
+| external ROS, built here | 3 | `negotiated`, `topic_based_ros2_control`, `robotiq_controllers` |
 
 **The backlog is done.** Every package with published source is now built from source;
 the 10 remaining repacks are exactly the irreducible floor. `scripts/gen_source.py`
 generates the source recipes, detecting per-package build traits (CUDA, Eigen, VPI,
-rosidl, `ament_cmake_auto`) from each `CMakeLists.txt` rather than guessing.
+rosidl, `ament_cmake_auto`) from each `CMakeLists.txt` rather than guessing, and handling
+both `ament_cmake` and `ament_python` build types.
 
 Both external OSS packages are off the repack list — see
 [`external/staged-recipes/`](external/staged-recipes/README.md):
@@ -194,9 +262,53 @@ ament index, so there is no `/opt/ros/jazzy` path to rewrite.
 `scripts/gen_repack.py` has a `SOURCE_BUILT` set so regenerating recipes cannot silently
 replace a source recipe with a repack.
 
+- **[`pose/`](pose/README.md) — the pose-estimation stack, all five packages.** Every
+  package in `isaac_ros_pose_estimation` builds from source, plus the two
+  `isaac_ros_dnn_inference` packages they needed: **21 composable nodes, all loading into
+  one container**, including `FoundationPoseNode` with its nvdiffrast CUDA rasteriser and
+  the `SwitchMesh` service.
+
+  ```bash
+  cd pose && pixi run check
+  ```
+
+  `packages.json` marks four of the five blocked on `tensorrt` and centerpose on `triton`
+  as well, and that is read off the manifests rather than the code. FoundationPose only
+  ever had TensorRT as an `<exec_depend>`; what actually blocked it was
+  `isaac_ros_dnn_image_encoder`, which lives in the TensorRT repo but does not itself
+  touch TensorRT. And `isaac_ros_dope` and `isaac_ros_centerpose` do not either —
+  `grep -r 'tensor_rt\|nvinfer\|triton'` over both `src/` and `include/` trees returns
+  nothing. They are PnP decoders that read a `TensorList` off a topic. They declare the
+  backends as `<depend>` instead of `<exec_depend>`, and
+  `ament_auto_find_build_dependencies()` makes every `<depend>` a REQUIRED
+  `find_package`, so an over-declaration was the entire blocker (`ISSUES.md` #18, two
+  one-line patches, both prepared for upstream).
+
+  What TensorRT still blocks is the **pipelines**, not the packages: FoundationPose needs
+  an `isaac_ros_tensor_rt` node to serve its ONNX models and RT-DETR to supply detections,
+  so unlike `slam/` this directory proves packaging rather than a working demo. It says so.
+
+  Two findings worth carrying forward. The FoundationPose build is the first here to do
+  CUDA **device linking** (`CUDA_SEPARABLE_COMPILATION` on nvdiffrast's rasteriser), and
+  `nvlink` refused: nvcc was pinned to 13.0 while every recipe resolves `cuda-cudart-dev
+  13.3.29`, so the toolkit had been three minors *older* than the runtime in all 20 CUDA
+  recipes — invisible until something device-linked. `variants.yaml` now pins `13.3`, which
+  **changes the build hash of every CUDA package here**. And `libcvcuda-dev` is pinned
+  `>=0.16`, because FoundationPose is the first to call `find_package(nvcv_types)` and only
+  conda-forge's 0.16 ships the CMake configs.
+
 **Next**
 
-- Convert the remaining 31 repacks to source builds, starting with the NITROS core.
+- Convert the remaining repacks to source builds, starting with the NITROS core.
+- **Rebuild the CUDA packages for `cuda_compiler_version: 13.3`** (see above). Nothing in
+  `output/` is wrong, only differently named than a fresh build would produce — same
+  situation as the python pin, and the same one-rebuild fix.
+- **Re-run `scripts/gen_source.py` over the pre-existing recipes.** The generator gained a
+  `magicenum` trait — the consumer-side half of `ISSUES.md` #17, which
+  `ros-jazzy-isaac-ros-h264-decoder` had been fixing by hand in its `build.sh` — and the
+  `libcvcuda-dev >=0.16` pin. Regenerating adds two lines to about 20 recipes. They were
+  deliberately left alone rather than swept into an unrelated change, so `recipes/` does
+  not currently reproduce from its generator.
 - **Audit the other 19 CUDA recipes for the same host-CUDA leak.** All of them already
   carry a `cuda-nvcc` host dep, which is why none of them produced a `_v2` symbol, but
   **none passes `${CMAKE_ARGS}`** and none uses `${{ compiler('cuda') }}`, so none gets
@@ -204,8 +316,26 @@ replace a source recipe with a repack.
   route than the one that is actually guaranteed. Also fold `${CMAKE_ARGS}` into
   `scripts/gen_source.py`, which emits a bare `cmake -S . -B build` for every generated
   recipe.
-- `nvblox` for a 3D reconstruction demo — not started.
-- `tensorrt` (finish staged-recipes #29445 or repack `libnvinfer10`), then the DNN packages.
+- `nvblox` for a 3D reconstruction demo — not started. It is now also the thing standing
+  between cuMotion and collision-aware planning: the planner's `read_esdf_world` path calls
+  `/nvblox_node/get_esdf_and_gradient`, and `manip/ik.sh` has to turn it off. `nvblox_msgs`
+  is already built.
+- **Send `ISSUES.md` #13 upstream** — the cuMotion Eigen version request, with the patch and
+  the IK/FK measurements. Nothing is blocked on it any more; it is a correctness question we
+  would like NVIDIA to confirm rather than a wall.
+- **Contribute `robotiq_controllers` to RoboStack.** It has a jazzy release and its sibling
+  `robotiq_description` is already there, so it should be a selection change rather than a
+  new recipe. `topic_based_ros2_control` cannot go the same route — it has no jazzy release
+  at all, which is why it lives here.
+- **Rebuild everything once for the new `python` variant pin.** `variants.yaml` now pins
+  CPython 3.12 to match robostack-jazzy. The C++ packages already resolved to 3.12 through
+  `rclpy`, so nothing is wrong in `output/` today, but the packages built before the pin
+  carry different build hashes than a fresh build would.
+- A cuMotion *trajectory* against ground reference, the way `slam/` does for cuVSLAM.
+  `manip/fk_check.py` verifies an IK solution to 0.000 mm, which covers kinematics; it says
+  nothing about whether a planned trajectory is smooth, collision-free or time-optimal.
+- `tensorrt` (finish staged-recipes #29445 or repack `libnvinfer10`), then the DNN packages —
+  which is also what `isaac_ros_manipulation_bringup` and `_asset_bringup` are waiting for.
 - Extend the generator over the remaining ~300 debs.
 
 ### TensorRT
@@ -220,6 +350,15 @@ Note the oddity: `libnvinfer10` is `10.9.0.34-1+cuda12.8` while the rest of Isaa
 13 (`libnvinfer11` is the CUDA 13 build). Isaac links the CUDA 12.8 TensorRT anyway. For a repack
 path the safest move is to repack NVIDIA's `libnvinfer10` deb directly, matching what Isaac was
 built and tested against, rather than resolving the cross-major mixing ourselves.
+
+It blocks less than `packages.json` suggests. That inventory propagates a `tensorrt` blocker
+to every package whose manifest names `isaac_ros_tensor_rt`, and a manifest naming it is not
+the same as code calling it — `pose/` built all five pose-estimation packages without it, two
+of them only needing a `<depend>` → `<exec_depend>` correction (`ISSUES.md` #18). The blocker
+is real for `isaac_ros_tensor_rt` and `isaac_ros_triton` themselves, and for any *pipeline*
+that has to actually run inference. It is worth re-testing rather than assuming for the rest
+of the DNN packages: the question to ask each one is whether it includes a TensorRT header,
+not whether it lists one.
 
 ## Architecture
 
@@ -336,6 +475,8 @@ scripts/overlay_debs.sh  overlay Isaac debs onto a conda prefix (demo shortcut)
 scripts/fix_nvidia_driver.sh  Fedora driver fix (needs >= 580 for CUDA 13)
 verify/                  clean-env check of the built packages
 slam/                    cuVSLAM on the r2b Galileo dataset
+manip/                   the manipulation stack, cuMotion solving IK
+pose/                    the pose-estimation stack, 21 components loading
 bench/                   NVIDIA's benchmark harness (partially working)
 src/                     cloned upstream sources (gitignored)
 output/                  built packages (gitignored)

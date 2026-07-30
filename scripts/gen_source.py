@@ -107,6 +107,24 @@ REPOS = {
     "isaac_ros_examples": dict(
         url="https://github.com/NVIDIA-ISAAC-ROS/isaac_ros_examples/archive/refs/tags/v4.5-0.tar.gz",
         sha256="f6a14b7f3560a6d985d42dd53cdd8d40c11aa9a994fc8f65b168c505add7478e"),
+    # Five more. isaac_ros_nova, isaac_ros_depth_segmentation and isaac_ros_argus_camera
+    # were checked at the same time and all three return 404 for v4.5-0 -- see ISSUES.md #23,
+    # which now covers four repositories rather than two.
+    "isaac_ros_deploy": dict(
+        url="https://github.com/NVIDIA-ISAAC-ROS/isaac_ros_deploy/archive/refs/tags/v4.5-0.tar.gz",
+        sha256="7ba9157dcd867dfd2048400aedb43db3e272f7533e52581c77ea467edfc50920"),
+    "isaac_ros_learned_policies": dict(
+        url="https://github.com/NVIDIA-ISAAC-ROS/isaac_ros_learned_policies/archive/refs/tags/v4.5-0.tar.gz",
+        sha256="a66b7a79ef7027d7732949a8c9c4292cc4754b9201b3855ef38154831160045d"),
+    "isaac_ros_physical_ai": dict(
+        url="https://github.com/NVIDIA-ISAAC-ROS/isaac_ros_physical_ai/archive/refs/tags/v4.5-0.tar.gz",
+        sha256="df98820bde50321b736e5e476a891b9c17c9ef1b3662946e0201dfa66d12f5d1"),
+    "isaac_ros_robots": dict(
+        url="https://github.com/NVIDIA-ISAAC-ROS/isaac_ros_robots/archive/refs/tags/v4.5-0.tar.gz",
+        sha256="8d750654dbb8a5fe7d5fc6e46e421dfba126279918d37264f63eb77eb8a8986d"),
+    "isaac_ros_sipl_camera": dict(
+        url="https://github.com/NVIDIA-ISAAC-ROS/isaac_ros_sipl_camera/archive/refs/tags/v4.5-0.tar.gz",
+        sha256="539ecf9078080cd27690e0985ce91ad030bbcec9d177c23cd3f000ba301f3620"),
     # Not NVIDIA's, and not in RoboStack either -- see the note on
     # ros-jazzy-topic-based-ros2-control below. Pinned to a commit because there is no
     # jazzy release to pin to.
@@ -453,6 +471,52 @@ PACKAGES = [
     ("ros-jazzy-vda5050-action-handler-plugins", "isaac_ros_cloud_control", "vda5050_action_handler_plugins"),
     ("ros-jazzy-isaac-ros-vda5050-client-bringup", "isaac_ros_cloud_control", "isaac_ros_vda5050_client_bringup"),
     ("ros-jazzy-isaac-ros-mission-client", "isaac_ros_cloud_control", "isaac_ros_mission_client"),
+    # --- isaac_ros_deploy, and what it unblocks -------------------------------------
+    #
+    # Ordered by a topological sort over the five repos' package.xml files rather than by
+    # hand. isaac_ros_inverse_dynamics is the interesting one: it is the single dependency
+    # that has been keeping isaac_ros_cumotion_controllers -- and with it a complete
+    # isaac_ros_cumotion -- out of reach.
+    #
+    # packages.json marks four of these seven `triton`, which is a transitive label rather
+    # than a direct one: only isaac_ros_deploy_converters and _bringup name
+    # isaac_ros_triton at all, both as <exec_depend>. DROP_DEPS handles those two.
+    ("ros-jazzy-isaac-deploy-core", "isaac_ros_deploy", "isaac_deploy/isaac_deploy_core"),
+    ("ros-jazzy-isaac-ros-deploy-interfaces", "isaac_ros_deploy", "isaac_deploy/isaac_ros_deploy_interfaces"),
+    ("ros-jazzy-isaac-ros-inverse-dynamics", "isaac_ros_deploy", "isaac_deploy/isaac_ros_inverse_dynamics"),
+    ("ros-jazzy-isaac-ros-deploy-converters", "isaac_ros_deploy", "isaac_deploy/isaac_ros_deploy_converters"),
+    ("ros-jazzy-isaac-ros-deploy-ros2-control", "isaac_ros_deploy", "isaac_deploy/isaac_ros_deploy_ros2_control"),
+    ("ros-jazzy-isaac-ros-deploy-bringup", "isaac_ros_deploy", "isaac_deploy/isaac_ros_deploy_bringup"),
+    ("ros-jazzy-isaac-ros-deploy", "isaac_ros_deploy", "isaac_ros_deploy"),
+    # The last isaac_ros_cumotion package, reachable now that inverse_dynamics is above it.
+    ("ros-jazzy-isaac-ros-cumotion-controllers", "isaac_ros_cumotion", "isaac_ros_cumotion_controllers"),
+    # --- learned policies, robots, physical AI --------------------------------------
+    #
+    # Every external dependency of these three repos resolves from robostack-jazzy --
+    # including mujoco_ros2_control, pinocchio, foxglove_bridge and realsense2_camera,
+    # each of which looked like a likely gap and is not.
+    #
+    # unitree_g1_bridge is the exception and the only package in these five repos left out:
+    # it <depend>s on unitree_api, the Unitree SDK's ROS interface, which is in no channel.
+    # Nothing else depends on it -- unitree_g1_bringup reaches the robot through
+    # unitree_g1_ros2_control -- so it costs exactly one package.
+    ("ros-jazzy-isaac-ros-agile-unitree-g1", "isaac_ros_learned_policies", "isaac_ros_agile_unitree_g1"),
+    ("ros-jazzy-isaac-ros-franka-fr3-reach", "isaac_ros_learned_policies", "isaac_ros_franka_fr3_reach"),
+    ("ros-jazzy-isaac-ros-gr00t-unitree-g1-install", "isaac_ros_learned_policies",
+     "isaac_ros_gr00t_unitree_g1_install"),
+    ("ros-jazzy-isaac-ros-robots-tools", "isaac_ros_robots", "isaac_ros_robots_tools"),
+    ("ros-jazzy-unitree-g1-description", "isaac_ros_robots", "unitree_g1/unitree_g1_description"),
+    ("ros-jazzy-unitree-g1-ros2-control", "isaac_ros_robots", "unitree_g1/unitree_g1_ros2_control"),
+    ("ros-jazzy-unitree-g1-bringup", "isaac_ros_robots", "unitree_g1/unitree_g1_bringup"),
+    ("ros-jazzy-isaac-ros-data-flywheel", "isaac_ros_physical_ai", "isaac_ros_data_flywheel"),
+    ("ros-jazzy-isaac-ros-unitree-g1-recorder", "isaac_ros_physical_ai", "isaac_ros_unitree_g1_recorder"),
+    ("ros-jazzy-isaac-ros-unitree-g1-gr00t", "isaac_ros_physical_ai", "isaac_ros_unitree_g1_gr00t"),
+    ("ros-jazzy-isaac-ros-unitree-g1-teleop-bringup", "isaac_ros_physical_ai",
+     "isaac_ros_unitree_g1_teleop_bringup"),
+    # SIPL is NVIDIA's DRIVE camera SDK, so this node is not useful off that hardware --
+    # but it is a plain ament_cmake package whose declared dependencies all resolve, which
+    # is the bar every other entry here is held to.
+    ("ros-jazzy-isaac-ros-sipl-camera", "isaac_ros_sipl_camera", "isaac_ros_sipl_camera"),
 ]
 
 DEP_TAG = re.compile(
@@ -591,6 +655,14 @@ DROP_DEPS = {
     "ros-jazzy-isaac-ros-segment-anything2": {
         "isaac_ros_triton": "needs Triton (ISSUES.md #21); one of two backends, TensorRT is the other",
     },
+    # isaac_ros_deploy. Both declare Triton as <exec_depend>, so it never reaches
+    # configure -- only `run`, where it would make the environment unsolvable.
+    "ros-jazzy-isaac-ros-deploy-converters": {
+        "isaac_ros_triton": "needs Triton (ISSUES.md #21); an inference node in the launch graph",
+    },
+    "ros-jazzy-isaac-ros-deploy-bringup": {
+        "isaac_ros_triton": "needs Triton (ISSUES.md #21); an inference node in the launch graph",
+    },
     # Already <exec_depend> upstream, so these cost nothing at build time -- they only
     # have to stay out of `run`, where an unbuildable package makes the environment
     # unsolvable. isaac_ros_dnn_image_encoder is deliberately NOT dropped: it is built
@@ -626,6 +698,24 @@ DROP_DEPS = {
 # recursive clone would have given. Pinned by commit rather than branch on purpose: the
 # submodule tracks `public`, which moves.
 EXTRA_SOURCES = {
+    # IsaacTeleop, which isaac_teleop_core needs and which the release tarball omits --
+    # third instance of this shape here, after the nvblox core below and the git-lfs
+    # pointers in isaac_ros_nitros. The directory is a git submodule, so the tarball
+    # carries an empty isaac_teleop_core/IsaacTeleop/ and CMakeLists.txt stops at
+    #
+    #   FATAL_ERROR "Missing Teleop ROS 2 Python source: ...teleop_ros2_node.py
+    #                Ensure the IsaacTeleop submodule is initialized."
+    #
+    # which is at least a clear diagnosis, unlike nvblox's. The submodule is public --
+    # .gitmodules points at github.com/NVIDIA/IsaacTeleop, branch release/1.3.x -- and the
+    # recorded commit resolves there, so this reproduces what a recursive clone would give.
+    # Pinned by commit rather than by the branch, which moves.
+    "ros-jazzy-isaac-teleop-core": [(
+        "https://github.com/NVIDIA/IsaacTeleop/archive/"
+        "187e8ac684df2bd3bbfe79a522ea06bc3d22b59e.tar.gz",
+        "bc82ccda813ea13d64149a0f049f76a9767bd3d5b831e9c688b0c2370a2d7bdb",
+        "src/isaac_teleop_core/IsaacTeleop",
+    )],
     "ros-jazzy-nvblox-ros": [(
         "https://github.com/nvidia-isaac/nvblox/archive/"
         "24eee4948768682fa1ffb969b881efee4fca29c2.tar.gz",
@@ -945,7 +1035,11 @@ SYSTEM = {
     "libgflags-dev": "gflags",
     "libgoogle-glog-dev": "glog",
     "assimp": "assimp",
-    "tl_expected": "tl-expected",
+    # tl_expected used to be mapped to a conda-forge "tl-expected", which does not exist
+    # under that name or any near variant. It is a *ROS* package -- robostack-jazzy has
+    # ros-jazzy-tl-expected 1.3.1 -- so the right handling is no entry at all: the default
+    # ros_name() below already produces it. isaac_deploy_core is the first package here to
+    # need it, which is why the wrong mapping went unnoticed.
     "benchmark": "benchmark",
     "posix_ipc": "posix_ipc",
     "git": None,
@@ -955,6 +1049,13 @@ SYSTEM = {
     # paho without the first, and vda5050_action_handler_plugins links libcurl.
     "python3-paho-mqtt-pip-shim": "paho-mqtt",
     "libcurl-dev": "libcurl",
+    # isaac_teleop_core. Both are in conda-forge, under names that do not match the rosdep
+    # keys. python3-isaacteleop-pip-shim is deliberately not mapped: that is NVIDIA's own
+    # isaacteleop wheel, which is in no channel, and its CMakeLists says the package is
+    # "provided by the pip shim dependency at runtime" -- so it is a runtime gap for the
+    # teleop node, not a build one.
+    "python3-msgpack": "msgpack-python",
+    "python3-msgpack-numpy": "msgpack-numpy",
 }
 
 
@@ -982,9 +1083,19 @@ def deps_of(pkgxml: str, name: str, kinds: set[str] | None = None) -> list[str]:
                 continue
         elif dep in MAP:
             mapped = MAP[dep]
-        elif dep.startswith(("python3-", "lib")) or "-" in dep:
+        elif dep.startswith("python3-") or "-" in dep:
             # An unrecognised system-looking key: skip rather than invent a ROS
             # package that does not exist, and let the build tell us if it mattered.
+            #
+            # The test used to include `dep.startswith("lib")`, which was wrong and cost
+            # nvblox_ros a real dependency: `libstatistics_collector` is a core ROS 2
+            # package -- ros-jazzy-libstatistics-collector, ten builds in robostack-jazzy --
+            # and it was being silently dropped for beginning with "lib". rosdep's
+            # convention separates the two cleanly: ROS package keys are the package name,
+            # so they use underscores, while Debian system keys use dashes
+            # (libgflags-dev, libopencv-dev, libcurl-dev). Every lib* key in SYSTEM above
+            # has a dash, so requiring one loses nothing and stops swallowing ROS packages
+            # whose names happen to start with those three letters.
             print(f"     note {name}: skipping unmapped system dep '{dep}'")
             continue
         else:

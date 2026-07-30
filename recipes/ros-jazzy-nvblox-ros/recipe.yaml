@@ -118,6 +118,7 @@ requirements:
     - ros-jazzy-isaac-ros-nitros
     - ros-jazzy-isaac-ros-nitros-camera-info-type
     - ros-jazzy-isaac-ros-nitros-image-type
+    - ros-jazzy-libstatistics-collector
     - ros-jazzy-message-filters
     - ros-jazzy-nav-msgs
     - ros-jazzy-nvblox-msgs
@@ -152,6 +153,7 @@ requirements:
     - ros-jazzy-isaac-ros-nitros
     - ros-jazzy-isaac-ros-nitros-camera-info-type
     - ros-jazzy-isaac-ros-nitros-image-type
+    - ros-jazzy-libstatistics-collector
     - ros-jazzy-message-filters
     - ros-jazzy-nav-msgs
     - ros-jazzy-nvblox-msgs

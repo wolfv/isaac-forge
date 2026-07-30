@@ -29,7 +29,7 @@ build:
     # resource, drop the download -- assets belong on the target machine.
     - grep -q 'install_isaac_ros_asset(install_peoplenet_amr_rs)' CMakeLists.txt || { echo 'install_isaac_ros_asset(install_peoplenet_amr_rs) not found -- upstream changed shape, revisit gen_source.py'; exit 1; }
     - >
-      sed -i 's|install_isaac_ros_asset(\([A-Za-z0-9_]*\))|ament_index_register_resource("\1" CONTENT "${CMAKE_INSTALL_PREFIX}/lib/${PROJECT_NAME}/\1.sh")|'
+      sed -i 's|install_isaac_ros_asset(\([A-Za-z0-9_]*\))|ament_index_register_resource("\1" CONTENT "${CMAKE_INSTALL_PREFIX}/lib/${PROJECT_NAME}/\1.sh")\ninstall(PROGRAMS asset_scripts/\1.sh DESTINATION lib/${PROJECT_NAME})|'
       CMakeLists.txt
     # ${CMAKE_ARGS} carries the compiler activation's CMAKE_FIND_ROOT_PATH, which is
     # what points find_package(CUDAToolkit) at the prefix rather than /usr/local/cuda.

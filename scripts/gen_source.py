@@ -308,6 +308,24 @@ PACKAGES = [
     # dangling dependency upstream rather than anything missing here -- ISSUES.md #22.
     ("ros-jazzy-isaac-ros-pointcloud-utils", "isaac_ros_mapping_and_localization", "isaac_ros_pointcloud_utils"),
     ("ros-jazzy-isaac-ros-occupancy-grid-localizer", "isaac_ros_mapping_and_localization", "isaac_ros_occupancy_grid_localizer"),
+    # --- nvblox --------------------------------------------------------------------
+    #
+    # nvblox_msgs was already built for cuMotion; this is the rest of the repo. Leaves
+    # first, the metapackage last. nvblox_examples_bringup and nvblox_test are absent:
+    # bringup pulls the realsense and DNN example graphs, and nvblox_test wants the test
+    # datasets.
+    ("ros-jazzy-nvblox-ros-common", "isaac_ros_nvblox", "nvblox_ros_common"),
+    ("ros-jazzy-nvblox-ros-python-utils", "isaac_ros_nvblox", "nvblox_ros_python_utils"),
+    ("ros-jazzy-nvblox-test-data", "isaac_ros_nvblox", "nvblox_test_data"),
+    ("ros-jazzy-nvblox-message-adapters", "isaac_ros_nvblox", "nvblox_message_adapters"),
+    ("ros-jazzy-nvblox-nav2", "isaac_ros_nvblox", "nvblox_nav2"),
+    ("ros-jazzy-nvblox-rviz-plugin", "isaac_ros_nvblox", "nvblox_rviz_plugin"),
+    ("ros-jazzy-realsense-splitter", "isaac_ros_nvblox", "nvblox_examples/realsense_splitter"),
+    ("ros-jazzy-multi-realsense-emitter-synchronizer", "isaac_ros_nvblox", "nvblox_examples/multi_realsense_emitter_synchronizer"),
+    ("ros-jazzy-semantic-label-conversion", "isaac_ros_nvblox", "nvblox_examples/semantic_label_conversion"),
+    ("ros-jazzy-nvblox-image-padding", "isaac_ros_nvblox", "nvblox_examples/nvblox_image_padding"),
+    ("ros-jazzy-nvblox-ros", "isaac_ros_nvblox", "nvblox_ros"),
+    ("ros-jazzy-isaac-ros-nvblox", "isaac_ros_nvblox", "isaac_ros_nvblox"),
 ]
 
 DEP_TAG = re.compile(
@@ -436,6 +454,40 @@ DROP_DEPS = {
     "ros-jazzy-isaac-ros-grounding-dino": {
         "isaac_ros_tensor_rt": "needs TensorRT; the inference node in the launch graph",
     },
+}
+
+# Additional source entries a package needs beyond its repo tarball, keyed by conda package
+# name. Each value is (url, sha256, target_directory-relative-to-src).
+#
+# These exist because a GitHub release tarball is not a git clone: it contains no submodule
+# content. isaac_ros_nvblox declares
+#
+#     [submodule "nvblox_ros/nvblox_core"]
+#         url = https://github.com/nvidia-isaac/nvblox.git
+#
+# so in the v4.5-0 tarball nvblox_ros/nvblox_core is an *empty directory*, and nvblox_ros
+# fails at configure the moment it does
+#
+#     include(nvblox_core/cmake/cuda/setup_compute_capability.cmake)
+#     add_subdirectory(nvblox_core)
+#
+# The core library is Apache-2.0 and public, and the submodule commit recorded at the v4.5-0
+# tag resolves in nvidia-isaac/nvblox, so fetching that exact commit reproduces what a
+# recursive clone would have given. Pinned by commit rather than branch on purpose: the
+# submodule tracks `public`, which moves.
+EXTRA_SOURCES = {
+    "ros-jazzy-nvblox-ros": [(
+        "https://github.com/nvidia-isaac/nvblox/archive/"
+        "24eee4948768682fa1ffb969b881efee4fca29c2.tar.gz",
+        "b5243e56760fe1aaa4d029d71ed8dde34ee9f4ac84aa7de1c4fafcb32d27fc30",
+        "src/nvblox_ros/nvblox_core",
+    )],
+    "ros-jazzy-nvblox-image-padding": [(
+        "https://github.com/nvidia-isaac/nvblox/archive/"
+        "24eee4948768682fa1ffb969b881efee4fca29c2.tar.gz",
+        "b5243e56760fe1aaa4d029d71ed8dde34ee9f4ac84aa7de1c4fafcb32d27fc30",
+        "src/nvblox_ros/nvblox_core",
+    )],
 }
 
 # Patches applied to a package's source, keyed by conda package name; paths are relative
@@ -951,8 +1003,18 @@ def emit(name: str, repo: str, path: str) -> str | None:
                    if pats else "")
 
     # See the asset note in detect(). The rewrite is a sed rather than a patch file
-    # because four packages need the identical change; the grep in front of it is the
-    # load-bearing part -- if upstream ever changes the call's shape, the sed would
+    # because five packages need the identical change; the grep in front of it is the
+    # load-bearing part.
+    #
+    # The rewrite emits the install(PROGRAMS ...) as well as the resource registration, and
+    # that is not redundant. Four of the five packages install the script themselves right
+    # after the install_isaac_ros_asset() call, so for them it is a harmless duplicate
+    # install of one file. nvblox_test_data does not -- its CMakeLists has only
+    # install_isaac_ros_asset(quickstart) -- so registering the resource alone would leave
+    # the ament index pointing at lib/nvblox_test_data/quickstart.sh, a file nothing ever
+    # installs. A dangling resource is worse than a missing one: `ros2 run` fails with a
+    # path that looks like it should work. Emitting both makes the resource true for all
+    # five -- if upstream ever changes the call's shape, the sed would
     # silently not match and the build would go back to trying to download models at
     # build time, so assert the text is there first and fail loudly if it is not.
     # Source rewrites applied in the package directory before cmake runs. Each is
@@ -986,7 +1048,8 @@ def emit(name: str, repo: str, path: str) -> str | None:
             "\n      sed -i"
             " 's|install_isaac_ros_asset(\\([A-Za-z0-9_]*\\))"
             "|ament_index_register_resource(\"\\1\" CONTENT"
-            " \"${CMAKE_INSTALL_PREFIX}/lib/${PROJECT_NAME}/\\1.sh\")|'"
+            " \"${CMAKE_INSTALL_PREFIX}/lib/${PROJECT_NAME}/\\1.sh\")\\n"
+            "install(PROGRAMS asset_scripts/\\1.sh DESTINATION lib/${PROJECT_NAME})|'"
             "\n      CMakeLists.txt")
 
     # A passing build says the compiler was happy, not that the payload arrived. For the
@@ -999,6 +1062,11 @@ def emit(name: str, repo: str, path: str) -> str | None:
             f"share/ament_index/resource_index/{asset}/{ros_dir}",
         ]
     extra_files = "".join(f"\n        - {f}" for f in test_files)
+
+    # See EXTRA_SOURCES: submodule content the release tarball omits.
+    extra_sources = "".join(
+        f"  - url: {u}\n    sha256: {h}\n    target_directory: {d}\n"
+        for u, h, d in EXTRA_SOURCES.get(name, []))
 
     # See the magicenum note in detect(): the host dep alone is not enough, because
     # conda-forge's magic_enum nests the header one directory deeper than the
@@ -1031,7 +1099,7 @@ source:
   - url: {repo_info['url']}
     sha256: {repo_info['sha256']}
     target_directory: src
-{patch_block}
+{patch_block}{extra_sources}
 build:
   number: 0
   script:

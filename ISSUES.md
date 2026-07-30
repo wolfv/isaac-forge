@@ -1001,3 +1001,60 @@ version **3.2.5** while everything around them is 4.5.0.
 A 4.5 tag on both repositories — even one that only re-tags the 3.2 content, if nothing
 changed — would remove the ambiguity and let a downstream packager pin the same train it
 pins everything else to.
+
+## 24. `nvblox_ros_common` exports the CUDA toolkit's include directory as public interface
+
+**Severity:** every downstream package fails to configure, with an error naming a directory
+that no longer exists. Invisible in the producing package, which builds and tests clean.
+
+`nvblox_ros_common/CMakeLists.txt` does
+
+```cmake
+ament_target_dependencies(nvblox_ros_common_lib rclcpp CUDAToolkit)
+```
+
+`ament_target_dependencies()` attaches its arguments' include directories to the target as
+**INTERFACE**, so `${CUDAToolkit_INCLUDE_DIRS}` becomes part of what consumers inherit. That
+is not what the target needs from CUDA: it links `CUDA::cudart`, and an imported CUDA target
+already carries its own includes.
+
+It matters because `FindCUDAToolkit` resolves that directory next to `nvcc`. In a conda
+build that is the *build* environment's prefix, a directory that exists only while the
+package is being built and is deleted afterwards. Conda relocation does not rewrite it —
+only the install prefix is a relocatable placeholder — so the installed export file names a
+path that is gone. `nvblox_ros_common` itself builds, installs and passes its tests; the
+failure appears when `nvblox_ros` consumes it:
+
+```
+Imported target "nvblox_ros_common::nvblox_ros_common_lib" includes non-existent path
+```
+
+The same shape would hit a Debian or Nix build, or anyone whose CUDA moves between build and
+install. It is only invisible on a machine where `/usr/local/cuda` happens to be in both
+places.
+
+**Ask:** drop `CUDAToolkit` from the `ament_target_dependencies()` call and link
+`CUDA::cudart` (already linked) or, if the headers really are part of the public interface,
+attach them with `target_include_directories(... SYSTEM INTERFACE
+$<BUILD_INTERFACE:...>)` so they do not survive into the installed export.
+
+Worked around here by rewriting the build prefix out of installed text files, with a hard
+failure if anything is left — `scripts/gen_source.py`, and every generated recipe carries
+it. That is general rather than specific to nvblox, which is why it is a generator rule.
+
+## 25. `plane_impl.h` calls `assert()` without including `<cassert>`
+
+**Severity:** nvblox core fails to compile wherever nothing else happens to have included
+`<cassert>` first. Same family as #1.
+
+`nvblox/geometry/internal/impl/plane_impl.h` uses `assert()` and includes no header that
+declares it. It compiles for NVIDIA because some other include in their translation units
+pulls `<cassert>` in transitively; change the include order, the standard library version or
+the compiler and it stops.
+
+Apache-2.0, so this is a one-line PR: `#include <cassert>` at the top of the file.
+
+Worked around here with `-include cassert` on `CXXFLAGS` and `CUDAFLAGS`, the same
+workaround the visual-slam recipe carries for #1, and for the same reason: nvblox core
+arrives as a separately fetched submodule rather than as a file in the package we patch.
+

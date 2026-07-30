@@ -490,6 +490,116 @@ EXTRA_SOURCES = {
     )],
 }
 
+# stdgpu, which nvblox core needs and which cannot come from a channel.
+#
+# nvblox offers USE_SYSTEM_STDGPU, and it is a trap for a packager: it does not want
+# vanilla stdgpu. thirdparty/stdgpu/stdgpu.cmake FetchContents commit 71a5aef2 and applies
+# six patches, two of which change behaviour rather than fixing a build:
+#
+#   stdgpu_expose_occupied.patch     adds a public method, unordered_map::occupied(index_t),
+#                                    which nvblox calls when copying the hash
+#   stdgpu_handle_collisions.patch   replaces stdgpu's estimate of hash collisions with the
+#                                    worst case
+#
+# So a stock stdgpu -- in conda-forge or anywhere else -- would fail to compile nvblox,
+# because the method it calls would not exist. Pointing USE_SYSTEM_STDGPU at one looks like
+# the clean answer and does not work.
+#
+# Instead fetch the same commit nvblox pins, apply nvblox's own patches to it (they ship in
+# the core tree, so nothing is invented here), and hand it to FetchContent as a local source
+# directory -- which is also what makes the build hermetic, since FetchContent would
+# otherwise clone from GitHub mid-build.
+_STDGPU = (
+    "https://github.com/stotko/stdgpu/archive/"
+    "71a5aef26626eda47d15e5f577ca3b1538ff996a.tar.gz",
+    "0110a321d41b4841d5daa6e0dd3ffec2f38d6591ded5ee13997ddd019328e174",
+    "src/stdgpu",
+)
+# sqlite, vendored for a different reason than stdgpu: the system branch does
+# `find_package(sqlite3 REQUIRED)` -- lowercase -- and nothing provides a lowercase
+# sqlite3-config.cmake. CMake ships FindSQLite3 with a capital S, and conda-forge's sqlite
+# has no config module at all, so USE_SYSTEM_SQLITE3=ON cannot be satisfied however the
+# prefix is populated. nvblox's own fallback compiles the amalgamation, which is one .c
+# file, so hand it that instead. Same version and hash nvblox pins.
+_SQLITE = (
+    "https://sqlite.org/2025/sqlite-amalgamation-3500400.zip",
+    "1d3049dd0f830a025a53105fc79fd2ab9431aea99e137809d064d8ee8356b032",
+    "src/sqlite3",
+)
+_NVBLOX_CORE_USERS = ("ros-jazzy-nvblox-ros", "ros-jazzy-nvblox-image-padding")
+for _p in _NVBLOX_CORE_USERS:
+    EXTRA_SOURCES[_p].append(_STDGPU)
+    EXTRA_SOURCES[_p].append(_SQLITE)
+
+# Shell lines run in the package directory, after the generic rewrites and before cmake.
+EXTRA_PREP = {
+    # Apply nvblox's stdgpu patches to the stdgpu source fetched above. They are git diffs
+    # from the stdgpu root, so `patch -p1` in that tree does what `git apply` would have.
+    # The count is asserted: if the patch set changes shape upstream the build should stop,
+    # not quietly compile a stdgpu missing the method nvblox calls.
+    _p: [
+        'test -d "${SRC_DIR}/src/stdgpu" || { echo "stdgpu source missing"; exit 1; }',
+        'n=$(ls "${SRC_DIR}"/src/nvblox_ros/nvblox_core/nvblox/thirdparty/stdgpu/*.patch | wc -l);'
+        ' [ "$n" -eq 6 ] || { echo "expected 6 stdgpu patches, found $n"; exit 1; }',
+        'for q in "${SRC_DIR}"/src/nvblox_ros/nvblox_core/nvblox/thirdparty/stdgpu/*.patch;'
+        ' do patch -p1 -d "${SRC_DIR}/src/stdgpu" < "$q" || exit 1; done',
+        # nvblox/geometry/internal/impl/plane_impl.h uses assert() without including
+        # <cassert>, so it compiles only where something else happened to include it first.
+        # Same shape as ISSUES.md #1 (cuvslam2.h missing <cstdint>) and the same workaround
+        # the visual-slam recipe carries: force the include rather than patch a submodule we
+        # fetch separately. Apache-2.0, so it is PR-able upstream -- ISSUES.md #25.
+        'export CXXFLAGS="${CXXFLAGS:-} -include cassert"',
+        'export CUDAFLAGS="${CUDAFLAGS:-} -include cassert"',
+    ]
+    for _p in _NVBLOX_CORE_USERS
+}
+
+# Extra -D flags for cmake, keyed by conda package name.
+EXTRA_CMAKE_ARGS = {
+    _p: [
+        # From the prefix rather than FetchContent, which would need network mid-build.
+        # Note USE_SYSTEM_SQLITE3, with the 3. An earlier pass read these names with a
+        # regex that stopped at digits and produced USE_SYSTEM_SQLITE, which silently left
+        # the flag unset -- so nvblox took its FetchContent branch, found no network, and
+        # failed in add_library() with an empty source dir. A wrong flag name is not an
+        # error to CMake; it is just an unset variable.
+        "-DUSE_SYSTEM_EIGEN=ON", "-DUSE_SYSTEM_GFLAGS=ON", "-DUSE_SYSTEM_GLOG=ON",
+        # nvblox's system-eigen branch does
+        #     target_include_directories(nvblox_eigen SYSTEM INTERFACE ${EIGEN3_INCLUDE_DIR})
+        # which is the pre-target-era variable. Current Eigen3Config.cmake exports the
+        # Eigen3::Eigen target and does not set it, so the include directory came out empty
+        # and every translation unit failed on `#include <Eigen/Core>`. Name it explicitly;
+        # conda-forge puts the headers one level down, in include/eigen3.
+        '-DEIGEN3_INCLUDE_DIR="${PREFIX}/include/eigen3"',
+        "-DUSE_SYSTEM_BENCHMARK=ON", "-DUSE_SYSTEM_GTEST=ON",
+        # These two stay FetchContent's, pointed at vendored trees -- see _STDGPU/_SQLITE.
+        '-DFETCHCONTENT_SOURCE_DIR_EXT_STDGPU="${SRC_DIR}/src/stdgpu"',
+        '-DFETCHCONTENT_SOURCE_DIR_EXT_SQLITE3="${SRC_DIR}/src/sqlite3"',
+        # Nothing may reach the network mid-build; if a FetchContent is not satisfied by a
+        # source dir above, fail rather than clone.
+        "-DFETCHCONTENT_FULLY_DISCONNECTED=ON",
+    ]
+    for _p in _NVBLOX_CORE_USERS
+}
+
+# nvblox_ros_common exports the CUDA include directory as part of its public interface --
+# ament_target_dependencies(nvblox_ros_common_lib rclcpp CUDAToolkit) makes
+# ${CUDAToolkit_INCLUDE_DIRS} INTERFACE. -DCUDAToolkit_INCLUDE_DIR was tried and does not
+# redirect it, so the fix is the prefix rewrite in the build script above, which is general
+# rather than specific to this package. Upstream would do better to keep the toolkit out of
+# the public interface entirely -- the target already links CUDA::cudart, which carries its
+# own includes. ISSUES.md #24.
+# Host requirements beyond what the manifest and traits give, keyed by conda package name.
+EXTRA_HOST = {
+    # nvblox core's own dependencies, none of which appears in any package.xml -- the
+    # manifest describes the ROS wrapper, not the vendored library underneath it. Taken from
+    # what the core actually includes and links: CUDA::npp{c,ial,idei,im,tc} plus npp.h,
+    # curand_kernel.h, cuda_fp16.h and the thrust headers (thrust ships with cccl, which
+    # cuda-cudart-dev already brings).
+    _p: ["libnpp-dev", "libcurand-dev", "gflags", "glog", "benchmark", "gtest", "eigen"]
+    for _p in _NVBLOX_CORE_USERS
+}
+
 # Patches applied to a package's source, keyed by conda package name; paths are relative
 # to the recipe directory. All but one are prepared for upstream; the exception says so in
 # its own commit message, and the reason it cannot go upstream is that the code that needs
@@ -954,6 +1064,9 @@ def emit(name: str, repo: str, path: str) -> str | None:
     deps = deps_of(pkgxml, name)
 
     host = list(deps)
+    for extra in EXTRA_HOST.get(name, []):
+        if extra not in host:
+            host.append(extra)
     for t in sorted(traits):
         for extra in TRAIT_DEPS[t]:
             if extra.endswith("# [build]"):
@@ -1033,6 +1146,9 @@ def emit(name: str, repo: str, path: str) -> str | None:
             "\n    - sed -i -E 's|find_package\\(Eigen3 [0-9.]+|find_package(Eigen3|'"
             " CMakeLists.txt")
 
+    for _line in EXTRA_PREP.get(name, []):
+        prep += f"\n    - {_line}"
+
     asset = asset_name(cml) if "asset" in traits else None
     if asset:
         prep += (
@@ -1064,6 +1180,9 @@ def emit(name: str, repo: str, path: str) -> str | None:
     extra_files = "".join(f"\n        - {f}" for f in test_files)
 
     # See EXTRA_SOURCES: submodule content the release tarball omits.
+    extra_cmake = "".join(
+        f"\n      {a}" for a in EXTRA_CMAKE_ARGS.get(name, []))
+
     extra_sources = "".join(
         f"  - url: {u}\n    sha256: {h}\n    target_directory: {d}\n"
         for u, h, d in EXTRA_SOURCES.get(name, []))
@@ -1115,9 +1234,37 @@ build:
       -DCMAKE_PREFIX_PATH="${{PREFIX}}"
       -DCMAKE_CUDA_ARCHITECTURES="80;86;89;90"
       -DPYTHON_EXECUTABLE="${{PREFIX}}/bin/python"
-      -DBUILD_TESTING=OFF
+      -DBUILD_TESTING=OFF{extra_cmake}
     - cmake --build build --parallel "${{CPU_COUNT:-2}}"
     - cmake --install build
+    # No installed *text* file may name the build environment. $BUILD_PREFIX is unique to
+    # this build and is deleted afterwards, and conda's relocation does not rewrite it --
+    # only $PREFIX is a placeholder -- so such a reference breaks every consumer.
+    #
+    # Not hypothetical: nvblox_ros_common passes CUDAToolkit to
+    # ament_target_dependencies(), which makes the toolkit's include directory INTERFACE, and
+    # FindCUDAToolkit resolves it next to nvcc -- in BUILD_PREFIX. It went into the installed
+    # export file, the package built and tested clean, and the failure surfaced only when
+    # nvblox_ros used it: "includes non-existent path".
+    #
+    # Rewrite first: the CUDA headers exist at the same relative paths under both prefixes
+    # (the compile line carries -I for both), so substituting the host prefix is correct
+    # rather than merely quieting the check. Then fail on anything left.
+    #
+    # Text files only. Binaries legitimately still carry BUILD_PREFIX in their RPATH at this
+    # point -- rattler-build's post-processing relocates them after this script runs -- so
+    # including them would fail every package for a non-problem.
+    - >
+      find "${{PREFIX}}" -type f \\( -name '*.cmake' -o -name '*.pc' -o -name '*.sh'
+      -o -name '*.dsv' -o -name '*.txt' -o -name '*.bash' -o -name '*.zsh' \\)
+      -exec grep -lF "${{BUILD_PREFIX}}" {{}} + 2>/dev/null
+      | xargs -r sed -i "s|${{BUILD_PREFIX}}|${{PREFIX}}|g"
+    - >
+      left=$(find "${{PREFIX}}" -type f \\( -name '*.cmake' -o -name '*.pc' -o -name '*.sh'
+      -o -name '*.dsv' -o -name '*.txt' -o -name '*.bash' -o -name '*.zsh' \\)
+      -exec grep -lF "${{BUILD_PREFIX}}" {{}} + 2>/dev/null | head -5);
+      if [ -n "$left" ]; then echo "FAIL: installed text files still name BUILD_PREFIX:";
+      echo "$left"; exit 1; fi
   dynamic_linking:
     missing_dso_allowlist:
       # GXF extensions live in sibling packages' share/ trees; cuVSLAM and the VPI

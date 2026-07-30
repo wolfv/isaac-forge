@@ -68,6 +68,9 @@ REPOS = {
     "isaac_ros_object_detection": dict(
         url="https://github.com/NVIDIA-ISAAC-ROS/isaac_ros_object_detection/archive/refs/tags/v4.5-0.tar.gz",
         sha256="349b78dcdbd22c019f982d343c65bd690d4affcdf8aca85183b1505943962098"),
+    "isaac_ros_mapping_and_localization": dict(
+        url="https://github.com/NVIDIA-ISAAC-ROS/isaac_ros_mapping_and_localization/archive/refs/tags/v4.5-0.tar.gz",
+        sha256="547f434b9600583e30133822dddc4ddbdb7dc3b5428a49985428c90352dfdbdc"),
     "negotiated": dict(
         url="https://github.com/osrf/negotiated/archive/"
             "eac198b55dcd052af5988f0f174902913c5f20e7.tar.gz",
@@ -295,6 +298,16 @@ PACKAGES = [
     ("ros-jazzy-isaac-ros-stereo-image-proc", "isaac_ros_image_pipeline", "isaac_ros_stereo_image_proc"),
     ("ros-jazzy-isaac-ros-depth-image-proc", "isaac_ros_image_pipeline", "isaac_ros_depth_image_proc"),
     ("ros-jazzy-isaac-ros-image-pipeline", "isaac_ros_image_pipeline", "isaac_ros_image_pipeline"),
+    # --- mapping and localization ---------------------------------------------------
+    #
+    # Two of this repo's four packages. The other two -- isaac_mapping_ros and
+    # isaac_ros_visual_global_localization -- both <depend> on isaac_ros_visual_mapping, and
+    # isaac_mapping_ros additionally does find_package(isaac_ros_visual_mapping REQUIRED)
+    # plus five ament_target_dependencies() against it. No such package exists at v4.5-0 in
+    # this repo or anywhere else in the 4.5 source set, so neither can configure. That is a
+    # dangling dependency upstream rather than anything missing here -- ISSUES.md #22.
+    ("ros-jazzy-isaac-ros-pointcloud-utils", "isaac_ros_mapping_and_localization", "isaac_ros_pointcloud_utils"),
+    ("ros-jazzy-isaac-ros-occupancy-grid-localizer", "isaac_ros_mapping_and_localization", "isaac_ros_occupancy_grid_localizer"),
 ]
 
 DEP_TAG = re.compile(

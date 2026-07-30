@@ -36,6 +36,9 @@ fetch isaac_ros_dnn_inference "$B/isaac_ros_dnn_inference/archive/refs/tags/v4.5
 # All eight of its packages build: TensorRT is <exec_depend> in the three that use it and
 # <test_depend> in detectnet, so none of them needs it to configure.
 fetch isaac_ros_object_detection "$B/isaac_ros_object_detection/archive/refs/tags/v4.5-0.tar.gz"
+# Two of its four packages build; the other two reference isaac_ros_visual_mapping, which
+# does not exist at 4.5 (ISSUES.md #22).
+fetch isaac_ros_mapping_and_localization "$B/isaac_ros_mapping_and_localization/archive/refs/tags/v4.5-0.tar.gz"
 fetch negotiated "https://github.com/osrf/negotiated/archive/eac198b55dcd052af5988f0f174902913c5f20e7.tar.gz"
 # Not NVIDIA's, and not in RoboStack: topic_based_ros2_control has no jazzy release at all
 # (ISSUES.md #15), so it is pinned to a commit. robotiq_controllers used to be here too and

@@ -39,8 +39,10 @@ sign-off. We are happy to send the PRs.
 | 19 | `isaac_ros_tensor_proc` links `isaac_ros_cvcuda_utils` without declaring it | `isaac_ros_tensor_proc/CMakeLists.txt:44`, `package.xml` | **Apache-2.0** | **us, via PR** |
 | 20 | `install_isaac_ros_asset()` downloads models and runs `trtexec` as part of `ALL` | `isaac_ros_common/cmake/isaac_ros_common-extras-assets.cmake` | NVIDIA Isaac ROS Software License (no modification) | **NVIDIA only** |
 | 21 | `isaac_ros_triton` defaults x86_64 to an unreachable internal artifactory URL | `isaac_ros_triton/CMakeLists.txt:20-22` | **Apache-2.0** | **NVIDIA** — needs a public x86_64 tarball to point at |
+| 22 | `isaac_ros_visual_mapping` is `find_package`d and `<depend>`ed but does not exist at 4.5 | `isaac_mapping_ros/CMakeLists.txt:34`, `.../package.xml:50`, `isaac_ros_visual_global_localization/package.xml:54` | **Apache-2.0** | **NVIDIA** — publish it or fix the references |
+| 23 | `nova_carter` and `isaac_ros_depth_segmentation` have no 4.5 tag, but 4.5 packages depend on them | `NVIDIA-ISAAC-ROS/{nova_carter,isaac_ros_depth_segmentation}` tags | n/a — tagging | **NVIDIA only** |
 
-Only #4b, #5, #11, #17, #20 and #21 need NVIDIA to hold the pen — #4b because the intended license is
+Only #4b, #5, #11, #17, #20, #21, #22 and #23 need NVIDIA to hold the pen — #4b because the intended license is
 genuinely ambiguous from outside and we will not guess at it, and #11 because it is a
 tagging and source-release decision in your repo. Item 2 has both a consumer-side fix we
 can PR today and a cleaner root-cause fix only NVIDIA can make.
@@ -936,3 +938,66 @@ This is why `isaac_ros_triton` is absent from this repository while
 TensorRT is the backend every Isaac ROS DNN pipeline actually defaults to. Triton is the
 alternative backend for exactly one package (`isaac_ros_centerpose`, which also ships a
 TensorRT launch file), so nothing in the stack is unreachable for want of it.
+
+## 22. `isaac_ros_visual_mapping` is required but does not exist
+
+**Severity:** two packages in `isaac_ros_mapping_and_localization` cannot configure at all.
+Not a packaging gap — the dependency names a package that is absent from the 4.5 release.
+
+At `v4.5-0`, `isaac_ros_mapping_and_localization` contains exactly four packages:
+
+```
+isaac_mapping_ros
+isaac_ros_occupancy_grid_localizer
+isaac_ros_pointcloud_utils
+isaac_ros_visual_global_localization
+```
+
+There is no `isaac_ros_visual_mapping`. Yet `isaac_mapping_ros` requires it as a CMake
+package:
+
+```cmake
+# isaac_mapping_ros/CMakeLists.txt
+find_package(isaac_ros_visual_mapping REQUIRED)                      # line 34
+ament_target_dependencies(data_converter_utils ... isaac_ros_visual_mapping)
+ament_target_dependencies(mapping_pose_to_rosbag isaac_ros_visual_mapping ...)
+ament_target_dependencies(decode_video isaac_ros_visual_mapping)
+ament_target_dependencies(select_frames_meta isaac_ros_visual_mapping)
+```
+
+and both `isaac_mapping_ros/package.xml:50` and
+`isaac_ros_visual_global_localization/package.xml:54` carry
+`<depend>isaac_ros_visual_mapping</depend>`. A search across every 4.5 source tree in this
+repository finds the name only in those references and one launch file — never as a package
+that provides it.
+
+It reads like a rename that left its callers behind (`isaac_mapping_ros` is plausibly the
+package it became). Either way, `isaac_mapping_ros` and `isaac_ros_visual_global_localization`
+are unbuildable by anyone, including inside NVIDIA's own container, unless something not in
+the public release supplies that name.
+
+The other two packages in the repo do not reference it and are built here.
+
+## 23. `nova_carter` and `isaac_ros_depth_segmentation` were never tagged for 4.5
+
+**Severity:** three packages in `isaac_ros_nova` cannot be satisfied. Same shape as #11 —
+a tagging gap rather than a code problem.
+
+`isaac_ros_nova` at 4.5 depends on packages that live in repositories whose newest tag is
+**v3.2.0**:
+
+| dependency | lives in | newest tag |
+|---|---|---|
+| `nova_carter_description`, `nova_developer_kit_description` | `NVIDIA-ISAAC-ROS/nova_carter` | v3.2.0 |
+| `nova_carter_bringup` | `NVIDIA-ISAAC-ROS/nova_carter` | v3.2.0 |
+| `isaac_ros_bi3d_interfaces` | `NVIDIA-ISAAC-ROS/isaac_ros_depth_segmentation` | v3.2.0 |
+
+Both repositories are public and the source is there, so this is not unobtainable in the way
+#22 is — it is a version question. Building 3.2-era packages into an otherwise 4.5 stack
+means mixing release trains, and for `isaac_ros_bi3d_interfaces` that is visible in the
+inventory already: `packages.json` records the `isaac_ros_depth_segmentation` packages at
+version **3.2.5** while everything around them is 4.5.0.
+
+A 4.5 tag on both repositories — even one that only re-tags the 3.2 content, if nothing
+changed — would remove the ambiguity and let a downstream packager pin the same train it
+pins everything else to.

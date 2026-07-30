@@ -37,11 +37,9 @@ fetch isaac_ros_dnn_inference "$B/isaac_ros_dnn_inference/archive/refs/tags/v4.5
 # <test_depend> in detectnet, so none of them needs it to configure.
 fetch isaac_ros_object_detection "$B/isaac_ros_object_detection/archive/refs/tags/v4.5-0.tar.gz"
 fetch negotiated "https://github.com/osrf/negotiated/archive/eac198b55dcd052af5988f0f174902913c5f20e7.tar.gz"
-# Not NVIDIA's: two open-source ROS packages the manipulation stack needs and RoboStack
-# does not carry. topic_based_ros2_control has no jazzy release at all (ISSUES.md #15), so
-# it is pinned to a commit; robotiq_controllers does, and is pinned to the release tag.
+# Not NVIDIA's, and not in RoboStack: topic_based_ros2_control has no jazzy release at all
+# (ISSUES.md #15), so it is pinned to a commit. robotiq_controllers used to be here too and
+# is now in robostack-jazzy, so it is gone.
 fetch topic_based_ros2_control \
   "https://github.com/PickNikRobotics/topic_based_ros2_control/archive/6bd8d55e1c4ad3188770fe5c8b93b942bcede4a2.tar.gz"
-fetch robotiq_controllers \
-  "https://github.com/ros2-gbp/ros2_robotiq_gripper-release/archive/refs/tags/release/jazzy/robotiq_controllers/0.0.1-3.tar.gz"
 echo "  cache: $(du -sh "${CACHE}" | cut -f1)"

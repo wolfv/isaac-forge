@@ -223,7 +223,7 @@ Repacking a vendor binary is the fallback, not the goal. Of the 88 recipes:
 | blob-only, irreducible | 8 | 7 `gxf_isaac_*` extensions + `isaac_ros_gxf` (prebuilt `.so` only) |
 | no source anywhere | 3 | `vpi`, `nvv4l2`, `tensorrt` (vendor binaries, no source published) |
 | external OSS, handled properly | 3 | `libcvcuda` + `libcvcuda-dev` from conda-forge, `magic_enum` from conda-forge |
-| external ROS, built here | 3 | `negotiated`, `topic_based_ros2_control`, `robotiq_controllers` |
+| external ROS, built here | 2 | `negotiated`, `topic_based_ros2_control` (neither has a jazzy release) |
 
 **The backlog is done.** Every package with published source is now built from source;
 the 10 remaining repacks are exactly the irreducible floor. `scripts/gen_source.py`
@@ -353,10 +353,13 @@ replace a source recipe with a repack.
 - **Send `ISSUES.md` #13 upstream** — the cuMotion Eigen version request, with the patch and
   the IK/FK measurements. Nothing is blocked on it any more; it is a correctness question we
   would like NVIDIA to confirm rather than a wall.
-- **Contribute `robotiq_controllers` to RoboStack.** It has a jazzy release and its sibling
-  `robotiq_description` is already there, so it should be a selection change rather than a
-  new recipe. `topic_based_ros2_control` cannot go the same route — it has no jazzy release
-  at all, which is why it lives here.
+- **`robotiq_controllers` is in robostack-jazzy now** (0.0.1, released 2026-07-30), so the
+  duplicate recipe here is gone and `isaac_ros_manipulation_gear_assembly` resolves it from
+  the channel. `rosidl_generator_dds_idl` and `vision_msgs_rviz_plugins` landed in the same
+  release; both were on this repo's missing list, though neither freed a package on its own,
+  because everything naming them also names a `nova_carter_*` package or a lidar driver that
+  is still absent. `topic_based_ros2_control` cannot follow — rosdistro has no jazzy release
+  of it at all (`ISSUES.md` #15), so it stays here.
 - **Rebuild everything once for the new `python` variant pin.** `variants.yaml` now pins
   CPython 3.12 to match robostack-jazzy. The C++ packages already resolved to 3.12 through
   `rclpy`, so nothing is wrong in `output/` today, but the packages built before the pin

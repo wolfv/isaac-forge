@@ -76,14 +76,6 @@ REPOS = {
     "isaac_ros_nvblox": dict(
         url="https://github.com/NVIDIA-ISAAC-ROS/isaac_ros_nvblox/archive/refs/tags/v4.5-0.tar.gz",
         sha256="4a668d140bec4df889f1b1a0a1059d841c19546ec8ac7e26de830a694fc855b8"),
-    # robotiq_controllers *is* released for jazzy, and RoboStack already ships its sibling
-    # robotiq_description from the same repo -- it is simply not selected. Adding it to
-    # RoboStack is the right long-term fix; this builds the released tag meanwhile.
-    "robotiq_controllers": dict(
-        url="https://github.com/ros2-gbp/ros2_robotiq_gripper-release/archive/refs/tags/"
-            "release/jazzy/robotiq_controllers/0.0.1-3.tar.gz",
-        sha256="e429584dc4ededa45c8a75cdc760a55460e91326c6e8e5f81b1d9fc8fd8c167b",
-        homepage="https://github.com/PickNikRobotics/ros2_robotiq_gripper"),
     # Not NVIDIA's, and not in RoboStack either -- see the note on
     # ros-jazzy-topic-based-ros2-control below. Pinned to a commit because there is no
     # jazzy release to pin to.
@@ -142,8 +134,10 @@ PACKAGES = [
     # resolve it either. It is BSD-licensed, four dependencies wide and builds clean, so
     # it is built here from the upstream commit. See ISSUES.md.
     ("ros-jazzy-topic-based-ros2-control", "topic_based_ros2_control", "."),
-    # The gripper controller isaac_ros_manipulation_gear_assembly loads.
-    ("ros-jazzy-robotiq-controllers", "robotiq_controllers", "."),
+    # robotiq_controllers used to be built here. It is in robostack-jazzy now (0.0.1,
+    # the same release tag), so the duplicate is gone and the dependency resolves from
+    # the channel -- which was always the right outcome: its sibling robotiq_description
+    # was already there and this was only ever a selection gap.
     ("ros-jazzy-isaac-ros-cumotion-interfaces", "isaac_ros_cumotion", "isaac_ros_cumotion_interfaces"),
     ("ros-jazzy-isaac-ros-segment-anything2-interfaces", "isaac_ros_image_segmentation", "isaac_ros_segment_anything2_interfaces"),
     ("ros-jazzy-isaac-ros-manipulation-interfaces", "isaac_ros_manipulation", "isaac_ros_manipulation_interfaces"),

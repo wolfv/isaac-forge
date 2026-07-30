@@ -27,15 +27,34 @@ DEP_TAG = re.compile(
     r"|buildtool_export_depend)([^>]*)>([^<]+)<"
 )
 
-# rosdep keys that have no conda equivalent yet, grouped by what unblocks them.
+# rosdep keys we still cannot obtain, grouped by what would unblock them.
+#
+# A key belongs here only while nothing can supply it. Once something can -- robostack,
+# conda-forge, or a recipe in this repository -- it stops being a blocker and moves to
+# RESOLVED below, because a package labelled blocked that in fact builds is worse than no
+# label at all: it stops anyone from trying. Both entries in RESOLVED were labels of that
+# kind for months.
 BLOCKERS = {
-    "vpi": {"libnvvpi4", "vpi4-dev"},
-    "tensorrt": {"tensorrt"},
+    # No public x86_64 tarball exists and the CMake default points at NVIDIA's internal
+    # artifactory, which does not resolve. ISSUES.md #21 -- the one dependency in the
+    # corpus that is genuinely stuck on someone else.
     "triton": {"triton-server"},
+    # Out of scope rather than missing: these are ROS 1, from isaac_ros_noetic_interfaces.
     "ros1": {"roscpp", "rospy", "catkin", "message_generation", "message_runtime", "nodelet"},
 }
 
-# GXF extensions NVIDIA ships only as prebuilt debs -- no source in any repo.
+# Formerly in BLOCKERS, now supplied by this repository. Kept as data so the reason a
+# package is *not* flagged stays visible, and so the next person can see what a resolved
+# blocker looks like.
+RESOLVED = {
+    "vpi": {"libnvvpi4", "vpi4-dev"},            # recipes/vpi -- was under 219 packages
+    "tensorrt": {"tensorrt"},                    # recipes/tensorrt -- was under 37
+}
+
+# GXF extensions NVIDIA ships only as prebuilt debs -- no source in any repo. This is a
+# provenance fact, not a blocker: every one of them repacks cleanly from the apt index, and
+# all nine that were outstanding are built. It stays in the output because "there is no
+# source for this" is worth knowing; it no longer means "this cannot be had".
 CLOSED_GXF = {
     "gxf_isaac_tensorops",
     "gxf_isaac_argus",
@@ -44,29 +63,37 @@ CLOSED_GXF = {
     "gxf_isaac_hesai",
 }
 
-# Open-source ROS packages that robostack-jazzy does not carry yet.
+# Dependencies that cannot be obtained at all -- neither from robostack-jazzy nor
+# conda-forge, nor built in this repository.
 #
-# `negotiated`, `topic_based_ros2_control` and `robotiq_controllers` are still listed:
-# robostack does not have them, which is what this set records. isaac-forge builds all
-# three itself, so they no longer block anything here -- see the "external ROS, built here"
-# row in README.md. Of the three, only `topic_based_ros2_control` cannot be contributed to
-# robostack, because rosdistro has no jazzy release of it (ISSUES.md #15).
+# The distinction matters, and the list used to blur it: "not in robostack-jazzy" is not
+# the same as "unavailable", and six entries were the former while being perfectly
+# obtainable. Counting those as blockers overstated `needs_new_ros_pkg` by 85 packages --
+# 129 flagged where 44 is the real number -- and that overstatement is the same
+# measurement error that made the whole DNN stack look unreachable behind `tensorrt`.
+#
+# Removed as they became obtainable:
+#   negotiated, topic_based_ros2_control  built here (no jazzy release exists; #15)
+#   robotiq_controllers                   released into robostack-jazzy 2026-07-30
+#   rosidl_generator_dds_idl              released into robostack-jazzy 2026-07-30
+#   vision_msgs_rviz_plugins              released into robostack-jazzy 2026-07-30
+#   cvcuda0-dev                           conda-forge libcvcuda-dev
+#
+# Note the two rviz/dds additions freed no packages on their own: everything naming them
+# also names nova_carter_* or a lidar driver, which are still absent. They are off the list
+# because they are obtainable, not because they unblocked anything.
 MISSING_ROS = {
-    "negotiated",
+    # Hardware drivers with no jazzy release anywhere.
     "hesai_ros_driver",
-    "topic_based_ros2_control",
+    "sllidar_ros2",
+    "unitree_api",
+    # NVIDIA's, and not published as source we can reach.
     "isaac-ros-cli",
     "isaac_ros_bi3d_interfaces",
     "isaac_ros_visual_mapping",
     "nova_carter_bringup",
     "nova_carter_description",
     "nova_developer_kit_description",
-    "robotiq_controllers",
-    "rosidl_generator_dds_idl",
-    "sllidar_ros2",
-    "unitree_api",
-    "vision_msgs_rviz_plugins",
-    "cvcuda0-dev",
 }
 
 # Packages whose name is claimed by two different repos in src/. `info` below is keyed by

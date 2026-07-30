@@ -1118,6 +1118,10 @@ SYSTEM = {
     "python3-opencv": "py-opencv",
     "python3-matplotlib": "matplotlib-base",
     "python3-scipy": "scipy",
+    # NVIDIA's ROS shim means "install the Python torch distribution". This package
+    # also supplies LibTorch headers, libraries, and TorchConfig.cmake, all of which
+    # isaac_deploy_core uses directly during its C++ build.
+    "python3-torch-pip-shim": "pytorch",
     "libgflags-dev": "gflags",
     "libgoogle-glog-dev": "glog",
     "assimp": "assimp",

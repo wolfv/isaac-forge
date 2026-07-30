@@ -82,6 +82,7 @@ requirements:
     - pkg-config
   host:
     - cuda-version 13.*
+    - pytorch
     - ros-jazzy-ament-cmake
     - ros-jazzy-rclcpp
     - ros-jazzy-tl-expected
@@ -89,6 +90,7 @@ requirements:
   run:
     - __glibc >=2.38
     - cuda-version 13.*
+    - pytorch
     - ros-jazzy-rclcpp
     - ros-jazzy-tl-expected
     - yaml-cpp

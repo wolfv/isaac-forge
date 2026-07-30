@@ -626,7 +626,14 @@ reporting upstream as a packaging bug.
 
 ## Usage
 
+Every build recipe is checked in as `recipes/<package>/recipe.yaml` and is ready for
+`rattler-build`; neither local builds nor CI generate recipes first. The scripts named
+`gen_*` are maintainer tools for adding or refreshing recipes, not part of the build path.
+A fresh clone is therefore enough to run `pixi run build`.
+
 ```bash
+# Optional maintainer workflow: clone sources and refresh inventory/recipes.
+# This is not required to build the checked-in YAML recipes.
 # Clone the Isaac ROS sources (metadata only; add --full to build, --lfs for GXF/cuVSLAM blobs)
 ./scripts/clone.sh
 

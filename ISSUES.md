@@ -39,10 +39,14 @@ sign-off. We are happy to send the PRs.
 | 19 | `isaac_ros_tensor_proc` links `isaac_ros_cvcuda_utils` without declaring it | `isaac_ros_tensor_proc/CMakeLists.txt:44`, `package.xml` | **Apache-2.0** | **us, via PR** |
 | 20 | `install_isaac_ros_asset()` downloads models and runs `trtexec` as part of `ALL` | `isaac_ros_common/cmake/isaac_ros_common-extras-assets.cmake` | NVIDIA Isaac ROS Software License (no modification) | **NVIDIA only** |
 | 21 | `isaac_ros_triton` defaults x86_64 to an unreachable internal artifactory URL | `isaac_ros_triton/CMakeLists.txt:20-22` | **Apache-2.0** | **NVIDIA** — needs a public x86_64 tarball to point at |
-| 22 | `isaac_ros_visual_mapping` is `find_package`d and `<depend>`ed but does not exist at 4.5 | `isaac_mapping_ros/CMakeLists.txt:34`, `.../package.xml:50`, `isaac_ros_visual_global_localization/package.xml:54` | **Apache-2.0** | **NVIDIA** — publish it or fix the references |
-| 23 | `nova_carter` and `isaac_ros_depth_segmentation` have no 4.5 tag, but 4.5 packages depend on them | `NVIDIA-ISAAC-ROS/{nova_carter,isaac_ros_depth_segmentation}` tags | n/a — tagging | **NVIDIA only** |
+| 22 | `isaac_ros_visual_mapping` is published as a deb only — no source anywhere, so a source build of 4.5 is impossible past it | `isaac_mapping_ros/CMakeLists.txt:34`, `.../package.xml:50`, `isaac_ros_visual_global_localization/package.xml:54` | **Apache-2.0** (the manifest) | **NVIDIA** — publish the source |
+| 23 | Five repositories have no 4.5 tag, but 4.5 packages depend on them — 21 packages stranded | `nova_carter`, `isaac_ros_depth_segmentation`, `isaac_ros_nova`, `isaac_ros_freespace_segmentation`, `isaac_ros_argus_camera` | n/a — tagging | **NVIDIA only** |
+| 24 | `nvblox_ros_common` exports the CUDA toolkit include dir as INTERFACE, so consumers inherit a build-only path | `nvblox_ros_common/CMakeLists.txt` | **Apache-2.0** | one-line PR ready |
+| 25 | `plane_impl.h` calls `assert()` without including `<cassert>` | `nvblox/geometry/internal/impl/plane_impl.h` | **Apache-2.0** | one-line PR ready |
+| 26 | `isaac_ros_visual_mapping`'s dependency set has no solution: `absl::debian3` in its public API, protobuf 3.21 + OpenCV 4.6 pinned by its binaries, and its own python half needs the ROS stack that excludes them | the deb's `package.xml`, both CMake export sets | **Apache-2.0** (the manifest) | **NVIDIA** — upstream abseil namespace, publish source |
+| 27 | `isaac_teleop_core` ships an empty submodule directory; the tarball cannot build | `isaac_teleop_core/CMakeLists.txt:22`, `.gitmodules` | **Apache-2.0** | packager can work around — fetch the pinned commit |
 
-Only #4b, #5, #11, #17, #20, #21, #22 and #23 need NVIDIA to hold the pen — #4b because the intended license is
+Only #4b, #5, #11, #17, #20, #21, #22, #23 and #26 need NVIDIA to hold the pen — #4b because the intended license is
 genuinely ambiguous from outside and we will not guess at it, and #11 because it is a
 tagging and source-release decision in your repo. Item 2 has both a consumer-side fix we
 can PR today and a cleaner root-cause fix only NVIDIA can make.
@@ -1000,7 +1004,7 @@ deb. What remains true, and is the actual ask, is narrower and still significant
 
 The other two packages in the repo do not reference it and are built here.
 
-## 23. `nova_carter` and `isaac_ros_depth_segmentation` were never tagged for 4.5
+## 23. Five repositories were never tagged for 4.5, and 4.5 packages depend on them
 
 **Severity:** three packages in `isaac_ros_nova` cannot be satisfied. Same shape as #11 —
 a tagging gap rather than a code problem.
@@ -1020,9 +1024,33 @@ means mixing release trains, and for `isaac_ros_bi3d_interfaces` that is visible
 inventory already: `packages.json` records the `isaac_ros_depth_segmentation` packages at
 version **3.2.5** while everything around them is 4.5.0.
 
-A 4.5 tag on both repositories — even one that only re-tags the 3.2 content, if nothing
+A 4.5 tag on each repository — even one that only re-tags the 3.2 content, if nothing
 changed — would remove the ambiguity and let a downstream packager pin the same train it
 pins everything else to.
+
+### Three more, found while packaging the remaining repos
+
+Checked by asking GitHub for `archive/refs/tags/v4.5-0.tar.gz` on every repository in the
+release set. Five return 404, all verified directly:
+
+| repository | newest tag | packages stranded |
+|---|---|---|
+| `nova_carter` | v3.2.0 | 3 (depended on by `isaac_ros_nova`) |
+| `isaac_ros_depth_segmentation` | v3.2.0 | 3 |
+| `isaac_ros_nova` | v3.2-x | 17 |
+| `isaac_ros_freespace_segmentation` | v3.2-13 | 2 |
+| `isaac_ros_argus_camera` | v3.2-x | 1 |
+
+`isaac_ros_nova` is the one that changes the picture, because it is not a leaf: 17 packages
+sit in it, `packages.json` records them at version 4.5.0 — read from a clone, not from a
+tag — and it is itself the consumer of the untagged `nova_carter`. So the gap is not "two
+stale leaf repositories" but a whole sensor/robot branch of the release with no 4.5
+reference point at all, and one 4.5 repository (`isaac_ros_nova`) whose own 4.5 tag is
+missing while its dependencies' are too.
+
+The 21 packages in these five repositories are the largest remaining block here that is not
+blocked by proprietary code, missing source or an unpackageable dependency. They are blocked
+by a `git tag`.
 
 ## 24. `nvblox_ros_common` exports the CUDA toolkit's include directory as public interface
 
@@ -1188,3 +1216,64 @@ Two things that surfaced from running it, neither a packaging problem:
 - `export_extractor_engine` writes the built engine into the *model* directory as well as
   into `--output_model_dir`, so it fails on a read-only install and quietly ignores the flag
   it was given for exactly this purpose.
+
+## 27. `isaac_teleop_core` cannot be built from its release tarball
+
+**Severity:** two packages in `isaac_ros_teleop` fail at configure. Third instance in this
+release of "the published artifact is missing content the build needs", and the least
+serious of the three, because everything needed to fix it is public.
+
+`isaac_teleop_core/IsaacTeleop` is a git submodule, and a GitHub release tarball never
+carries submodule content — the directory arrives empty. `CMakeLists.txt` checks for it and
+says so:
+
+```
+CMake Error at CMakeLists.txt:22 (message):
+  Missing Teleop ROS 2 Python source:
+  .../isaac_teleop_core/IsaacTeleop/examples/teleop_ros2/python/teleop_ros2_node.py
+  Ensure the IsaacTeleop submodule is initialized.
+```
+
+Credit where it is due: that diagnostic is exactly right, and it is a marked improvement on
+the same situation in `nvblox_ros`, where the empty `nvblox_core` produces an
+`add_subdirectory` failure that says nothing about submodules (see the commit history for
+how long that took to read).
+
+Everything needed is published. `.gitmodules` records
+
+```
+[submodule "isaac_teleop_core/IsaacTeleop"]
+	path = isaac_teleop_core/IsaacTeleop
+	url = https://github.com/NVIDIA/IsaacTeleop
+	branch = release/1.3.x
+```
+
+and the gitlink commit `187e8ac684df2bd3bbfe79a522ea06bc3d22b59e` resolves in that
+repository, so a packager can fetch it by commit and reproduce what a recursive clone would
+have produced. That is what this repo does, in `EXTRA_SOURCES`.
+
+So this is a request, not a blocker:
+
+- **Say so in the release notes, or attach a tarball that includes submodules.** Anyone
+  starting from `archive/refs/tags/v4.5-0.tar.gz` — which is what a conda, Debian or Nix
+  packager will do — hits this, and the fix is not discoverable from the tarball alone,
+  because `.gitmodules` is at the repository root and the tarball does contain it but a
+  reader has no reason to look.
+- Note that the submodule tracks a **branch** (`release/1.3.x`), which moves. Pinning to
+  the recorded commit is the only reproducible option, and it is what a packager must do
+  regardless of what the branch says.
+
+The same request applies to `nvblox_ros`, where the submodule is `nvidia-isaac/nvblox` at
+commit `24eee494`, and to `isaac_ros_nitros`, whose tarball carries git-lfs *pointers* where
+`libcuvslam.so`, `libcumotion.so` and the GXF extensions should be — 132 bytes of text in
+place of each library. That last one is the dangerous member of the family: nothing fails at
+build time, and the package installs text files where shared objects belong.
+
+### Not a bug, but worth recording: `isaac_ros_jetson_stats` needs a package nobody has
+
+`isaac_ros_jetson_stats` does `import jtop`, which is the `jetson-stats` distribution on
+PyPI, and there is no conda-forge package for it. It is the only genuinely missing
+dependency found across the 57 packages added in this pass — every other external
+dependency of all of them resolves from `robostack-jazzy` or `conda-forge`. It costs little,
+since `jtop` reads `tegrastats` and the node cannot function on x86_64 anyway, but it is the
+one thing here that a packager cannot route around without doing the PyPI packaging first.

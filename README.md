@@ -639,13 +639,25 @@ python scripts/gen_repack.py --closure demo/.cache/Packages \
     --exclude ros-jazzy-isaac-ros-visual-slam \
     --exclude ros-jazzy-isaac-ros-image-proc     # these two are source-built
 
-# Build everything
-pixi run vpi          # just VPI (~420 MB package, ~1 GB unpacked)
-pixi run layer0       # everything in recipes/
+# Build everything into ./output, which is the channel the recipes resolve against.
+# Resumable: `build` skips whatever is already there, so an interrupted run continues.
+pixi run build                        # every recipe (add -- --fresh to start over)
+pixi run test                         # every package's own tests, once the set is complete
+pixi run vpi                          # just VPI (~420 MB package, ~1 GB unpacked)
+pixi run prune                        # drop build trees, keep the packages
 
 # Verify the built packages resolve in a clean environment
 cd verify && pixi install && pixi run ros2 component types
 ```
+
+`build` skips tests and `test` runs them afterwards, on purpose: a package's tests resolve
+its own run dependencies in a fresh environment, and early in a from-scratch build those
+siblings are not in `output/` yet. Deferring them means build order only has to satisfy
+compilers, not test environments.
+
+`output/` is gitignored and holds both the packages (~6 GB) and rattler-build's per-package
+work trees (~55 GB across the full set). `build` prunes each work tree as its package lands;
+`prune` clears whatever is left.
 
 ## Layout
 
@@ -657,9 +669,13 @@ packages.json            per-package inventory (generated)
 pixi.toml                build/dev environment and tasks
 recipes/                 Layer 0 rattler-build recipes
 demo/                    runnable Isaac-ROS-on-RoboStack demo
+scripts/build_all.sh     rebuild every recipe into output/ (resumable, prunes as it goes)
+scripts/test_all.sh      run every built package's own tests against the finished channel
 scripts/clone.sh         clone the 35 upstream repos
+scripts/fetch_sources.sh populate .srccache/ with the tarballs gen_source.py inspects
 scripts/inventory.py     regenerate packages.json
 scripts/aptclosure.py    resolve deb dependency closures from the apt index
+scripts/gen_source.py    generate source-build recipes from .srccache
 scripts/gen_repack.py    generate repack recipes from the apt index
 scripts/overlay_debs.sh  overlay Isaac debs onto a conda prefix (demo shortcut)
 scripts/fix_nvidia_driver.sh  Fedora driver fix (needs >= 580 for CUDA 13)

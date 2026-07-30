@@ -24,9 +24,24 @@ libarchive = "*"   # bsdtar, reads .deb directly
 # auto-discovers a variants.yaml next to a recipe, not a shared one, so it has to be
 # passed explicitly. Leaving it off does not silently pick a different CUDA -- it fails
 # to resolve `cuda_linux-64`, which is the intended loud failure. See variants.yaml.
-[tasks.layer0]
-description = "Build all Layer 0 vendored-NVIDIA-binary packages"
-cmd = "rattler-build build --recipe-dir recipes --output-dir output -m variants.yaml"
+# The two halves of a full rebuild. `build` skips every package test and `test` runs them
+# afterwards, because a package's tests resolve its own run dependencies and early in a
+# from-scratch build those siblings are not in output/ yet. See the scripts for the rest.
+#
+# These replace the old `layer0` task, which passed no channels and so could not resolve
+# ros-jazzy-isaac-ros-common -- it worked only back when recipes/ held nothing but vendored
+# binaries. Losing output/ once with no working rebuild command in the repo was enough.
+[tasks.build]
+description = "Build every recipe into ./output (resumable; add --fresh to start over)"
+cmd = "./scripts/build_all.sh"
+
+[tasks.test]
+description = "Run every built package's own tests against the finished channel"
+cmd = "./scripts/test_all.sh"
+
+[tasks.prune]
+description = "Drop build trees and source caches from ./output, keeping the packages"
+cmd = "rm -rf output/bld output/src_cache output/.tmp && du -sh output"
 
 [tasks.vpi]
 description = "Build just the VPI package"

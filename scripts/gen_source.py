@@ -517,6 +517,81 @@ PACKAGES = [
     # but it is a plain ament_cmake package whose declared dependencies all resolve, which
     # is the bar every other entry here is held to.
     ("ros-jazzy-isaac-ros-sipl-camera", "isaac_ros_sipl_camera", "isaac_ros_sipl_camera"),
+    # --- the benchmark suite: 25 of its 29 packages --------------------------------
+    #
+    # ros2_benchmark, isaac_ros_benchmark and isaac_ros_image_proc_benchmark have been built
+    # since bench/ (which reports 2495 fps through ResizeNode). What was never packaged is
+    # the other 28 per-node benchmark packages -- one per pipeline -- and they were out of
+    # reach for a plain reason: each one <depend>s on the node it measures, and most of those
+    # nodes did not exist here yet. ESS, FoundationStereo, U-Net, SegFormer, apriltag, the
+    # h264 encoder and cuMotion's controllers all landed above, so the suite came with them.
+    #
+    # Order is a topological sort over the repo's package.xml files: isaac_ros_moveit_benchmark
+    # before the four robot benchmarks, and the two ur5 description/config packages before the
+    # ur5 pair that consumes them.
+    #
+    # Four are left out, and it is one dependency for all four:
+    #
+    #   isaac_ros_triton_benchmark          <depend>isaac_ros_triton
+    #   isaac_ros_detectnet_benchmark       <depend>isaac_ros_triton
+    #   isaac_ros_segment_anything_benchmark  <depend>isaac_ros_triton
+    #   isaac_ros_segment_anything2_benchmark <depend>isaac_ros_triton
+    #
+    # Note the kind: <depend>, not <exec_depend>. That is what makes these different from
+    # isaac_ros_unet and the other four segmentation packages added above, where Triton is an
+    # <exec_depend> that DROP_DEPS can simply keep out of `run`. A <depend> becomes a REQUIRED
+    # find_package through ament_auto_find_build_dependencies(), so it fails at configure and
+    # no recipe-side change can help -- it would take a manifest patch, as ISSUES.md #18 did
+    # for isaac_ros_dope and isaac_ros_centerpose.
+    #
+    # For isaac_ros_triton_benchmark that patch would be pointless: the package exists to
+    # measure Triton. For the other three it would be arguable, since each also has a
+    # TensorRT variant, but they are benchmarks -- measuring the backend you could not
+    # install is not a result -- so they wait for ISSUES.md #21 rather than for a patch.
+    ("ros-jazzy-isaac-ros-apriltag-benchmark", "isaac_ros_benchmark", "benchmarks/isaac_ros_apriltag_benchmark"),
+    ("ros-jazzy-isaac-ros-centerpose-benchmark", "isaac_ros_benchmark", "benchmarks/isaac_ros_centerpose_benchmark"),
+    ("ros-jazzy-isaac-ros-dnn-image-encoder-benchmark", "isaac_ros_benchmark",
+     "benchmarks/isaac_ros_dnn_image_encoder_benchmark"),
+    ("ros-jazzy-isaac-ros-dope-benchmark", "isaac_ros_benchmark", "benchmarks/isaac_ros_dope_benchmark"),
+    ("ros-jazzy-isaac-ros-ess-benchmark", "isaac_ros_benchmark", "benchmarks/isaac_ros_ess_benchmark"),
+    ("ros-jazzy-isaac-ros-foundationpose-benchmark", "isaac_ros_benchmark",
+     "benchmarks/isaac_ros_foundationpose_benchmark"),
+    ("ros-jazzy-isaac-ros-foundationstereo-benchmark", "isaac_ros_benchmark",
+     "benchmarks/isaac_ros_foundationstereo_benchmark"),
+    ("ros-jazzy-isaac-ros-grounding-dino-benchmark", "isaac_ros_benchmark",
+     "benchmarks/isaac_ros_grounding_dino_benchmark"),
+    ("ros-jazzy-isaac-ros-h264-decoder-benchmark", "isaac_ros_benchmark",
+     "benchmarks/isaac_ros_h264_decoder_benchmark"),
+    ("ros-jazzy-isaac-ros-h264-encoder-benchmark", "isaac_ros_benchmark",
+     "benchmarks/isaac_ros_h264_encoder_benchmark"),
+    ("ros-jazzy-isaac-ros-nitros-bridge-benchmark", "isaac_ros_benchmark",
+     "benchmarks/isaac_ros_nitros_bridge_benchmark"),
+    ("ros-jazzy-isaac-ros-occupancy-grid-localizer-benchmark", "isaac_ros_benchmark",
+     "benchmarks/isaac_ros_occupancy_grid_localizer_benchmark"),
+    ("ros-jazzy-isaac-ros-pynitros-benchmark", "isaac_ros_benchmark", "benchmarks/isaac_ros_pynitros_benchmark"),
+    ("ros-jazzy-isaac-ros-rtdetr-benchmark", "isaac_ros_benchmark", "benchmarks/isaac_ros_rtdetr_benchmark"),
+    ("ros-jazzy-isaac-ros-segformer-benchmark", "isaac_ros_benchmark", "benchmarks/isaac_ros_segformer_benchmark"),
+    ("ros-jazzy-isaac-ros-stereo-image-proc-benchmark", "isaac_ros_benchmark",
+     "benchmarks/isaac_ros_stereo_image_proc_benchmark"),
+    ("ros-jazzy-isaac-ros-tensor-rt-benchmark", "isaac_ros_benchmark", "benchmarks/isaac_ros_tensor_rt_benchmark"),
+    ("ros-jazzy-isaac-ros-unet-benchmark", "isaac_ros_benchmark", "benchmarks/isaac_ros_unet_benchmark"),
+    # The MoveIt planning benchmarks: the harness, then the robot descriptions, then the four
+    # planner comparisons that use them. isaac_ros_franka_* and isaac_ros_ur5_* each pit
+    # cuMotion against OMPL on the same scene.
+    ("ros-jazzy-isaac-ros-moveit-benchmark", "isaac_ros_benchmark",
+     "benchmarks/isaac_ros_moveit_benchmark/isaac_ros_moveit_benchmark"),
+    ("ros-jazzy-ur5-gripper-moveit-config", "isaac_ros_benchmark",
+     "benchmarks/isaac_ros_moveit_benchmark/robot_configs/ur5_gripper_moveit_config"),
+    ("ros-jazzy-ur5-robotiq-85-description", "isaac_ros_benchmark",
+     "benchmarks/isaac_ros_moveit_benchmark/robot_descriptions/ur5_robotiq_85_description"),
+    ("ros-jazzy-isaac-ros-franka-cumotion-benchmark", "isaac_ros_benchmark",
+     "benchmarks/isaac_ros_moveit_benchmark/isaac_ros_moveit_robot_benchmark/franka/isaac_ros_franka_cumotion_benchmark"),
+    ("ros-jazzy-isaac-ros-franka-ompl-benchmark", "isaac_ros_benchmark",
+     "benchmarks/isaac_ros_moveit_benchmark/isaac_ros_moveit_robot_benchmark/franka/isaac_ros_franka_ompl_benchmark"),
+    ("ros-jazzy-isaac-ros-ur5-cumotion-benchmark", "isaac_ros_benchmark",
+     "benchmarks/isaac_ros_moveit_benchmark/isaac_ros_moveit_robot_benchmark/ur5/isaac_ros_ur5_cumotion_benchmark"),
+    ("ros-jazzy-isaac-ros-ur5-ompl-benchmark", "isaac_ros_benchmark",
+     "benchmarks/isaac_ros_moveit_benchmark/isaac_ros_moveit_robot_benchmark/ur5/isaac_ros_ur5_ompl_benchmark"),
 ]
 
 DEP_TAG = re.compile(

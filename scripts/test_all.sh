@@ -24,6 +24,13 @@ CHANNELS=(-c ./output -c https://prefix.dev/robostack-jazzy -c conda-forge)
 
 shopt -s nullglob
 pkgs=(output/linux-64/*.conda output/noarch/*.conda)
+present=${#pkgs[@]}
+
+if [ "${present}" -eq 0 ]; then
+  echo "no packages in output/ -- run ./scripts/build_all.sh first" >&2
+  exit 1
+fi
+
 if [ "$#" -gt 0 ]; then
   filtered=()
   for p in "${pkgs[@]}"; do
@@ -32,11 +39,13 @@ if [ "$#" -gt 0 ]; then
     done
   done
   pkgs=("${filtered[@]}")
-fi
-
-if [ "${#pkgs[@]}" -eq 0 ]; then
-  echo "no packages in output/ -- run ./scripts/build_all.sh first" >&2
-  exit 1
+  # Distinguished from an empty output/ on purpose: "no packages built" and "your filter
+  # matched none of the packages that are built" want different next actions, and conflating
+  # them sends you off to rebuild a channel that is already there.
+  if [ "${#pkgs[@]}" -eq 0 ]; then
+    echo "none of the ${present} package(s) in output/ match: $*" >&2
+    exit 1
+  fi
 fi
 
 echo "testing ${#pkgs[@]} package(s)"

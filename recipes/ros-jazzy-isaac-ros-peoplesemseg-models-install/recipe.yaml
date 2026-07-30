@@ -28,6 +28,7 @@ build:
     # model weights and run trtexec during the build. Keep the ament
     # resource, drop the download -- assets belong on the target machine.
     - grep -q 'install_isaac_ros_asset(install_peoplesemsegnet_vanilla)' CMakeLists.txt || { echo 'install_isaac_ros_asset(install_peoplesemsegnet_vanilla) not found -- upstream changed shape, revisit gen_source.py'; exit 1; }
+    - grep -q 'install_isaac_ros_asset(install_peoplesemsegnet_shuffleseg)' CMakeLists.txt || { echo 'install_isaac_ros_asset(install_peoplesemsegnet_shuffleseg) not found -- upstream changed shape, revisit gen_source.py'; exit 1; }
     - >
       sed -i 's|install_isaac_ros_asset(\([A-Za-z0-9_]*\))|ament_index_register_resource("\1" CONTENT "${CMAKE_INSTALL_PREFIX}/lib/${PROJECT_NAME}/\1.sh")\ninstall(PROGRAMS asset_scripts/\1.sh DESTINATION lib/${PROJECT_NAME})|'
       CMakeLists.txt
@@ -109,6 +110,8 @@ tests:
         - share/isaac_ros_peoplesemseg_models_install/package.xml
         - lib/isaac_ros_peoplesemseg_models_install/install_peoplesemsegnet_vanilla.sh
         - share/ament_index/resource_index/install_peoplesemsegnet_vanilla/isaac_ros_peoplesemseg_models_install
+        - lib/isaac_ros_peoplesemseg_models_install/install_peoplesemsegnet_shuffleseg.sh
+        - share/ament_index/resource_index/install_peoplesemsegnet_shuffleseg/isaac_ros_peoplesemseg_models_install
 
 about:
   homepage: https://github.com/NVIDIA-ISAAC-ROS/isaac_ros_image_segmentation

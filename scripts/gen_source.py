@@ -1082,10 +1082,21 @@ def detect(cml: str, pkgxml: str, path: str) -> set[str]:
     return traits
 
 
-def asset_name(cml: str) -> str | None:
-    """The asset registered by install_isaac_ros_asset(), which is also its script name."""
-    m = re.search(r"install_isaac_ros_asset\(\s*([A-Za-z0-9_]+)\s*\)", cml)
-    return m.group(1) if m else None
+def asset_names(cml: str) -> list[str]:
+    """Every asset registered by install_isaac_ros_asset(); each is also its script name.
+
+    A list, not one name, because a package may register several:
+    isaac_ros_peoplesemseg_models_install calls it twice, for
+    install_peoplesemsegnet_vanilla and install_peoplesemsegnet_shuffleseg.
+
+    This used to be a `re.search` returning the first match, which was wrong in a way that
+    would not have failed the build. The sed that performs the rewrite is generic and runs
+    per line, so both calls were converted correctly; what took only the first name was the
+    *assertion* in front of it and the `package_contents` test after it. So the second
+    asset's script and ament resource shipped untested -- exactly the payload those tests
+    exist to cover, since it comes from our rewrite rather than from upstream.
+    """
+    return re.findall(r"install_isaac_ros_asset\(\s*([A-Za-z0-9_]+)\s*\)", cml)
 
 
 # package.xml uses bare rosdep keys, not deb names, so a second mapping layer is
@@ -1501,17 +1512,23 @@ def emit(name: str, repo: str, path: str) -> str | None:
     for _line in EXTRA_PREP.get(name, []):
         prep += f"\n    - {_line}"
 
-    asset = asset_name(cml) if "asset" in traits else None
-    if asset:
+    assets = asset_names(cml) if "asset" in traits else []
+    if assets:
         prep += (
             "\n    # See scripts/gen_source.py: install_isaac_ros_asset() would download"
             "\n    # model weights and run trtexec during the build. Keep the ament"
             "\n    # resource, drop the download -- assets belong on the target machine."
-            f"\n    - grep -q 'install_isaac_ros_asset({asset})' CMakeLists.txt"
-            f" || {{ echo 'install_isaac_ros_asset({asset}) not found -- upstream changed"
-            # Not an f-string fragment, so a literal single brace -- doubling it here
-            # emitted `}}` and made the build script a shell syntax error.
-            " shape, revisit gen_source.py'; exit 1; }"
+        )
+        # One assertion per call, so a package that registers several -- as
+        # isaac_ros_peoplesemseg_models_install does -- cannot lose one silently.
+        for asset in assets:
+            prep += (
+                f"\n    - grep -q 'install_isaac_ros_asset({asset})' CMakeLists.txt"
+                f" || {{ echo 'install_isaac_ros_asset({asset}) not found -- upstream changed"
+                " shape, revisit gen_source.py'; exit 1; }")
+        # One sed for all of them: the pattern is generic and sed substitutes once per
+        # line, and upstream puts each call on its own line.
+        prep += (
             "\n    - >"
             "\n      sed -i"
             " 's|install_isaac_ros_asset(\\([A-Za-z0-9_]*\\))"
@@ -1524,7 +1541,7 @@ def emit(name: str, repo: str, path: str) -> str | None:
     # asset packages the payload *is* the script plus its resource, and both come from the
     # rewrite above rather than from upstream, so assert them explicitly.
     test_files = list(EXTRA_TEST_FILES.get(name, []))
-    if asset:
+    for asset in assets:
         test_files += [
             f"lib/{ros_dir}/{asset}.sh",
             f"share/ament_index/resource_index/{asset}/{ros_dir}",

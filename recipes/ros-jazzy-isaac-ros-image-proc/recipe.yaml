@@ -78,6 +78,12 @@ requirements:
     - cuda-cudart-dev
     # isaac_ros_nitros/types/type_utility.hpp includes nvtx3/nvToolsExt.h.
     - cuda-nvtx-dev
+    # Compiled against directly, through isaac_ros_gxf's expected_macro.hpp, which every
+    # source including a NITROS header pulls in. It also arrives transitively as a run dep of
+    # ros-jazzy-isaac-ros-gxf, and relying on that is what kept ISSUES.md #17 invisible until
+    # conda-forge's magic_enum 0.9.7 nested its header one directory deeper. Declare it, and
+    # see build.sh for why the include directory has to be stated as well.
+    - magic_enum
   run:
     - __glibc >=2.38
     - ros-jazzy-isaac-ros-nitros

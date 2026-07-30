@@ -1,0 +1,293 @@
+schema_version: 1
+
+# isaac_ros_visual_mapping 4.5.0, repacked from the official Isaac ROS debian package.
+#
+# This is cuVGL (visual global localization) and cuSFM (structure from motion) -- the
+# libraries under isaac_ros_visual_global_localization and isaac_mapping_ros, and the
+# offline tools that build a cuVGL map in the first place.
+#
+# It is a repack because there is nothing else on offer. NVIDIA's own documentation says
+# so outright: "only released as a Debian package and is not available in source form".
+# Unlike the seven gxf_isaac_* extensions, which are prebuilt .so files inside a source
+# tree, this whole ROS package exists only as a deb -- it is not in the
+# isaac_ros_mapping_and_localization GitHub repo at all, which is why scripts/inventory.py
+# never saw it and packages.json has no entry for it.
+#
+# Hand-written rather than emitted by scripts/gen_repack.py. The generic repack template
+# gets four things wrong here, each described where it is fixed in build.sh: the deb ships
+# its headers and its static libraries twice, its CMake exports name build-machine include
+# directories, and one of its binaries looks for a library the template's relink cannot
+# reach. gen_repack.py's HAND_WRITTEN set stops it from being regenerated over.
+#
+# ---------------------------------------------------------------------------
+# Why two outputs
+# ---------------------------------------------------------------------------
+# The deb contains two things with very different runtime requirements, and shipping them
+# as one conda package would make it un-installable next to its own consumers.
+#
+# The 38 executables are dynamically linked and NEED libopencv_*.so.406 -- OpenCV 4.6, as
+# Ubuntu 24.04 ships it. conda-forge has libopencv 4.6.0, so that resolves; but
+# robostack-jazzy's cv_bridge pins libopencv 4.13, and one environment can hold only one
+# libopencv. A single package pinning 4.6 therefore could not coexist with cv_bridge --
+# that is, with `isaac_ros_visual_global_localization`, the ROS package this exists to
+# serve.
+#
+# The libraries are **static archives**. A .a has no DT_NEEDED, so it imposes no OpenCV
+# version at all; the consumer's own find_package(OpenCV) supplies one. Measured: of the
+# 87 cv:: symbols the four archives genuinely need from outside themselves, OpenCV 4.6
+# resolves 87 and OpenCV 4.13 resolves 86. The single holdout is
+#
+#     cv::cvtColor(const _InputArray&, const _OutputArray&, int, int)
+#
+# which grew a fifth `cv::AlgorithmHint` parameter in OpenCV 4.10, so the 4-argument
+# mangled name is gone from 4.13. One symbol, and a four-argument forwarder would shim it.
+#
+# So: `-tools` carries the executables and pins OpenCV 4.6; the base package carries the
+# archives, headers, CMake exports and models and pins no OpenCV. The base package is the
+# one a ROS consumer needs, and it installs alongside robostack-jazzy.
+#
+# ---------------------------------------------------------------------------
+# What was measured, and what is still in the way
+# ---------------------------------------------------------------------------
+# Across the deb's 39 ELF files: 803 undefined symbols, of which exactly 52 do not resolve
+# against conda-forge, and 48 of those are supplied by packages in this repo or by
+# conda-forge CUDA -- 16 cuVSLAM (vendored inside this deb), 15 cvcuda/nvcv, 9 CUDA
+# runtime, 3 TensorRT, plus __gmon_start__/__tls_get_addr and zlib's zcalloc/zcfree.
+#
+# The remaining 4 are abseil's, and they are the one genuine wall. They are
+# `absl::debian3::Status`, not `absl::lts_20220623::Status`: Debian renames abseil's inline
+# namespace, conda-forge keeps upstream's, and the mangled names therefore differ even
+# though both are LTS 20220623. See recipes/libabseil-debian3-compat, which exists for
+# those four symbols and nothing else.
+#
+# glog and protobuf looked like the same kind of problem and are not. Pinned to the
+# versions Ubuntu 24.04 ships -- glog 0.6 (libglog.so.1) and protobuf 3.21
+# (libprotobuf.so.32) -- conda-forge resolves all 122 of the archives' external glog and
+# protobuf symbols. Against glog 0.7 and protobuf 7.35 it resolves 50 of 122, so the pins
+# are load-bearing rather than conservative.
+#
+# What is NOT solved, and matters to whoever builds isaac_ros_visual_global_localization
+# next: `absl::Status` is the return type of nearly every function in eight of the public
+# headers. A consumer has to *compile* against a debian3-namespaced abseil for its call
+# sites to match the archives, and libabseil-debian3-compat deliberately ships no headers
+# and no CMake config -- it would have to conflict with conda-forge's libabseil to do
+# that. That is the next decision, not a defect here. ISSUES.md #26.
+
+context:
+  version: "4.5.0"
+  deb_version: "4.5.0-0noble.20260706175938504"
+  pool: https://isaac.download.nvidia.com/isaac-ros/release-4/pool/main/r
+
+recipe:
+  name: isaac-ros-visual-mapping
+  version: ${{ version }}
+
+source:
+  # `file_name` stops rattler-build unpacking the .deb itself -- build.sh does that with
+  # bsdtar, the same way every other repack here does.
+  - url: ${{ pool }}/ros-jazzy-isaac-ros-visual-mapping/ros-jazzy-isaac-ros-visual-mapping_${{ deb_version }}_amd64.deb
+    file_name: visual_mapping.deb
+    sha256: ddb94dd4976c042a79e2c7a75c8a093a400ec420740d6f2690793b9776f8e7cd
+
+outputs:
+  # -------------------------------------------------------------------------
+  # The ROS package: static archives, headers, CMake exports, configs, models.
+  # -------------------------------------------------------------------------
+  - package:
+      name: ros-jazzy-isaac-ros-visual-mapping
+    build:
+      number: 0
+      script: build.sh
+      dynamic_linking:
+        # Nothing here is a shared object -- the four libraries are ar archives and the
+        # only other content is text and .onnx. There is nothing for rattler-build to
+        # relocate, and asking it to scan would only produce noise.
+        binary_relocation: false
+    requirements:
+      build:
+        - libarchive          # bsdtar, reads .deb directly
+      run:
+        # Ubuntu 24.04 build, so anything linking these archives inherits GLIBC_2.38.
+        - __glibc >=2.38
+        # Pins, not preferences -- see the header comment. Both are what the archives'
+        # object code was compiled against, and both fail measurably on newer.
+        - libprotobuf 3.21.*
+        - glog 0.6.*
+        # The four absl::debian3 symbols the archives reference.
+        - libabseil-debian3-compat
+        # find_package'd by the ament export (ament_cmake_export_dependencies-extras.cmake
+        # lists Protobuf, Ceres, TENSORRT, CUDAToolkit, absl, nlohmann_json, OpenMP, glog)
+        # and referenced from INTERFACE_LINK_LIBRARIES, so a consumer's configure step
+        # needs every one of them present.
+        - ceres-solver
+        - gflags
+        - eigen
+        - nlohmann_json
+        - libcvcuda
+        - libcvcuda-dev >=0.16
+        - tensorrt
+        - cuda-version 13.*
+        - cuda-cudart
+        # NOT ros-jazzy-isaac-common-py, though it is the deb's one <exec_depend>. It is
+        # needed by two python scripts, both of which live in the -tools output --
+        # cusfm_cli and create_cuvgl_map.py -- and declaring it makes the C++ tools
+        # uninstallable: isaac_common_py pulls ros-jazzy-isaac-ros-common, that pulls the
+        # robostack stack, and cv_bridge in there pins libopencv 4.13 against the -tools
+        # output's 4.6. Bisected -- it is the only one of the run dependencies that
+        # conflicts with OpenCV 4.6; protobuf 3.21, glog 0.6, ceres, cvcuda, TensorRT and
+        # the CUDA 13 runtime all co-solve with it, and so does robostack's
+        # isaac_ros_common on its own.
+        #
+        # So the deb's own dependency set is not satisfiable in one environment: its two
+        # python entry points want the ROS stack and its 36 C++ binaries want an OpenCV
+        # the ROS stack excludes. That is upstream's to reconcile (ISSUES.md #26); here it
+        # costs the python scripts, which are wrappers rather than the tools themselves.
+    tests:
+      - package_contents:
+          files:
+            - share/isaac_ros_visual_mapping/package.xml
+            - share/ament_index/resource_index/packages/isaac_ros_visual_mapping
+            # Both export sets, because they point at different library paths and both
+            # carry an EXISTS assertion that hard-fails a consumer's configure.
+            - share/visual_mapping/cmake/visual_mappingConfig.cmake
+            - share/isaac_ros_visual_mapping/cmake/isaac_ros_visual_mappingConfig.cmake
+            # The four archives, at both of the paths the two export sets name.
+            - lib/libvisual_mapping_common.a
+            - lib/libvisual_mapping_visual.a
+            - lib/libvisual_mapping_compiled_protos.a
+            - lib/libvisual_mapping_occupancy_map_builder.a
+            - lib/x86_64-linux-gnu/visual_mapping/libvisual_mapping_common.a
+            # The real header, and the symlink that makes it reachable under the second
+            # include root. package_contents matches recorded paths, so it cannot look
+            # *through* the symlink -- the script test below does that.
+            - include/common/image/keypoint_detector.h
+            - include/visual_mapping/common
+            # The ONNX weights are the bulk of the package and the reason it is 150 MB;
+            # a repack that silently dropped them would still pass every other check.
+            - share/isaac_ros_visual_mapping/models/superpoint_lightglue/lightglue_superpoint.onnx
+            - share/isaac_ros_visual_mapping/models/aliked_lightglue/aliked.onnx
+      - script:
+          # No installed file may still name a build-machine path. The CMake exports
+          # arrive with /usr/include/eigen3 and /usr/include/opencv4 baked into
+          # INTERFACE_INCLUDE_DIRECTORIES, and CMake treats a non-existent include
+          # directory on an imported target as a hard configure error -- so this is the
+          # check that the rewrite in build.sh actually happened.
+          - |
+            set -eu
+            bad=$(grep -rIl -e '/usr/include/eigen3' -e '/usr/include/opencv4' \
+                    -e '/opt/ros/jazzy' "${PREFIX}/share" "${PREFIX}/include" \
+                    2>/dev/null | head -5 || true)
+            if [ -n "${bad}" ]; then
+              echo "FAIL: build-machine paths survived the rewrite:" >&2
+              echo "${bad}" >&2
+              exit 1
+            fi
+            echo "no /usr/include or /opt/ros/jazzy paths remain"
+          # Both include roots must resolve to real headers, whichever is a symlink.
+          - test -f "${PREFIX}/include/visual/cuvgl/cuvgl.h"
+          - test -f "${PREFIX}/include/visual_mapping/visual/cuvgl/cuvgl.h"
+
+  # -------------------------------------------------------------------------
+  # The offline map-building tools. Separate because of the OpenCV 4.6 pin.
+  # -------------------------------------------------------------------------
+  - package:
+      name: ros-jazzy-isaac-ros-visual-mapping-tools
+    build:
+      number: 0
+      script: build.sh
+      dynamic_linking:
+        # NVIDIA's binaries are relinked by relink.py, not by rattler-build.
+        binary_relocation: false
+        missing_dso_allowlist:
+          # Driver-side and dlopen'd, as in every other repack here.
+          - libcuda.so.*
+          - libnvidia-*.so.*
+          # cuVSLAM is vendored *inside this package*, under
+          # lib/isaac_ros_visual_mapping/visual_mapping/lib -- not on any consumer's
+          # library path, so the linker check cannot see it. build.sh verifies with ldd
+          # that the one binary needing it actually resolves it.
+          - libcuvslam.so
+    requirements:
+      build:
+        - libarchive
+        - patchelf
+        - python              # relink.py
+      run:
+        - __glibc >=2.38
+        # The whole reason this is a separate output. Read off DT_NEEDED:
+        # libopencv_{core,imgproc,calib3d,features2d,flann,imgcodecs}.so.406.
+        - libopencv 4.6.*
+        - libprotobuf 3.21.*
+        - glog 0.6.*
+        - libabseil-debian3-compat
+        - ceres-solver
+        - gflags
+        - libcvcuda
+        - tensorrt
+        - cuda-version 13.*
+        - cuda-cudart
+        - libcublas
+        - libcusolver
+        # The configs, models and ament registration the tools read at runtime.
+        - ${{ pin_subpackage('ros-jazzy-isaac-ros-visual-mapping', exact=True) }}
+    tests:
+      - package_contents:
+          files:
+            # The three tools NVIDIA's documentation names for this package.
+            - lib/isaac_ros_visual_mapping/feature_extractor_main
+            - lib/isaac_ros_visual_mapping/generate_bow_vocabulary_main
+            - lib/isaac_ros_visual_mapping/generate_bow_index_main
+            - lib/isaac_ros_visual_mapping/visual_mapping/lib/libcuvslam.so
+            - lib/isaac_ros_visual_mapping/visual_mapping/bin/cuvslam_api_launcher
+      - script:
+          # Every DT_NEEDED of every binary must resolve inside the environment. This is
+          # the check that the pins above are right: a wrong OpenCV or protobuf shows up
+          # here as "not found" rather than at first use on someone else's machine.
+          #
+          # libcuda/libnvidia-* are excluded: they come from the driver, which a build
+          # container does not have.
+          - |
+            set -eu
+            missing=0
+            checked=0
+            for f in "${PREFIX}"/lib/isaac_ros_visual_mapping/* \
+                     "${PREFIX}"/lib/isaac_ros_visual_mapping/visual_mapping/bin/* \
+                     "${PREFIX}"/lib/isaac_ros_visual_mapping/visual_mapping/lib/*; do
+              [ -f "${f}" ] || continue
+              head -c4 "${f}" | grep -q ELF || continue
+              checked=$((checked + 1))
+              while read -r line; do
+                case "${line}" in
+                  *libcuda.so*|*libnvidia*) continue ;;
+                esac
+                echo "  ${f##*/}: ${line}"
+                missing=$((missing + 1))
+              done < <(ldd "${f}" 2>/dev/null | grep 'not found' || true)
+            done
+            echo "checked ${checked} ELF files"
+            [ "${missing}" -eq 0 ] || { echo "FAIL: ${missing} unresolved" >&2; exit 1; }
+            echo "every DT_NEEDED resolves inside the prefix"
+          # A tool that loads is the point of the package, so run one. gflags exits
+          # non-zero on --help, so the assertion is on the output, not the status.
+          - |
+            set -eu
+            out=$("${PREFIX}/lib/isaac_ros_visual_mapping/feature_extractor_main" --help 2>&1 || true)
+            printf '%s\n' "${out}" | head -20
+            printf '%s\n' "${out}" | grep -q 'Flags from' || {
+              echo "FAIL: feature_extractor_main did not reach its flag parser" >&2
+              exit 1; }
+            echo "feature_extractor_main runs"
+
+about:
+  homepage: https://nvidia-isaac-ros.github.io/repositories_and_packages/isaac_ros_mapping_and_localization/isaac_ros_visual_mapping/index.html
+  summary: cuVGL and cuSFM visual mapping and localization libraries
+  description: |
+    A thin ROS layer exposing NVIDIA's cuVGL (CUDA-accelerated visual global
+    localization) and cuSFM (CUDA-accelerated structure from motion) libraries and
+    headers, plus the offline tools that build a cuVGL map: feature_extractor_main,
+    generate_bow_vocabulary_main and generate_bow_index_main.
+
+    Repacked from NVIDIA's debian package, which is the only form this package is
+    published in. The binaries are NVIDIA's own, unmodified except for RUNPATH rewriting,
+    which is what makes them relocatable inside a conda prefix.
+  license: LicenseRef-NVIDIA-Isaac-ROS

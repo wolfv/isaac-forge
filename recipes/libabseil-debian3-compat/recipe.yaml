@@ -1,0 +1,118 @@
+schema_version: 1
+
+# Abseil 20220623 as Debian builds it, for the Isaac ROS binaries that link it.
+#
+# This exists for exactly one reason, and it is not a version mismatch. conda-forge HAS
+# abseil 20220623.0 -- the same upstream LTS release Isaac was built against, still
+# installable today. What it does not have, and cannot have, is Debian's *symbol names*.
+#
+# Abseil's `absl/base/options.h` offers ABSL_OPTION_USE_INLINE_NAMESPACE, which wraps the
+# whole library in an inline namespace so two abseils can share one address space without
+# an ODR violation. Upstream names that namespace after the release -- `lts_20220623` --
+# and conda-forge takes the default. Debian sets it to `debian3` and also renames the
+# soname from libabsl_*.so.2206.0.0 to libabsl_*.so.20220623. Both choices are
+# deliberate and neither is wrong; they just do not meet.
+#
+# So the Isaac binaries, built on Ubuntu 24.04, want
+#
+#     _ZN4absl7debian36StatusC1ENS0_10StatusCodeENS0_11string_viewE
+#                ^^^^^^^
+#
+# and conda-forge's libabseil defines _ZN4absl12lts_20220623... . The mangled names
+# differ, so a soname symlink onto conda-forge's copy resolves nothing -- that was tried
+# first and it is worth writing down, because "same version, therefore compatible" is the
+# natural assumption here and it is false.
+#
+# Measured, across the 39 ELF files in ros-jazzy-isaac-ros-visual-mapping's deb: 803
+# undefined symbols, of which 4 are abseil's, and all 4 are `absl::debian3::`. Ubuntu's
+# libabsl20220623t64 defines all 4. Nothing else in the deb needs abseil.
+#
+# Why repack Debian's build rather than rebuild abseil ourselves with
+# -DABSL_OPTION_INLINE_NAMESPACE_NAME=debian3: for a compat shim, being bit-identical to
+# what the consumer was compiled against is the whole point. A rebuild would have to match
+# Debian's compiler, flags and patch set to be trustworthy, and would be harder to argue
+# about, not easier.
+#
+# Co-installable with conda-forge's libabseil by construction -- different file names,
+# different symbol names. That is precisely what the inline namespace is for, and it is
+# why this can be a small additive package instead of a pin that fractures the
+# environment. It ships no headers and no unversioned .so: nothing should ever *compile*
+# against this, only load it.
+
+context:
+  # Ubuntu's package version. The upstream abseil LTS is 20220623.
+  version: "20220623.1"
+  deb_version: "20220623.1-3.1ubuntu3.2"
+
+package:
+  name: libabseil-debian3-compat
+  version: ${{ version }}
+
+source:
+  # `file_name` stops rattler-build from unpacking the .deb itself -- build.sh does that
+  # with bsdtar, as the other repacks here do.
+  - url: http://security.ubuntu.com/ubuntu/pool/main/a/abseil/libabsl20220623t64_${{ deb_version }}_amd64.deb
+    file_name: libabsl.deb
+    sha256: dec97687bc3bc4edbd1c26bc9182f7584e3ff1c36a9bb7ce80211951e5a5893d
+
+build:
+  number: 0
+  script: build.sh
+
+requirements:
+  build:
+    - libarchive          # bsdtar, reads .deb directly
+    - patchelf
+  run:
+    # Ubuntu 24.04 build. Every DT_NEEDED beyond the abseil libraries themselves is the
+    # C/C++ runtime -- checked, the full set is ld-linux, libc, libgcc_s, libm, libstdc++
+    # -- so there is nothing else to declare.
+    - __glibc >=2.38
+
+tests:
+  - package_contents:
+      files:
+        # Named in full rather than via `lib:`, because the point of this package is the
+        # exact file name: `lib: [absl_status]` would also pass on conda-forge's
+        # libabsl_status.so.2206.0.0, which is the thing that does not work.
+        - lib/libabsl_status.so.20220623
+        - lib/libabsl_strings.so.20220623
+  - script:
+      # The four symbols this package exists to provide. Asserting them by name means a
+      # future Ubuntu abseil that drops or renames one fails here rather than at the
+      # dlopen of an Isaac binary.
+      #
+      # `grep -a` rather than `nm`: a dynamic symbol's name is stored verbatim in .dynstr,
+      # so a literal string search over the library finds it and the test needs no
+      # binutils in its environment.
+      - |
+        set -eu
+        for sym in \
+          _ZN4absl7debian36Status15UnrefNonInlinedEm \
+          _ZN4absl7debian36StatusC1ENS0_10StatusCodeENS0_11string_viewE \
+          _ZN4absl7debian3lsERSoNS0_11string_viewE \
+          _ZNK4absl7debian36Status12ToStringSlowB5cxx11ENS0_18StatusToStringModeE
+        do
+          if ! grep -alF "${sym}" "${PREFIX}"/lib/libabsl_*.so.20220623 >/dev/null; then
+            echo "FAIL: ${sym} is not defined by this package" >&2
+            exit 1
+          fi
+        done
+        echo "all 4 absl::debian3 symbols present"
+
+about:
+  homepage: https://abseil.io/
+  summary: Abseil 20220623 with Debian's debian3 inline namespace and soname
+  description: |
+    A binary compatibility package, not a general-purpose abseil. It carries Ubuntu
+    24.04's build of Abseil LTS 20220623, whose symbols live in the `absl::debian3`
+    inline namespace and whose libraries are named libabsl_*.so.20220623.
+
+    Isaac ROS binaries are compiled on Ubuntu 24.04 and reference those symbol names.
+    conda-forge's libabseil is the same upstream release but uses the default
+    `absl::lts_20220623` namespace and a different soname, so it cannot satisfy them.
+    The inline namespace makes both co-installable in one prefix and one process.
+
+    Use conda-forge's libabseil for anything you compile yourself. This package ships
+    no headers.
+  license: Apache-2.0

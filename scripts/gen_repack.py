@@ -71,15 +71,48 @@ MAP = {
     "libv4l-dev": "libv4l",
 }
 
-# Ubuntu noble OpenCV 4.6 -> our soname-compat package. conda-forge is at 4.13/5.x,
-# so these sonames do not otherwise exist. See recipes/opencv406-compat.
+# Ubuntu noble OpenCV 4.6 -> conda-forge's libopencv, pinned to 4.6 by the recipes that
+# need the .406 soname.
+#
+# This used to point at an `opencv406-compat` package, on the assumption that conda-forge's
+# newest OpenCV was the only one available and a soname shim would be required. It never
+# got written, and it turns out not to be needed: conda-forge still carries libopencv
+# 4.6.0, sonames and all, and `libopencv 4.6.*` resolves. The cost is real but bounded --
+# 4.6.0 predates the jpeg -> libjpeg-turbo migration and drags qt-main 5.15 with it, so it
+# cannot share an environment with `cv_bridge`, which is why
+# ros-jazzy-isaac-ros-visual-mapping-tools is a separate output from the package a ROS
+# consumer installs. See ISSUES.md #26.
 MAP.update({
-    f"libopencv-{mod}406t64": "opencv406-compat"
+    f"libopencv-{mod}406t64": "libopencv"
     for mod in ("core", "imgproc", "calib3d", "stitching", "imgcodecs", "flann",
                 "features2d", "videoio", "highgui", "video", "objdetect", "dnn",
                 "photo", "ml", "shape", "superres", "videostab", "ts")
 })
-MAP["libopencv-dev"] = "opencv406-compat"
+MAP["libopencv-dev"] = "libopencv"
+
+# Ubuntu noble's other C++ libraries, all satisfied by conda-forge at the version Ubuntu
+# ships. The t64 suffix is Debian's 64-bit-time_t transition, not a different library.
+#
+# libabsl is the exception and the reason recipes/libabseil-debian3-compat exists: Debian
+# renames abseil's inline namespace to `debian3`, so conda-forge's identically-versioned
+# libabseil defines different mangled names and cannot satisfy an Isaac binary. Everything
+# else in this table is a plain version match, measured -- see ISSUES.md #26.
+MAP.update({
+    "libabsl20220623t64": "libabseil-debian3-compat",
+    "libabsl-dev": "libabseil-debian3-compat",
+    "libprotobuf32t64": "libprotobuf",       # protobuf 3.21, libprotobuf.so.32
+    "libprotobuf-dev": "libprotobuf",
+    "libprotoc-dev": "libprotobuf",
+    "protobuf-compiler": "libprotobuf",
+    "libgoogle-glog0v6t64": "glog",          # glog 0.6, libglog.so.1
+    "libceres4t64": "ceres-solver",          # ceres 2.2, libceres.so.4
+    "libceres-dev": "ceres-solver",
+    "libeigen3-dev": "eigen",
+    "nlohmann-json3-dev": "nlohmann_json",
+    "libgomp1": "libgomp",
+    "libnvonnxparsers10": "tensorrt",
+    "libnvonnxparsers-dev": "tensorrt",
+})
 
 # Conda packages that satisfy a deb dependency but are NOT ours to build: they come
 # from conda-forge, and generating a repack recipe for them would shadow a properly
@@ -106,6 +139,23 @@ EXTERNAL = {
     "magic_enum",                   # header-only, already in conda-forge
     "ucx", "yaml-cpp", "console_bridge", "python", "cuda-version",
     "tensorrt", "cudnn", "gflags", "glog", "libboost-devel",
+    "libabseil-debian3-compat",     # recipes/libabseil-debian3-compat, hand-written
+    "nlohmann_json", "eigen", "ceres-solver", "libopencv",
+}
+
+# Repacks written by hand because the template below gets them materially wrong, and which
+# regenerating would therefore make worse. is_source_recipe() cannot catch these -- they
+# *are* repacks, so nothing in them looks like a source build.
+#
+# ros-jazzy-isaac-ros-visual-mapping is one deb producing two conda packages with
+# incompatible run requirements, and it needs four fixups the template has no notion of:
+# deduplicating headers and static libraries the deb ships twice, rewriting
+# /usr/include/{eigen3,opencv4} out of two CMake export sets, and reaching a vendored
+# cuVSLAM in a sibling directory. See its recipe.yaml and ISSUES.md #26.
+HAND_WRITTEN = {
+    "ros-jazzy-isaac-ros-visual-mapping",
+    "vpi",
+    "tensorrt",
 }
 
 # Sonames the linker cannot resolve at build time because they are dlopen'd, come
@@ -604,7 +654,8 @@ def main() -> None:
             skipped.append(deb)
             continue
         cname = conda_name(deb)
-        if cname is None or cname in EXTERNAL or is_source_recipe(cname):
+        if (cname is None or cname in EXTERNAL or cname in HAND_WRITTEN
+                or is_source_recipe(cname)):
             skipped.append(deb)
             continue
         groups.setdefault(cname, []).append(entry)

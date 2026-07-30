@@ -221,7 +221,8 @@ Repacking a vendor binary is the fallback, not the goal. Of the 88 recipes:
 |---|---|---|
 | **source-built** | **77** | everything with published source |
 | blob-only, irreducible | 8 | 7 `gxf_isaac_*` extensions + `isaac_ros_gxf` (prebuilt `.so` only) |
-| no source anywhere | 3 | `vpi`, `nvv4l2`, `tensorrt` (vendor binaries, no source published) |
+| no source anywhere | 4 | `vpi`, `nvv4l2`, `tensorrt`, `isaac_ros_visual_mapping` (vendor binaries, no source published) |
+| binary compat shim | 1 | `libabseil-debian3-compat` — Ubuntu's abseil, for its `debian3` symbol names |
 | external OSS, handled properly | 3 | `libcvcuda` + `libcvcuda-dev` from conda-forge, `magic_enum` from conda-forge |
 | external ROS, built here | 2 | `negotiated`, `topic_based_ros2_control` (neither has a jazzy release) |
 
@@ -327,8 +328,65 @@ replace a source recipe with a repack.
     robostack-jazzy's Eigen 5. Version stripped, with an assertion in front so the rewrite
     cannot silently stop matching (`ISSUES.md` #13).
 
+- **`isaac_ros_visual_mapping` — cuVGL and cuSFM, and it is deb-only.** `ISSUES.md` #22 used
+  to say this package "does not exist", because the search was over the source trees and it
+  has none. It is in the apt repository, NVIDIA's own page says it is "only released as a
+  Debian package and is not available in source form", and it is now repacked:
+  `recipes/ros-jazzy-isaac-ros-visual-mapping`, two outputs, 137 MB + 11 MB.
+
+  **`export_extractor_engine` built a 5.2 MB FP16 TensorRT engine for sm_89 from the shipped
+  ALIKED ONNX in 112 s** — NVIDIA's binary, running against conda-forge's gflags, glog 0.6,
+  protobuf 3.21 and OpenCV 4.6 and this repo's TensorRT. 23 ELF files, **1107 library
+  resolutions inside the prefix, zero unresolved**, nothing outside the prefix but glibc.
+
+  Of 803 undefined symbols across the deb's 39 binaries, 52 do not resolve against
+  conda-forge and 48 of those come from packages already here (cuVSLAM, CV-CUDA, CUDA 13,
+  TensorRT). The remaining **four are abseil's, and they are the one genuine wall**: Debian
+  renames abseil's inline namespace to `debian3`, so conda-forge's *identically versioned*
+  abseil 20220623 defines `absl::lts_20220623::Status` where Isaac wants
+  `absl::debian3::Status`. Same release, different mangled names — a soname alias resolves
+  nothing, which was tried first. `recipes/libabseil-debian3-compat` repacks Ubuntu's build
+  for those four symbols; the inline namespace is also what makes it co-installable with
+  conda-forge's libabseil, so it is additive rather than a pin.
+
+  glog and protobuf looked like the same problem and are not: pinned to what Ubuntu 24.04
+  ships, conda-forge resolves **122 of 122** external glog and protobuf symbols (against
+  glog 0.7 + protobuf 7.35 it resolves 50, so the pins are load-bearing).
+
+  Two outputs, because one package could not coexist with its own consumers. The 38
+  executables need `libopencv_*.so.406`; the four libraries are **static archives**, which
+  have no `DT_NEEDED` and so impose no OpenCV at all. Of the 87 `cv::` symbols the archives
+  need externally, 4.6 resolves 87 and 4.13 resolves **86** — the one holdout being
+  `cv::cvtColor(InputArray, OutputArray, int, int)`, which grew a fifth `AlgorithmHint`
+  parameter in OpenCV 4.10.
+
+  What is still in the way of `isaac_ros_visual_global_localization`, and it is upstream's:
+  `absl::Status` is the return type of nearly every function in eight of the public headers,
+  so a consumer has to *compile* against a debian3 abseil; and the protobuf 3.21 pin
+  collides with `cv_bridge`, whose OpenCV pulls protobuf 4.25. `ISSUES.md` #26 has the
+  measurements and the asks. The base package does install beside `ros-jazzy-ros-core` and
+  this repo's `isaac_ros_nitros`.
+
+  Three upstream bugs fell out of running it, all in `ISSUES.md` #26: both CMake export sets
+  bake `/usr/include/eigen3` and `/usr/include/opencv4` into `INTERFACE_INCLUDE_DIRECTORIES`
+  on imported targets, which CMake rejects outright; the tools **segfault in their own error
+  path** when an engine cannot be built; and `export_extractor_engine` writes into the model
+  directory as well as `--output_model_dir`, so it fails on a read-only install.
+
 **Next**
 
+- **`libnvinfer_builder_resource.so` is only found via `LD_LIBRARY_PATH`.** Building the
+  engine above needed `LD_LIBRARY_PATH=$PREFIX/lib`, because `libnvinfer.so.10` `dlopen`s the
+  1.3 GB builder resource by bare name and `recipes/tensorrt` installs NVIDIA's binaries
+  untouched (`binary_relocation: false`), so nothing points it at the prefix. `detect/` never
+  saw this because the ament environment hook puts `$PREFIX/lib` on `LD_LIBRARY_PATH`; a
+  non-ROS binary gets no such help. A `$ORIGIN` RUNPATH on `libnvinfer.so.10` would fix it
+  for everyone, at the cost of rebuilding a 1.44 GB package.
+- **An `absl::debian3` *dev* package, or a decision not to have one.** `libabseil-debian3-compat`
+  ships no headers on purpose — a debian3 dev package must conflict with conda-forge's
+  libabseil, and that trade is only worth making when someone builds
+  `isaac_ros_visual_global_localization`. Until then that package is blocked on `ISSUES.md`
+  #26(a), not on anything here.
 - Convert the remaining repacks to source builds, starting with the NITROS core.
 - **Rebuild the CUDA packages for `cuda_compiler_version: 13.3`** (see above). Nothing in
   `output/` is wrong, only differently named than a fresh build would produce — same

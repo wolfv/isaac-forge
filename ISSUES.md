@@ -939,10 +939,11 @@ TensorRT is the backend every Isaac ROS DNN pipeline actually defaults to. Trito
 alternative backend for exactly one package (`isaac_ros_centerpose`, which also ships a
 TensorRT launch file), so nothing in the stack is unreachable for want of it.
 
-## 22. `isaac_ros_visual_mapping` is required but does not exist
+## 22. `isaac_ros_visual_mapping` is required but has no published source
 
-**Severity:** two packages in `isaac_ros_mapping_and_localization` cannot configure at all.
-Not a packaging gap — the dependency names a package that is absent from the 4.5 release.
+**Severity:** two packages in `isaac_ros_mapping_and_localization` cannot be built from
+source by anyone outside NVIDIA. Downgraded from "does not exist" — see the correction at
+the end of this entry.
 
 At `v4.5-0`, `isaac_ros_mapping_and_localization` contains exactly four packages:
 
@@ -971,10 +972,31 @@ and both `isaac_mapping_ros/package.xml:50` and
 repository finds the name only in those references and one launch file — never as a package
 that provides it.
 
-It reads like a rename that left its callers behind (`isaac_mapping_ros` is plausibly the
-package it became). Either way, `isaac_mapping_ros` and `isaac_ros_visual_global_localization`
-are unbuildable by anyone, including inside NVIDIA's own container, unless something not in
-the public release supplies that name.
+### Correction: it exists, as a binary only
+
+The conclusion above — that nothing supplies the name — was wrong, and the reason it was
+wrong is worth recording, because the same mistake is available for any package in this
+release. The search was over the *source* trees, and this package has none.
+
+`ros-jazzy-isaac-ros-visual-mapping` is in the Isaac ROS apt repository, at
+`4.5.0-0noble.20260706175938504`, 150 MB compressed. NVIDIA's documentation page for it
+says so plainly: it is "only released as a Debian package and is not available in source
+form". It is now repacked here — `recipes/ros-jazzy-isaac-ros-visual-mapping` — and the deb
+carries the four `libvisual_mapping_*.a` archives, 542 headers, both CMake export sets and
+the SuperPoint/LightGlue and ALIKED/LightGlue ONNX weights.
+
+So `find_package(isaac_ros_visual_mapping REQUIRED)` does resolve, provided you install the
+deb. What remains true, and is the actual ask, is narrower and still significant:
+
+- **A source-only build of Isaac ROS 4.5 is impossible past this point**, and not because of
+  a prebuilt `.so` inside a source tree, which is the shape of the other binary gaps here.
+  This is a whole ROS package with no repository, so there is nothing to patch, port or
+  rebuild against a different Eigen, OpenCV or protobuf. cuVGL and cuSFM are the algorithms;
+  the ROS layer around them is the part that is closed too.
+- `packages.json` has no entry for it, because `scripts/inventory.py` reads the cloned
+  source trees. Any inventory built the same way will under-report the release by however
+  many packages are deb-only. This is the only one found so far.
+- The deb's own dependency set cannot be satisfied in a single environment. That is #26.
 
 The other two packages in the repo do not reference it and are built here.
 
@@ -1058,3 +1080,111 @@ Worked around here with `-include cassert` on `CXXFLAGS` and `CUDAFLAGS`, the sa
 workaround the visual-slam recipe carries for #1, and for the same reason: nvblox core
 arrives as a separately fetched submodule rather than as a file in the package we patch.
 
+## 26. `isaac_ros_visual_mapping`'s dependency set cannot be satisfied in one environment
+
+**Severity:** `isaac_ros_visual_global_localization` and `isaac_mapping_ros` cannot be built
+against the package they depend on, outside NVIDIA's own container. Three independent
+constraints, each individually reasonable, that together have no solution.
+
+Measured while repacking the deb (see #22 and `recipes/ros-jazzy-isaac-ros-visual-mapping`).
+Of the 803 undefined symbols across the deb's 39 ELF files, all but four resolve against
+conda-forge or against packages already built in this repository. The obstacles are not
+missing libraries; they are versions and namespaces that cannot coexist.
+
+### (a) `absl::debian3` is in the public API
+
+Eight of the installed headers return `absl::Status`, and the four archives reference
+
+```
+_ZN4absl7debian36StatusC1ENS0_10StatusCodeENS0_11string_viewE
+           ^^^^^^^
+```
+
+`debian3` is Debian's value for `ABSL_OPTION_INLINE_NAMESPACE_NAME`. Upstream abseil — and
+therefore conda-forge, Nix, vcpkg and anyone building abseil themselves — uses
+`lts_20220623`. The releases are identical; the mangled names are not. So a consumer that
+compiles against any non-Debian abseil produces call sites that cannot link against these
+archives, and no amount of choosing the right *version* helps.
+
+This is what happens when a distribution-specific ABI knob reaches a redistributed binary's
+public interface. It also means the archives are unusable on any platform but Ubuntu.
+
+### (b) protobuf 3.21 and OpenCV 4.6 are pinned by the binaries, and the ROS stack excludes both
+
+| what the deb needs | measured | what the ROS stack wants |
+|---|---|---|
+| `libprotobuf.so.32` (protobuf 3.21) | 122 external glog+protobuf symbols: 122 resolve on protobuf 3.21 + glog 0.6, 50 on protobuf 7.35 + glog 0.7 | OpenCV's DNN module pulls `libprotobuf 4.25`, so `cv_bridge` transitively excludes 3.21 |
+| `libopencv_*.so.406` (OpenCV 4.6) | 87 external `cv::` symbols: 87 resolve on 4.6, 86 on 4.13 | `cv_bridge` pins OpenCV 4.10/4.13 |
+
+The single OpenCV symbol that does not survive the move to 4.13 is worth naming, because it
+is the whole distance between "needs its own environment" and "works":
+
+```
+cv::cvtColor(const _InputArray&, const _OutputArray&, int, int)
+```
+
+OpenCV 4.10 added a fifth `cv::AlgorithmHint` parameter, so the four-argument mangled name
+is gone. One symbol, in `libvisual_mapping_common.a` and `libvisual_mapping_visual.a`.
+
+### (c) The deb's own two halves conflict with each other
+
+`ros-jazzy-isaac-ros-visual-mapping` declares `<exec_depend>isaac_common_py</exec_depend>`,
+for `cusfm_cli` and `create_cuvgl_map.py`. That pulls `isaac_ros_common`, which pulls the ROS
+stack, which excludes the OpenCV 4.6 its own 36 C++ binaries link. Bisected across the
+package's full dependency list: `isaac_common_py` is the *only* entry that conflicts —
+protobuf 3.21, glog 0.6, ceres, cvcuda, TensorRT and the CUDA 13 runtime all co-solve with
+OpenCV 4.6, and so does `isaac_ros_common` on its own.
+
+So the deb cannot be installed as declared, in any environment, by anyone. On Ubuntu this is
+hidden because apt satisfies each soname from a different distro package and never has to
+reconcile them into one consistent set.
+
+### Also worth fixing while you are in there
+
+Both CMake export sets put build-machine paths in `INTERFACE_INCLUDE_DIRECTORIES` on
+imported targets:
+
+```cmake
+INTERFACE_INCLUDE_DIRECTORIES "${_IMPORT_PREFIX}/include;/usr/include/eigen3;/usr/include/opencv4;..."
+```
+
+CMake treats a non-existent include directory on an imported target as a hard configure
+error, so this breaks every consumer whose Eigen or OpenCV is not in `/usr/include`. Same
+class as #24. Use `$<BUILD_INTERFACE:...>` or the imported targets (`Eigen3::Eigen`,
+`opencv_core`) rather than raw paths — the export already names those targets in
+`INTERFACE_LINK_LIBRARIES`, so the include directories would come along on their own.
+
+### Asks, in order of how much they unblock
+
+1. **Build abseil with upstream's inline namespace**, or do not put `absl::Status` in the
+   public API. Either one makes the archives usable off Ubuntu.
+2. **Publish the source.** Every other item here is something a packager could fix.
+3. Do not name `/usr/include/*` in an installed export.
+4. Split the python entry points into their own package so (c) stops being a contradiction.
+
+### What was done here anyway
+
+- `recipes/libabseil-debian3-compat` — Ubuntu's abseil build, shipping only
+  `libabsl_*.so.20220623`. The inline namespace that causes (a) is also what makes this
+  co-installable with conda-forge's libabseil in one prefix and one process, so it is
+  additive rather than a pin. It closes (a) for *loading*, not for compiling: it ships no
+  headers, because a debian3 dev package would have to conflict with conda-forge's
+  libabseil, and that is a decision for whoever builds the consumers.
+- `ros-jazzy-isaac-ros-visual-mapping` — archives, headers, both export sets, configs and
+  ONNX weights, with the `/usr/include` paths rewritten. No OpenCV requirement, because
+  static archives have no `DT_NEEDED`; it installs beside `ros-jazzy-ros-core` and this
+  repo's `isaac_ros_nitros`. It does **not** install beside `cv_bridge`, on protobuf.
+- `ros-jazzy-isaac-ros-visual-mapping-tools` — the 38 executables, pinning OpenCV 4.6, with
+  `isaac_common_py` deliberately undeclared per (c). Verified: 23 ELF files, 1107 library
+  resolutions inside the prefix, zero unresolved, nothing outside the prefix but glibc. And
+  it does real work — `export_extractor_engine` built a 5.2 MB FP16 TensorRT engine for
+  sm_89 from the shipped ALIKED ONNX in 112 s.
+
+Two things that surfaced from running it, neither a packaging problem:
+
+- The tools **segfault in their own error path**. When `TensorRTBase` cannot produce an
+  engine it logs "Fail to get engine ..." and then dereferences the null it just failed to
+  create, so a missing model file gives a SIGSEGV instead of a diagnostic.
+- `export_extractor_engine` writes the built engine into the *model* directory as well as
+  into `--output_model_dir`, so it fails on a read-only install and quietly ignores the flag
+  it was given for exactly this purpose.

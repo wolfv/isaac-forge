@@ -1,0 +1,132 @@
+--- CMakeLists.txt
++++ CMakeLists.txt
+@@ -29,9 +29,16 @@
+ diagnostics.
+ ]])
+
+-find_package(Boost REQUIRED COMPONENTS filesystem stacktrace_basic system)
++find_package(Boost REQUIRED COMPONENTS filesystem stacktrace_basic)
++# Boost.System has been header-only since Boost 1.69 and recent conda-forge
++# Boost packages therefore do not provide a boost_system CMake component.
++add_library(Boost::system INTERFACE IMPORTED)
++set_property(TARGET Boost::system PROPERTY INTERFACE_INCLUDE_DIRECTORIES "${Boost_INCLUDE_DIRS}")
+ find_package(Catch2 REQUIRED)
+-find_package(Cuda REQUIRED)
++option(DCGM_LIBRARY_ONLY "Build only the dynamically-loaded DCGM library" OFF)
++if(NOT DCGM_LIBRARY_ONLY)
++    find_package(Cuda REQUIRED)
++endif()
+ find_package(fmt REQUIRED)
+ find_package(Git REQUIRED)
+ find_package(Jsoncpp REQUIRED)
+@@ -39,7 +46,10 @@
+ find_package(plog REQUIRED)
+ find_package(Python3 REQUIRED COMPONENTS Interpreter)
+ find_package(Threads REQUIRED)
+-find_package(TCLAP REQUIRED)
++# The conda-forge tclap package is header-only and does not ship CMake config files.
++find_path(TCLAP_INCLUDE_DIR tclap/CmdLine.h REQUIRED)
++add_library(TCLAP::TCLAP INTERFACE IMPORTED)
++set_property(TARGET TCLAP::TCLAP PROPERTY INTERFACE_INCLUDE_DIRECTORIES "${TCLAP_INCLUDE_DIR}")
+ find_package(Yaml REQUIRED)
+
+ include(Catch)
+@@ -123,7 +133,7 @@
+     set(DCGM_CXX_FLAGS "${DCGM_CXX_FLAGS} --coverage")
+ endif ()
+
+-set(DCGM_CXX_FLAGS "${DCGM_CXX_FLAGS} -fmax-errors=1 -Werror -fno-omit-frame-pointer")
++set(DCGM_CXX_FLAGS "${DCGM_CXX_FLAGS} -fmax-errors=1 -fno-omit-frame-pointer")
+ # Necessary for ccache to correctly handle debug builds
+ string(JOIN " " DCGM_CXX_FLAGS
+     "${DCGM_CXX_FLAGS}"
+@@ -156,9 +166,9 @@
+ set(CMAKE_C_FLAGS "${DCGM_C_FLAGS} ${CMAKE_C_FLAGS}")
+ set(CMAKE_CXX_FLAGS "${DCGM_CXX_FLAGS} ${CMAKE_CXX_FLAGS}")
+
+-# Customize flags per CMake build type
+-set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -s -g")
+-set(CMAKE_C_FLAGS_RELEASE "${CMAKE_C_FLAGS_RELEASE} -s -g")
++# Packaging performs its own debug-symbol handling and stripping.
++set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -g")
++set(CMAKE_C_FLAGS_RELEASE "${CMAKE_C_FLAGS_RELEASE} -g")
+
+ option(VMWARE "Build for VMWare environment" OFF)
+ if (VMWARE)
+@@ -178,12 +188,6 @@
+     __CUDA_API_VERSION_INTERNAL=1
+ )
+
+-if (NOT ANY_SANITIZER)
+-    add_link_options(-static-libstdc++)
+-endif ()
+-
+-add_link_options(-Wl,--exclude-libs,libstdc++)
+-
+ set(DCGM_RPATH "\$ORIGIN:\$ORIGIN/../${CMAKE_INSTALL_LIBDIR}")
+ set(CMAKE_INSTALL_RPATH ${DCGM_RPATH})
+ set(CMAKE_INSTALL_RPATH_USE_LINK_PATH FALSE)
+--- cmake/FindLibevent.cmake
++++ cmake/FindLibevent.cmake
+@@ -25,10 +25,9 @@
+ if (Libevent_INCLUDE_DIR)
+     cmake_path(GET Libevent_INCLUDE_DIR PARENT_PATH _Libevent_INSTALL_PREFIX)
+
+-    # TODO: Add dispatching based on ``Libevent_USE_STATIC_LIBS`` variable
+-
+-    set(_Libevent_LIBRARY_PREFIX ${CMAKE_STATIC_LIBRARY_PREFIX})
+-    set(_Libevent_LIBRARY_SUFFIX ${CMAKE_STATIC_LIBRARY_SUFFIX})
++    # Use the shared libraries provided by conda-forge.
++    set(_Libevent_LIBRARY_PREFIX "")
++    set(_Libevent_LIBRARY_SUFFIX "")
+
+     find_library(Libevent_core_LIBRARY
+         NAMES ${_Libevent_LIBRARY_PREFIX}event_core${_Libevent_LIBRARY_SUFFIX}
+--- common/EntityListHelpers.cpp
++++ common/EntityListHelpers.cpp
+@@ -267,7 +267,7 @@
+
+     bool operator==(EntityMapTypedIterator const &other) const
+     {
+-        return m_it == other.it;
++        return m_it == other.m_it;
+     }
+
+     template <typename Y>
+--- common/TaskContextManager.hpp
++++ common/TaskContextManager.hpp
+@@ -22,6 +22,7 @@
+ #include <gettid.h>
+ #include <mutex>
+ #include <sys/types.h>
++#include <unistd.h>
+
+ /**
+  * This class is used to track the state of tasks monitored for hang detection.
+--- cmake/FindJsoncpp.cmake
++++ cmake/FindJsoncpp.cmake
+@@ -16,10 +16,10 @@
+
+ find_package(jsoncpp REQUIRED CONFIG)
+
+-if (TARGET jsoncpp_static)
++if (TARGET jsoncpp_lib)
+     set(Jsoncpp_FOUND TRUE)
+-    set(JSONCPP_STATIC_LIBS jsoncpp_static)
+-    set(JSONCPP_INCLUDE_PATH $<TARGET_PROPERTY:jsoncpp_static,INTERFACE_INCLUDE_DIRECTORIES>)
++    set(JSONCPP_STATIC_LIBS jsoncpp_lib)
++    set(JSONCPP_INCLUDE_PATH $<TARGET_PROPERTY:jsoncpp_lib,INTERFACE_INCLUDE_DIRECTORIES>)
+     mark_as_advanced(JSONCPP_INCLUDE_PATH JSONCPP_STATIC_LIBS)
+ else()
+     set(Jsoncpp_FOUND FALSE)
+--- common/CMakeLists.txt
++++ common/CMakeLists.txt
+@@ -110,7 +110,7 @@
+     EnvConfig.cpp)
+
+ target_link_libraries(dcgm_common PUBLIC
+-    jsoncpp_static
++    jsoncpp_lib
+     childprocess
+     buildinfo_objects
+     common_interface

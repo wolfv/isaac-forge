@@ -11,6 +11,13 @@ on:
     branches: [main]
     tags: ["v*"]
   workflow_dispatch:
+    inputs:
+      recipes:
+        description: >-
+          Optional comma/space-separated recipe directory names to build, test, and publish
+          in the given order (for example: libv4l,nvv4l2). Empty builds everything.
+        required: false
+        type: string
 
 permissions:
   contents: read
@@ -81,18 +88,44 @@ jobs:
       # Building everything first and testing afterwards removes the ordering question
       # entirely -- by then every package is in ./output. This keeps the tests rather than
       # dropping them, which a bare `--test skip` would do.
-      - name: Build all recipes
+      - name: Build selected recipes
+        env:
+          SELECTED_RECIPES: ${{ inputs.recipes }}
         run: |
           mkdir -p output
-          pixi run rattler-build build \
-            --recipe-dir recipes \
-            --output-dir output \
-            -m variants.yaml \
-            --skip-existing local \
-            --test skip \
-            -c ./output \
-            -c https://prefix.dev/robostack-jazzy \
+          common_args=(
+            --output-dir output
+            -m variants.yaml
+            --skip-existing local
+            --test skip
+            -c ./output
+            -c https://prefix.dev/robostack-jazzy
             -c conda-forge
+          )
+
+          if [ -z "${SELECTED_RECIPES//[[:space:],]/}" ]; then
+            echo "No recipe subset selected; building all recipes."
+            pixi run rattler-build build --recipe-dir recipes "${common_args[@]}"
+          else
+            # Build in the caller's order so a small dependency chain can be bootstrapped
+            # in one run (for example libv4l before nvv4l2).
+            mapfile -t selected < <(
+              printf '%s' "$SELECTED_RECIPES" | tr ',[:space:]' '\n' | grep -v '^$'
+            )
+            echo "Building ${#selected[@]} selected recipe(s): ${selected[*]}"
+            for name in "${selected[@]}"; do
+              if [[ ! "$name" =~ ^[a-z0-9][a-z0-9._-]*$ ]]; then
+                echo "::error::Invalid recipe name: $name"
+                exit 2
+              fi
+              recipe="recipes/$name/recipe.yaml"
+              if [ ! -f "$recipe" ]; then
+                echo "::error::Recipe does not exist: $recipe"
+                exit 2
+              fi
+              pixi run rattler-build build --recipe "$recipe" "${common_args[@]}"
+            done
+          fi
 
       # Every package's own tests, now that the whole set exists to resolve against.
       # Runs them all before failing so one broken package reports as one failure rather

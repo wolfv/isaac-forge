@@ -75,6 +75,20 @@ cmake -S . -B build -G Ninja ${CMAKE_ARGS:-} \
 cmake --build build --parallel "${CPU_COUNT:-2}"
 cmake --install build
 
+# cuVSLAM's public header uses uint8_t/uint32_t without including <cstdint>. Patch the
+# installed SDK header once so every downstream consumer gets a self-contained header.
+# The header carries NVIDIA's Open Software License, which permits modification.
+CUVSLAM_H="${PREFIX}/share/isaac_ros_nitros/cuvslam/include/cuvslam/cuvslam2.h"
+if [ ! -f "${CUVSLAM_H}" ]; then
+  echo "expected cuVSLAM header at ${CUVSLAM_H}; installed layout changed" >&2
+  exit 1
+fi
+if ! grep -q '#include <cstdint>' "${CUVSLAM_H}"; then
+  sed -i '0,/#include <array>/s//#include <array>\n#include <cstdint>/' "${CUVSLAM_H}"
+fi
+grep -q '#include <cstdint>' "${CUVSLAM_H}" || {
+  echo "failed to add <cstdint> to ${CUVSLAM_H}" >&2; exit 1; }
+
 # Drop the Eigen 3 floor from NVIDIA's cuMotion CMake config -- ISSUES.md #13.
 #
 # cumotionConfig.cmake opens with `find_dependency(Eigen3 3.3)`. Eigen's own Eigen3Config

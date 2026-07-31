@@ -41,6 +41,9 @@ source:
       # /usr/local/cuda. This file is included via isaac_ros_commonConfig.cmake by every
       # package calling ament_auto_find_build_dependencies(), so the leak was stack-wide.
       - patches/0001-isaac_ros_common-use-FindCUDAToolkit-instead-of-the-.patch
+      # CCCL is header-only. Linking its target directory-wide contaminates every
+      # rosidl export with an unresolved CCCL::CCCL target for downstream consumers.
+      - patches/0002-do-not-export-global-CCCL-target.patch
 
 build:
   number: 0

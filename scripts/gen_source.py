@@ -328,6 +328,20 @@ PACKAGES = [
     # they link against is not published, so all nine go through gen_repack.py. This is the
     # same LFS trap README.md documents for isaac_ros_nitros, which is solved there by
     # filling the pointers from the deb; for these it is cheaper to repack outright.
+    # The one GXF extension that is genuinely source-buildable, and it took a second look to
+    # notice. The comment below says none of the nine unbuilt extensions is here and that
+    # gxf_isaac_utils is the instructive one -- it compiles its own sources *and* links a
+    # prebuilt lib/gxf_x86_64_cuda_13_0/libgxf_utils.so that ships as a 132-byte git-lfs
+    # pointer, so compiling cannot help. camera_utils is the case that does not have: it
+    # ament_auto_add_library(SHARED)s three .cpp files of its own and links nothing prebuilt
+    # at all -- only Eigen3::Eigen and yaml-cpp. FINDINGS.md said as much from the start
+    # ("only camera_utils, utils and gems really build"); gems was source-built long ago and
+    # this one was left in the repack pile by association.
+    #
+    # Its find_package(Eigen3 3.3 REQUIRED NO_MODULE) is the eigenfloor case, so the
+    # generator strips the version request as it does for the other 18.
+    ("ros-jazzy-gxf-isaac-camera-utils", "isaac_ros_nitros",
+     "isaac_ros_gxf_extensions/gxf_isaac_camera_utils"),
     ("ros-jazzy-isaac-ros-apriltag-interfaces", "isaac_ros_common", "isaac_ros_apriltag_interfaces"),
     ("ros-jazzy-isaac-ros-nova-interfaces", "isaac_ros_common", "isaac_ros_nova_interfaces"),
     ("ros-jazzy-isaac-ros-test-cmake", "isaac_ros_common", "isaac_ros_test_cmake"),
@@ -357,9 +371,9 @@ PACKAGES = [
     # --- nvblox --------------------------------------------------------------------
     #
     # nvblox_msgs was already built for cuMotion; this is the rest of the repo. Leaves
-    # first, the metapackage last. nvblox_examples_bringup and nvblox_test are absent:
-    # bringup pulls the realsense and DNN example graphs, and nvblox_test wants the test
-    # datasets.
+    # first, the metapackage last. nvblox_test is absent because it requires the test
+    # datasets as build inputs; nvblox_examples_bringup is included with its unavailable
+    # optional Triton launch backend omitted from runtime dependencies below.
     ("ros-jazzy-nvblox-ros-common", "isaac_ros_nvblox", "nvblox_ros_common"),
     ("ros-jazzy-nvblox-ros-python-utils", "isaac_ros_nvblox", "nvblox_ros_python_utils"),
     ("ros-jazzy-nvblox-test-data", "isaac_ros_nvblox", "nvblox_test_data"),
@@ -370,6 +384,7 @@ PACKAGES = [
     ("ros-jazzy-multi-realsense-emitter-synchronizer", "isaac_ros_nvblox", "nvblox_examples/multi_realsense_emitter_synchronizer"),
     ("ros-jazzy-semantic-label-conversion", "isaac_ros_nvblox", "nvblox_examples/semantic_label_conversion"),
     ("ros-jazzy-nvblox-image-padding", "isaac_ros_nvblox", "nvblox_examples/nvblox_image_padding"),
+    ("ros-jazzy-nvblox-examples-bringup", "isaac_ros_nvblox", "nvblox_examples/nvblox_examples_bringup"),
     ("ros-jazzy-nvblox-ros", "isaac_ros_nvblox", "nvblox_ros"),
     ("ros-jazzy-isaac-ros-nvblox", "isaac_ros_nvblox", "isaac_ros_nvblox"),
     # --- eight more repos, in dependency order -------------------------------------
@@ -751,6 +766,11 @@ DROP_DEPS = {
     "ros-jazzy-isaac-ros-grounding-dino": {
         "isaac_ros_tensor_rt": "needs TensorRT; the inference node in the launch graph",
     },
+    # Optional segmentation launch backend. The package also ships a fully packaged
+    # TensorRT path, and does not link or import this separate ROS node.
+    "ros-jazzy-nvblox-examples-bringup": {
+        "isaac_ros_triton": "needs Triton (ISSUES.md #21); optional launch backend",
+    },
 }
 
 # Additional source entries a package needs beyond its repo tarball, keyed by conda package
@@ -897,6 +917,16 @@ EXTRA_CMAKE_ARGS = {
     for _p in _NVBLOX_CORE_USERS
 }
 
+# cuMotion's packaged CMake config calls find_dependency(CCCL), while conda-forge's CUDA
+# toolkit installs that config below targets/<arch> rather than the prefix searched by
+# default. Point CMake at the package explicitly for consumers that load cuMotion.
+for _p in [
+    "ros-jazzy-isaac-ros-cumotion-controllers",
+    "ros-jazzy-isaac-ros-ur5-cumotion-benchmark",
+]:
+    EXTRA_CMAKE_ARGS[_p] = [
+        '-DCMAKE_PREFIX_PATH="${PREFIX};${PREFIX}/targets/x86_64-linux"']
+
 # nvblox_ros_common exports the CUDA include directory as part of its public interface --
 # ament_target_dependencies(nvblox_ros_common_lib rclcpp CUDAToolkit) makes
 # ${CUDAToolkit_INCLUDE_DIRS} INTERFACE. -DCUDAToolkit_INCLUDE_DIR was tried and does not
@@ -914,6 +944,39 @@ EXTRA_HOST = {
     _p: ["libnpp-dev", "libcurand-dev", "gflags", "glog", "benchmark", "gtest", "eigen"]
     for _p in _NVBLOX_CORE_USERS
 }
+# LibTorch's exported Caffe2 config enables CUDA and looks for the complete development
+# toolkit (nvcc plus headers for cudart, cuBLAS, NVRTC, and friends). The pytorch package's
+# run dependencies intentionally provide only the runtime libraries, so the package's
+# declared cuda-toolkit build dependency needs a real toolkit in host, not merely the
+# cuda-version compatibility metapackage used for runtime pinning.
+EXTRA_HOST["ros-jazzy-isaac-deploy-core"] = [
+    "cuda-toolkit", "triton-server ==2.60.0"]
+
+# These packages do not compile CUDA themselves, but dependencies in their public CMake
+# closure load isaac_ros_common-extras.cmake, which requires CUDAToolkit. Without a complete
+# host toolkit, FindCUDAToolkit falls through to the machine's /usr/local/cuda and then fails
+# to find a prefix-provided cudart.
+for _p in [
+    "ros-jazzy-isaac-ros-cumotion-controllers",
+    "ros-jazzy-isaac-ros-ur5-cumotion-benchmark",
+]:
+    EXTRA_HOST[_p] = ["cuda-toolkit"]
+
+# The manifest cannot name this non-ROS package, although the encoder links all six
+# multimedia libraries it provides.
+EXTRA_HOST["ros-jazzy-isaac-ros-h264-encoder"] = ["nvv4l2"]
+
+# Runtime requirements for dependencies hidden from package.xml (for example, a library
+# previously downloaded by CMake). Keep these separate from EXTRA_HOST: most entries in
+# EXTRA_HOST are development-only and must not leak into runtime environments.
+EXTRA_RUN = {
+    # isaac_deploy_core's installed extras file calls find_package(Torch), whose
+    # CUDA-enabled Caffe2 config calls find_package(CUDAToolkit). Runtime CUDA libraries
+    # are therefore insufficient for downstream CMake consumers: the exported package
+    # requires the development toolkit as part of its public interface.
+    "ros-jazzy-isaac-deploy-core": ["cuda-toolkit", "triton-server ==2.60.0"],
+    "ros-jazzy-isaac-ros-h264-encoder": ["nvv4l2"],
+}
 
 # Patches applied to a package's source, keyed by conda package name; paths are relative
 # to the recipe directory. All but one are prepared for upstream; the exception says so in
@@ -926,6 +989,17 @@ PATCHES = {
     # isaac_ros_nitros_detection3_d_array_type at link time under GCC 15.
     # Apache-2.0, so ours to fix; see ISSUES.md and upstream/README.md.
     "ros-jazzy-gxf-isaac-gems": ["patches/0001-epsilon-odr-inline.patch"],
+    # Replace NVIDIA's private-artifactory FetchContent fallback with the packaged
+    # Triton C API. This makes the dependency reproducible and visible to the solver.
+    "ros-jazzy-isaac-deploy-core": ["use-packaged-triton.patch"],
+    # The encoder hard-codes Ubuntu multiarch paths for nvv4l2 libraries even though
+    # CMake can resolve the declared package from any installation prefix.
+    "ros-jazzy-isaac-ros-h264-encoder": [
+        "patches/0001-find-nvv4l2-libraries-in-prefix.patch"],
+    # unitree_sdk2 ships only a static SDK archive, which find_library misses when the
+    # distribution toolchain restricts its search suffixes to shared libraries.
+    "ros-jazzy-unitree-g1-ros2-control": [
+        "patches/0001-use-vendored-static-sdk-library.patch"],
     # test_utils.py raises at module scope when ISAAC_ROS_WS is unset, and __init__.py
     # re-exports it, so importing the package fails in any environment that does not
     # export that variable -- which is every conda environment. Apache-2.0, ours to fix;
@@ -981,6 +1055,11 @@ def detect(cml: str, pkgxml: str, path: str) -> set[str]:
     if re.search(r"LANGUAGES[^)]*\bCUDA\b|enable_language\(\s*CUDA", cml):
         traits.add("cuda")
     if "find_package(CUDAToolkit" in cml:
+        traits.add("cuda")
+    # Some packages activate CUDA indirectly. isaac_deploy_core is the first: finding
+    # Torch loads Caffe2's CUDA config, which enables the CUDA language and therefore needs
+    # compiler activation even though its own CMakeLists has no CUDA command.
+    if "cuda-toolkit" in pkgxml:
         traits.add("cuda")
     if re.search(r"find_package\(\s*Eigen3", cml):
         traits.add("eigen")
@@ -1468,6 +1547,9 @@ def emit(name: str, repo: str, path: str) -> str | None:
         run.append("ros-jazzy-rosidl-default-runtime")
     if "vpi" in traits and "vpi" not in run:
         run.append("vpi")
+    for extra in EXTRA_RUN.get(name, []):
+        if extra not in run:
+            run.append(extra)
 
     ros_dir = name.replace("ros-jazzy-", "").replace("-", "_")
     repo_info = REPOS[repo]

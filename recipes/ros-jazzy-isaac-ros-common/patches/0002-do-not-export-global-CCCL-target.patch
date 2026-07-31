@@ -1,0 +1,33 @@
+From: Wolf Vollprecht <w.vollprecht@gmail.com>
+Subject: [PATCH] isaac_ros_common: do not inject CCCL into every link interface
+
+CCCL is header-only, but link_libraries(CCCL::CCCL) applies directory-wide and
+therefore injects the target into every subsequently created target. In
+particular, rosidl-generated targets export CCCL::CCCL from their installed
+CMake files without also exporting a find_dependency(CCCL) call. Downstream
+find_package then fails because the imported target does not exist.
+
+Add CCCL's toolkit include directory directly instead. This provides the same
+headers without contaminating unrelated installed link interfaces.
+---
+ isaac_ros_common/cmake/isaac_ros_common-extras.cmake | 8 +-------
+ 1 file changed, 1 insertion(+), 7 deletions(-)
+
+diff --git a/isaac_ros_common/cmake/isaac_ros_common-extras.cmake b/isaac_ros_common/cmake/isaac_ros_common-extras.cmake
+--- a/isaac_ros_common/cmake/isaac_ros_common-extras.cmake
++++ b/isaac_ros_common/cmake/isaac_ros_common-extras.cmake
+@@ -36,13 +36,7 @@ find_package(CUDAToolkit REQUIRED)
+ include_directories("${CUDAToolkit_INCLUDE_DIRS}")
+
+ # CUDA 13 CCCL migration: ensure host compiler can find <cuda/std/...>, <thrust/...>, <cub/...>
+-# Prefer linking the CCCL CMake target when available; otherwise add CTK's cccl include path.
+-find_package(CCCL CONFIG QUIET)
+-if(TARGET CCCL::CCCL)
+-  link_libraries(CCCL::CCCL)
+-else()
+-  include_directories("${CUDAToolkit_INCLUDE_DIRS}/cccl")
+-endif()
++include_directories("${CUDAToolkit_INCLUDE_DIRS}/cccl")
+
+ # Setup cuda architectures
+ # Target Ada is CUDA 11.8 or greater

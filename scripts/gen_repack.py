@@ -37,6 +37,9 @@ DROP = {
     "libgnat-23",       # Ada runtime, pulled in transitively and unused here
     "git", "iputils-ping", "mosquitto", "nodejs", "yarnpkg",
     "ros2-apt-source",
+    # Host daemon used to configure datacenter GPUs. It is not a library dependency of
+    # Triton and has no place inside a relocatable conda environment.
+    "datacenter-gpu-manager-4-core",
 }
 
 # Deb name -> conda name. Anything not listed and not dropped is passed through,
@@ -58,6 +61,7 @@ MAP = {
     "libnvinfer10": "tensorrt",
     "libnvinfer-plugin10": "tensorrt",
     "libcudnn9-cuda-13": "cudnn",
+    "libnccl2": "nccl",
     "libgflags2.2": "gflags",
     "libgoogle-glog0v6": "glog",
     "libboost-dev": "libboost-devel",

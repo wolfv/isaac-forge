@@ -1,0 +1,72 @@
+schema_version: 1
+
+context:
+  version: "4.6.0"
+
+package:
+  name: libdcgm
+  version: ${{ version }}
+
+source:
+  url: https://github.com/NVIDIA/DCGM/archive/refs/tags/v${{ version }}.tar.gz
+  sha256: 0dc12215e133a14e9a65e9a750aa950cab8eb9e75d59e1236ce51a85f2af694a
+
+build:
+  number: 0
+  skip: not linux
+  script: build.sh
+  dynamic_linking:
+    missing_dso_allowlist:
+      # Loaded at runtime from the installed NVIDIA display driver.
+      - libcuda.so.*
+      - libnvidia-ml.so.*
+
+requirements:
+  build:
+    - ${{ compiler('c') }}
+    - ${{ compiler('cxx') }}
+    - cmake >=4
+    - git
+    - ninja
+    - patch
+    - pkg-config
+    - python
+  host:
+    # DCGM 4.6 still uses the Boost.Process v1 API, removed in newer Boost.
+    - libboost-devel 1.85.*
+    - catch2
+    - fmt
+    - jsoncpp
+    - libevent
+    - plog
+    - tclap
+    - yaml-cpp
+  ignore_run_exports:
+    by_name:
+      # Configure-time/header-only dependencies; libdcgm has no DT_NEEDED for them.
+      - catch2
+      - yaml-cpp
+
+tests:
+  - package_contents:
+      files:
+        - include/datacenter-gpu-manager-4/dcgm_agent.h
+        - lib/libdcgm.so
+        - lib/libdcgm.so.4
+        - lib/cmake/DCGM/DCGMConfig.cmake
+  - script:
+      - test "$(readelf -d "$PREFIX/lib/libdcgm.so.4" | grep -c 'SONAME.*libdcgm.so.4')" = 1
+      - readelf -d "$PREFIX/lib/libdcgm.so.4" | grep -E 'RPATH|RUNPATH' | grep -F '$ORIGIN'
+      - test -z "$(readelf -d "$PREFIX/lib/libdcgm.so.4" | grep -F "$PREFIX" || true)"
+
+about:
+  homepage: https://developer.nvidia.com/dcgm
+  repository: https://github.com/NVIDIA/DCGM
+  documentation: https://docs.nvidia.com/datacenter/dcgm/latest/
+  summary: Shared C library and development headers for NVIDIA Data Center GPU Manager
+  description: >-
+    The source-built DCGM client/embedded-engine shared library and C development API.
+    This package intentionally excludes the host-engine daemon, command-line tools,
+    diagnostics, proprietary plugins, and Python bindings.
+  license: Apache-2.0
+  license_file: LICENSE

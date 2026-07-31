@@ -36,6 +36,7 @@ build:
       -DCMAKE_CUDA_ARCHITECTURES="80;86;89;90"
       -DPYTHON_EXECUTABLE="${PREFIX}/bin/python"
       -DBUILD_TESTING=OFF
+      -DCMAKE_PREFIX_PATH="${PREFIX};${PREFIX}/targets/x86_64-linux"
     - cmake --build build --parallel "${CPU_COUNT:-2}"
     - cmake --install build
     # No installed *text* file may name the build environment. $BUILD_PREFIX is unique to
@@ -99,6 +100,7 @@ requirements:
     - ros-jazzy-tf2-geometry-msgs
     - ros-jazzy-tf2-ros
     - ros-jazzy-visualization-msgs
+    - cuda-toolkit
     - magic_enum
   run:
     - __glibc >=2.38

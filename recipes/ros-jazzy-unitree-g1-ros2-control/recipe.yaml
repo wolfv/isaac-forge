@@ -17,7 +17,8 @@ source:
   - url: https://github.com/NVIDIA-ISAAC-ROS/isaac_ros_robots/archive/refs/tags/v4.5-0.tar.gz
     sha256: 8d750654dbb8a5fe7d5fc6e46e421dfba126279918d37264f63eb77eb8a8986d
     target_directory: src
-
+    patches:
+      - patches/0001-use-vendored-static-sdk-library.patch
 build:
   number: 0
   script:

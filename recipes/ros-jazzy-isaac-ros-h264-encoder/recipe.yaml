@@ -17,7 +17,8 @@ source:
   - url: https://github.com/NVIDIA-ISAAC-ROS/isaac_ros_compression/archive/refs/tags/v4.5-0.tar.gz
     sha256: f02bc1dfe2f210fa2cc1655ec2ac8a529805033f573a6d4959739acee427e2d9
     target_directory: src
-
+    patches:
+      - patches/0001-find-nvv4l2-libraries-in-prefix.patch
 build:
   number: 0
   script:
@@ -99,6 +100,7 @@ requirements:
     - ros-jazzy-rclcpp-components
     - ros-jazzy-sensor-msgs
     - ros-jazzy-sensor-msgs-py
+    - nvv4l2
     - cuda-cudart-dev
     - cuda-nvtx-dev
     - magic_enum
@@ -122,6 +124,7 @@ requirements:
     - ros-jazzy-sensor-msgs
     - ros-jazzy-sensor-msgs-py
     - vpi
+    - nvv4l2
 
 tests:
   - package_contents:

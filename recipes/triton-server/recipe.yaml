@@ -1,0 +1,76 @@
+schema_version: 1
+
+context:
+  version: "2.60.0"
+  commit: 70b908ca74b27407ae7c33b26ef26401d50aa871
+
+package:
+  name: triton-server
+  version: ${{ version }}
+
+source:
+  url: https://github.com/triton-inference-server/core/archive/${{ commit }}.tar.gz
+  sha256: fdd362e04992aea6242a040332cd70d4dc2ad23b47092dff75477ddec409d2a5
+  patches:
+    - conda-build.patch
+
+build:
+  number: 4
+  script: build.sh
+  dynamic_linking:
+    missing_dso_allowlist:
+      - libcuda.so.*
+
+requirements:
+  build:
+    - ${{ compiler('c') }}
+    - ${{ compiler('cxx') }}
+    - ${{ compiler('cuda') }}
+    - cmake
+    - git
+    - ninja
+    - pkg-config
+  host:
+    - cuda-version 13.*
+    # The core's CMake configuration calls find_package(CUDAToolkit), so it needs
+    # a complete prefix-provided development toolkit rather than system CUDA.
+    - cuda-toolkit
+    - cuda-cudart-dev
+    - gtest
+    # Match the current RoboStack Jazzy ABI pins so Triton can coexist with ROS.
+    - libboost-devel 1.90.*
+    # Triton's nested core build calls find_package() for each of these. Declare them
+    # directly instead of relying on libgrpc's current transitive dependency graph.
+    - c-ares
+    - libabseil
+    - libgrpc
+    - re2
+    - libnuma
+    - libprotobuf 6.33.*
+    - nlohmann_json
+    - rapidjson
+  run:
+    - cuda-cudart
+    - libnuma
+  ignore_run_exports:
+    by_name:
+      # Build/configure-only dependencies; libtritonserver has no DT_NEEDED for them.
+      - gtest
+      - libboost
+      - libgrpc
+
+tests:
+  - package_contents:
+      files:
+        - include/triton/core/tritonserver.h
+        - lib/libtritonserver.so
+  - script:
+      - test -f "$PREFIX/lib/cmake/TritonCore/TritonCoreConfig.cmake"
+      - test -z "$(readelf -d "$PREFIX/lib/libtritonserver.so" | grep libdcgm || true)"
+
+about:
+  homepage: https://github.com/triton-inference-server/core
+  repository: https://github.com/triton-inference-server/core
+  summary: NVIDIA Triton Inference Server core C API and runtime library
+  license: BSD-3-Clause
+  license_file: LICENSE

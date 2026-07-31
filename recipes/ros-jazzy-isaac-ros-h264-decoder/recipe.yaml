@@ -99,8 +99,16 @@ requirements:
     - ros-jazzy-isaac-ros-nitros-image-type
     - ros-jazzy-isaac-ros-nitros-compressed-image-type
     - ros-jazzy-isaac-ros-common
+    - ros-jazzy-isaac-ros-image-proc
+    - ros-jazzy-negotiated
     - ros-jazzy-rclcpp
     - ros-jazzy-rclcpp-components
+    - ros-jazzy-image-transport
+    - ros-jazzy-image-geometry
+    - ros-jazzy-cv-bridge
+    - ros-jazzy-message-filters
+    - ros-jazzy-sensor-msgs
+    - ros-jazzy-sensor-msgs-py
     - nvv4l2
     - libv4l
     - vpi

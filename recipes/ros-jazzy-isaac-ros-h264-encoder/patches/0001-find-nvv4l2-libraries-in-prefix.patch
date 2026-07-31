@@ -1,0 +1,27 @@
+--- isaac_ros_h264_encoder/CMakeLists.txt
++++ isaac_ros_h264_encoder/CMakeLists.txt
+@@ -36,11 +36,20 @@
+ add_library(cuvidv4l2 SHARED IMPORTED)
+
+ if(${ARCHITECTURE} STREQUAL "x86_64")
+-  set_property(TARGET nvbuf_fdmap PROPERTY IMPORTED_LOCATION /usr/lib/x86_64-linux-gnu/libnvbuf_fdmap.so)
+-  set_property(TARGET nvbufsurface PROPERTY IMPORTED_LOCATION /usr/lib/x86_64-linux-gnu/libnvbufsurface.so)
+-  set_property(TARGET nvbufsurftransform PROPERTY IMPORTED_LOCATION /usr/lib/x86_64-linux-gnu/libnvbufsurftransform.so)
+-  set_property(TARGET nvv4l2 PROPERTY IMPORTED_LOCATION /usr/lib/x86_64-linux-gnu/libnvv4l2.so)
+-  set_property(TARGET cuvidv4l2 PROPERTY IMPORTED_LOCATION /usr/lib/x86_64-linux-gnu/libcuvidv4l2.so)
++  # Distribution packages need not install these libraries in Ubuntu's
++  # multiarch directory. Resolve them through CMake's configured prefix paths.
++  find_library(NVBUF_FDMAP_LIBRARY NAMES nvbuf_fdmap REQUIRED)
++  find_library(NVBUFSURFACE_LIBRARY NAMES nvbufsurface REQUIRED)
++  find_library(NVBUFSURFTRANSFORM_LIBRARY NAMES nvbufsurftransform REQUIRED)
++  find_library(NVV4L2_LIBRARY NAMES nvv4l2 REQUIRED)
++  find_library(CUVIDV4L2_LIBRARY NAMES cuvidv4l2 REQUIRED)
++
++  set_property(TARGET nvbuf_fdmap PROPERTY IMPORTED_LOCATION "${NVBUF_FDMAP_LIBRARY}")
++  set_property(TARGET nvbufsurface PROPERTY IMPORTED_LOCATION "${NVBUFSURFACE_LIBRARY}")
++  set_property(TARGET nvbufsurftransform PROPERTY IMPORTED_LOCATION "${NVBUFSURFTRANSFORM_LIBRARY}")
++  set_property(TARGET nvv4l2 PROPERTY IMPORTED_LOCATION "${NVV4L2_LIBRARY}")
++  set_property(TARGET cuvidv4l2 PROPERTY IMPORTED_LOCATION "${CUVIDV4L2_LIBRARY}")
+ elseif(${ARCHITECTURE} STREQUAL "aarch64")
+   set_property(TARGET nvbuf_fdmap PROPERTY IMPORTED_LOCATION /usr/lib/aarch64-linux-gnu/nvidia/libnvbuf_fdmap.so.1.0.0)
+   set_property(TARGET nvbufsurface PROPERTY IMPORTED_LOCATION /usr/lib/aarch64-linux-gnu/nvidia/libnvbufsurface.so)

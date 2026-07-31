@@ -1,0 +1,104 @@
+--- triton-clean/CMakeLists.txt	2025-07-19 01:10:09.000000000 +0200
++++ triton-work/CMakeLists.txt	2026-07-31 08:09:08.620395415 +0200
+@@ -37,6 +37,7 @@
+ # Specifying min required C++ standard
+ #
+ set(TRITON_MIN_CXX_STANDARD 17 CACHE STRING "The minimum C++ standard which features are requested to build this target.")
++option(TRITON_BUILD_PYTHON_BINDINGS "Build the Python server bindings" OFF)
+
+ #
+ # Triton Server API
+@@ -269,7 +270,7 @@
+     set(TRITON_INSTALL_PREFIX ${CMAKE_INSTALL_PREFIX})
+   endif()
+
+-  set(TRITON_DEPENDS googletest protobuf re2)
++  set(TRITON_DEPENDS)
+   if(${TRITON_ENABLE_GCS})
+     set(TRITON_DEPENDS ${TRITON_DEPENDS} google-cloud-cpp)
+   endif() # TRITON_ENABLE_GCS
+@@ -300,16 +301,20 @@
+     SOURCE_DIR "${CMAKE_CURRENT_SOURCE_DIR}/src"
+     BINARY_DIR "${CMAKE_CURRENT_BINARY_DIR}/triton-core"
+     CMAKE_CACHE_ARGS
+-      -DProtobuf_DIR:PATH=${_FINDPACKAGE_PROTOBUF_CONFIG_DIR}
++      -DProtobuf_DIR:PATH=${Protobuf_DIR}
++      -DBUILD_TESTING:BOOL=${BUILD_TESTING}
+       ${_CMAKE_ARGS_OPENSSL_ROOT_DIR}
+       ${_CMAKE_ARGS_CMAKE_TOOLCHAIN_FILE}
+       ${_CMAKE_ARGS_VCPKG_TARGET_TRIPLET}
+-      -DGTEST_ROOT:PATH=${TRITON_THIRD_PARTY_INSTALL_PREFIX}/googletest
+-      -DgRPC_DIR:PATH=${TRITON_THIRD_PARTY_INSTALL_PREFIX}/grpc/lib/cmake/grpc
+-      -Dc-ares_DIR:PATH=${TRITON_THIRD_PARTY_INSTALL_PREFIX}/c-ares/${LIB_DIR}/cmake/c-ares
+-      -Dabsl_DIR:PATH=${TRITON_THIRD_PARTY_INSTALL_PREFIX}/absl/${LIB_DIR}/cmake/absl
+-      -Dre2_DIR:PATH=${TRITON_THIRD_PARTY_INSTALL_PREFIX}/re2/${LIB_DIR}/cmake/re2
+-      -Dnlohmann_json_DIR:PATH=${TRITON_THIRD_PARTY_INSTALL_PREFIX}/nlohmann_json/share/cmake/nlohmann_json
++      -DGTEST_ROOT:PATH=${GTEST_ROOT}
++      -DgRPC_DIR:PATH=${gRPC_DIR}
++      -Dc-ares_DIR:PATH=${c-ares_DIR}
++      -Dabsl_DIR:PATH=${absl_DIR}
++      -Dre2_DIR:PATH=${re2_DIR}
++      -DBoost_INCLUDE_DIR:PATH=${Boost_INCLUDE_DIR}
++      -DRapidJSON_DIR:PATH=${RapidJSON_DIR}
++      -DRAPIDJSON_INCLUDE_DIRS:PATH=${RAPIDJSON_INCLUDE_DIRS}
++      -Dnlohmann_json_DIR:PATH=${nlohmann_json_DIR}
+       -Dprometheus-cpp_DIR:PATH=${TRITON_THIRD_PARTY_INSTALL_PREFIX}/prometheus-cpp/${LIB_DIR}/cmake/prometheus-cpp
+       -Dgoogle_cloud_cpp_storage_DIR:PATH=${TRITON_THIRD_PARTY_INSTALL_PREFIX}/google-cloud-cpp/${LIB_DIR}/cmake/google_cloud_cpp_storage
+       -Dgoogle_cloud_cpp_rest_internal_DIR:PATH=${TRITON_THIRD_PARTY_INSTALL_PREFIX}/google-cloud-cpp/${LIB_DIR}/cmake/google_cloud_cpp_rest_internal
+@@ -333,6 +338,11 @@
+       -Daws-c-mqtt_DIR:PATH=${TRITON_THIRD_PARTY_INSTALL_PREFIX}/aws-sdk-cpp/${LIB_DIR}/aws-c-mqtt/cmake
+       -Daws-c-sdkutils_DIR:PATH=${TRITON_THIRD_PARTY_INSTALL_PREFIX}/aws-sdk-cpp/${LIB_DIR}/aws-c-sdkutils/cmake
+       -DCMAKE_PREFIX_PATH:PATH=${CMAKE_PREFIX_PATH}
++      -DCUDAToolkit_ROOT:PATH=${CUDAToolkit_ROOT}
++      -DCMAKE_CXX_FLAGS:STRING=${CMAKE_CXX_FLAGS}
++      -DCMAKE_CXX_STANDARD:STRING=${CMAKE_CXX_STANDARD}
++      -DCMAKE_LIBRARY_PATH:PATH=${CMAKE_LIBRARY_PATH}
++      -DCMAKE_SHARED_LINKER_FLAGS:STRING=${CMAKE_SHARED_LINKER_FLAGS}
+       -DCNMEM_PATH:PATH=${TRITON_THIRD_PARTY_INSTALL_PREFIX}/cnmem
+       -DTRITON_REPO_ORGANIZATION:STRING=${TRITON_REPO_ORGANIZATION}
+       -DTRITON_COMMON_REPO_TAG:STRING=${TRITON_COMMON_REPO_TAG}
+@@ -355,6 +364,10 @@
+       -DCMAKE_BUILD_TYPE:STRING=${CMAKE_BUILD_TYPE}
+       -DCMAKE_INSTALL_PREFIX:PATH=${TRITON_INSTALL_PREFIX}
+       -DTRITON_VERSION:STRING=${TRITON_VERSION}
++    BUILD_COMMAND ${CMAKE_COMMAND} --build . --target triton-core
++    INSTALL_COMMAND
++      ${CMAKE_COMMAND} -E make_directory ${TRITON_INSTALL_PREFIX}/${CMAKE_INSTALL_LIBDIR}
++      COMMAND ${CMAKE_COMMAND} -E copy <BINARY_DIR>/libtritonserver.so ${TRITON_INSTALL_PREFIX}/${CMAKE_INSTALL_LIBDIR}/libtritonserver.so
+     DEPENDS ${TRITON_DEPENDS}
+   )
+ endif() # NOT TRITON_CORE_HEADERS_ONLY
+@@ -432,6 +445,8 @@
+
+ export(PACKAGE TritonCore)
+
+-if(NOT TRITON_CORE_HEADERS_ONLY)
++# Python bindings are packaged separately and are not needed by Isaac ROS, which uses
++# the C server API directly. Omitting them also keeps Python out of the server ABI package.
++if(NOT TRITON_CORE_HEADERS_ONLY AND TRITON_BUILD_PYTHON_BINDINGS)
+   add_subdirectory(python python)
+ endif()
+--- triton-clean/src/model_config_utils.cc	2025-07-19 01:10:09.000000000 +0200
++++ triton-work/src/model_config_utils.cc	2026-07-31 08:14:44.233451689 +0200
+@@ -1936,7 +1936,7 @@
+   const google::protobuf::Reflection* refl = message->GetReflection();
+   for (int i = 0; i < desc->field_count(); ++i) {
+     const google::protobuf::FieldDescriptor* field = desc->field(i);
+-    const std::string fullname = prefix + "::" + field->name();
++    const std::string fullname = prefix + "::" + std::string(field->name());
+     switch (field->type()) {
+       case google::protobuf::FieldDescriptor::TYPE_MESSAGE: {
+         if (field->is_repeated()) {
+@@ -2161,9 +2161,9 @@
+   std::string config_json_str;
+   ::google::protobuf::util::JsonPrintOptions options;
+   options.preserve_proto_field_names = true;
+-  options.always_print_primitive_fields = true;
+-  ::google::protobuf::util::MessageToJsonString(
+-      config, &config_json_str, options);
++  options.always_print_fields_with_no_presence = true;
++  static_cast<void>(::google::protobuf::util::MessageToJsonString(
++      config, &config_json_str, options));
+
+   // We need to verify that every field 64-bit field in the
+   // ModelConfig protobuf is being handled. We hardcode the known

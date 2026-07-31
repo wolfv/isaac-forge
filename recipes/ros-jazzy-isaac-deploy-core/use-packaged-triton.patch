@@ -1,0 +1,109 @@
+--- isaac_deploy/isaac_deploy_core/CMakeLists.txt
++++ isaac_deploy/isaac_deploy_core/CMakeLists.txt
+@@ -36,39 +36,23 @@
+ find_package(Torch REQUIRED)
++find_package(CUDAToolkit REQUIRED)
+ set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${TORCH_CXX_FLAGS}")
+
+-# Download and find Triton Inference Server.
+-include(FetchContent)
+-if(NOT TRITON_SERVER_TARBALL_URL)
+-  if(CMAKE_SYSTEM_PROCESSOR STREQUAL "aarch64")
+-    set(_TRITON_BASE_URL "https://github.com/triton-inference-server/server/releases/download")
+-    set(TRITON_SERVER_TARBALL_URL "${_TRITON_BASE_URL}/v2.60.0/tritonserver2.60.0-agx.tar")
+-  else()
+-    set(_TRITON_BASE_URL "https://artifactory.pdx.nvidia.com/artifactory")
+-    set(_TRITON_PATH "sw-isaac-ros-generic-local/triton/tritonserver.2.60.tar.gz")
+-    set(TRITON_SERVER_TARBALL_URL "${_TRITON_BASE_URL}/${_TRITON_PATH}")
+-  endif()
+-endif()
+-fetchcontent_declare(
+-  tritonserver
+-  URL ${TRITON_SERVER_TARBALL_URL}
+-  DOWNLOAD_EXTRACT_TIMESTAMP TRUE
++# Triton Inference Server is provided as a regular package. Do not use the
++# upstream private-artifactory FetchContent fallback: it is unavailable to
++# reproducible package builds and bypasses dependency tracking.
++find_path(TRITONSERVER_INCLUDE_DIR
++  NAMES triton/core/tritonserver.h
++  REQUIRED
++)
++find_library(TRITONSERVER_LIBRARY
++  NAMES tritonserver
++  REQUIRED
+ )
+-fetchcontent_populate(tritonserver)
+-
+-file(GLOB_RECURSE _TRITON_HDR_CANDIDATES "${tritonserver_SOURCE_DIR}/*/tritonserver.h")
+-list(GET _TRITON_HDR_CANDIDATES 0 _TRITONSERVER_H)
+-get_filename_component(_TRITON_CORE_DIR "${_TRITONSERVER_H}" DIRECTORY)
+-get_filename_component(_TRITON_DIR "${_TRITON_CORE_DIR}" DIRECTORY)
+-get_filename_component(_TRITON_INC_DIR "${_TRITON_DIR}" DIRECTORY)
+-
+-file(GLOB_RECURSE _TRITON_LIB_CANDIDATES "${tritonserver_SOURCE_DIR}/*/libtritonserver.so")
+-list(GET _TRITON_LIB_CANDIDATES 0 _TRITONSERVER_SO)
+-get_filename_component(_TRITON_LIB_DIR "${_TRITONSERVER_SO}" DIRECTORY)
+
+ add_library(tritonserver::tritonserver SHARED IMPORTED)
+ set_target_properties(tritonserver::tritonserver PROPERTIES
+-  IMPORTED_LOCATION "${_TRITON_LIB_DIR}/libtritonserver.so"
+-  INTERFACE_INCLUDE_DIRECTORIES "${_TRITON_INC_DIR}"
++  IMPORTED_LOCATION "${TRITONSERVER_LIBRARY}"
++  INTERFACE_INCLUDE_DIRECTORIES "${TRITONSERVER_INCLUDE_DIR}"
+ )
+
+ # =============================================================================
+--- isaac_deploy/isaac_deploy_core/cmake/isaac_deploy_core-extras.cmake.in
++++ isaac_deploy/isaac_deploy_core/cmake/isaac_deploy_core-extras.cmake.in
+@@ -15,40 +15,20 @@
+ find_package(Torch REQUIRED)
++find_package(CUDAToolkit REQUIRED)
+
+ # Re-create the tritonserver::tritonserver imported target for downstream
+-# packages.  The triton_runner library links against this target, so it must
+-# exist when consumers call find_package(isaac_deploy_core).
++# packages. The package dependency provides both paths in the consumer prefix.
+ if(NOT TARGET tritonserver::tritonserver)
+-  include(FetchContent)
+-  if(NOT TRITON_SERVER_TARBALL_URL)
+-    if(CMAKE_SYSTEM_PROCESSOR STREQUAL "aarch64")
+-      set(_TRITON_BASE_URL "https://github.com/triton-inference-server/server/releases/download")
+-      set(TRITON_SERVER_TARBALL_URL "${_TRITON_BASE_URL}/v2.60.0/tritonserver2.60.0-agx.tar")
+-    else()
+-      set(_TRITON_BASE_URL "https://artifactory.pdx.nvidia.com/artifactory")
+-      set(_TRITON_PATH "sw-isaac-ros-generic-local/triton/tritonserver.2.60.tar.gz")
+-      set(TRITON_SERVER_TARBALL_URL "${_TRITON_BASE_URL}/${_TRITON_PATH}")
+-    endif()
+-  endif()
+-  fetchcontent_declare(
+-    tritonserver
+-    URL ${TRITON_SERVER_TARBALL_URL}
+-    DOWNLOAD_EXTRACT_TIMESTAMP TRUE
++  find_path(TRITONSERVER_INCLUDE_DIR
++    NAMES triton/core/tritonserver.h
++    REQUIRED
++  )
++  find_library(TRITONSERVER_LIBRARY
++    NAMES tritonserver
++    REQUIRED
+   )
+-  fetchcontent_populate(tritonserver)
+-
+-  file(GLOB_RECURSE _TRITON_HDR_CANDIDATES "${tritonserver_SOURCE_DIR}/*/tritonserver.h")
+-  list(GET _TRITON_HDR_CANDIDATES 0 _TRITONSERVER_H)
+-  get_filename_component(_TRITON_CORE_DIR "${_TRITONSERVER_H}" DIRECTORY)
+-  get_filename_component(_TRITON_DIR "${_TRITON_CORE_DIR}" DIRECTORY)
+-  get_filename_component(_TRITON_INC_DIR "${_TRITON_DIR}" DIRECTORY)
+-
+-  file(GLOB_RECURSE _TRITON_LIB_CANDIDATES "${tritonserver_SOURCE_DIR}/*/libtritonserver.so")
+-  list(GET _TRITON_LIB_CANDIDATES 0 _TRITONSERVER_SO)
+-  get_filename_component(_TRITON_LIB_DIR "${_TRITONSERVER_SO}" DIRECTORY)
+-
+   add_library(tritonserver::tritonserver SHARED IMPORTED)
+   set_target_properties(tritonserver::tritonserver PROPERTIES
+-    IMPORTED_LOCATION "${_TRITON_LIB_DIR}/libtritonserver.so"
+-    INTERFACE_INCLUDE_DIRECTORIES "${_TRITON_INC_DIR}"
++    IMPORTED_LOCATION "${TRITONSERVER_LIBRARY}"
++    INTERFACE_INCLUDE_DIRECTORIES "${TRITONSERVER_INCLUDE_DIR}"
+   )
+ endif()

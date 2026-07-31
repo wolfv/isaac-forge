@@ -1,0 +1,19 @@
+--- unitree_g1/unitree_g1_ros2_control/CMakeLists.txt
++++ unitree_g1/unitree_g1_ros2_control/CMakeLists.txt
+@@ -36,6 +36,14 @@
+       GIT_TAG ${UNITREE_SDK2_VERSION}
+       GIT_SHALLOW TRUE
+     )
++
++    # unitree_sdk2 uses find_library() for its vendored static archive. Some
++    # distribution toolchains restrict CMAKE_FIND_LIBRARY_SUFFIXES to shared
++    # libraries, even though the SDK only ships libunitree_sdk2.a. Seed the
++    # cache with the deterministic FetchContent path instead of pretending the
++    # archive is absent on x86_64.
++    set(UNITREE_SDK_LIB
++      "${CMAKE_BINARY_DIR}/_deps/unitree_sdk2-src/lib/${CMAKE_SYSTEM_PROCESSOR}/libunitree_sdk2.a"
++      CACHE FILEPATH "Vendored Unitree SDK2 archive")
++    set(BUILD_EXAMPLES OFF CACHE BOOL "Do not build Unitree SDK examples")
+     fetchcontent_makeavailable(unitree_sdk2)
+   endif()
+ endif()

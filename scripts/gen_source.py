@@ -528,10 +528,10 @@ PACKAGES = [
     ("ros-jazzy-isaac-ros-unitree-g1-gr00t", "isaac_ros_physical_ai", "isaac_ros_unitree_g1_gr00t"),
     ("ros-jazzy-isaac-ros-unitree-g1-teleop-bringup", "isaac_ros_physical_ai",
      "isaac_ros_unitree_g1_teleop_bringup"),
-    # SIPL is NVIDIA's DRIVE camera SDK, so this node is not useful off that hardware --
-    # but it is a plain ament_cmake package whose declared dependencies all resolve, which
-    # is the bar every other entry here is held to.
-    ("ros-jazzy-isaac-ros-sipl-camera", "isaac_ros_sipl_camera", "isaac_ros_sipl_camera"),
+    # isaac_ros_sipl_camera is deliberately absent on linux-64. Its CMakeLists returns
+    # before ament_package() unless CMAKE_SYSTEM_PROCESSOR is aarch64, so an x86_64 build
+    # installs zero files. SIPL is NVIDIA DRIVE's ARM64-only camera SDK; publishing an
+    # empty package here would falsely claim that the node exists.
     # --- the benchmark suite: 25 of its 29 packages --------------------------------
     #
     # ros2_benchmark, isaac_ros_benchmark and isaac_ros_image_proc_benchmark have been built

@@ -160,12 +160,23 @@ jobs:
           echo "testing ${#pkgs[@]} package(s)"
           failed=()
           for p in "${pkgs[@]}"; do
-            if ! pixi run rattler-build test \
-                 --package-file "$p" \
-                 -c ./output \
-                 -c https://prefix.dev/isaac-forge \
-                 -c https://prefix.dev/robostack-jazzy \
-                 -c conda-forge; then
+            passed=false
+            for attempt in 1 2 3; do
+              if pixi run rattler-build test \
+                   --package-file "$p" \
+                   -c ./output \
+                   -c https://prefix.dev/isaac-forge \
+                   -c https://prefix.dev/robostack-jazzy \
+                   -c conda-forge; then
+                passed=true
+                break
+              fi
+              echo "::warning::Test attempt $attempt/3 failed for $(basename "$p")"
+              if [ "$attempt" -lt 3 ]; then
+                sleep $((attempt * 10))
+              fi
+            done
+            if [ "$passed" != true ]; then
               failed+=("$(basename "$p")")
             fi
           done

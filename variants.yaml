@@ -57,3 +57,17 @@ cuda_compiler_version:
   - "13.3"
 python:
   - "3.12.* *_cpython"
+
+# Dependency ABI pins used by recipes that intentionally target different compatibility
+# lines. Keep these here rather than burying concrete versions in individual recipes.
+# A single global Boost or protobuf pin would be incorrect: DCGM still uses the removed
+# Boost.Process v1 API, while ROS Jazzy uses Boost 1.90; the visual-mapping binaries were
+# built against Ubuntu's protobuf 3.21, while Triton is built against protobuf 6.33.
+libboost_devel_dcgm:
+  - "1.85.*"
+libboost_devel_robostack:
+  - "1.90.*"
+libprotobuf_triton:
+  - "6.33.*"
+libprotobuf_ubuntu:
+  - "3.21.*"

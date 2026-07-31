@@ -38,7 +38,7 @@ requirements:
     - cuda-cudart-dev
     - gtest
     # Match the current RoboStack Jazzy ABI pins so Triton can coexist with ROS.
-    - libboost-devel 1.90.*
+    - libboost-devel ${{ libboost_devel_robostack }}
     # Triton's nested core build calls find_package() for each of these. Declare them
     # directly instead of relying on libgrpc's current transitive dependency graph.
     - c-ares
@@ -46,7 +46,7 @@ requirements:
     - libgrpc
     - re2
     - libnuma
-    - libprotobuf 6.33.*
+    - libprotobuf ${{ libprotobuf_triton }}
     - nlohmann_json
     - rapidjson
   run:

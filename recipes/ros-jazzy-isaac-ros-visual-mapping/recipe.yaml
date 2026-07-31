@@ -111,7 +111,7 @@ outputs:
         - __glibc >=2.38
         # Pins, not preferences -- see the header comment. Both are what the archives'
         # object code was compiled against, and both fail measurably on newer.
-        - libprotobuf 3.21.*
+        - libprotobuf ${{ libprotobuf_ubuntu }}
         - glog 0.6.*
         # The four absl::debian3 symbols the archives reference.
         - libabseil-debian3-compat
@@ -217,7 +217,7 @@ outputs:
         # The whole reason this is a separate output. Read off DT_NEEDED:
         # libopencv_{core,imgproc,calib3d,features2d,flann,imgcodecs}.so.406.
         - libopencv 4.6.*
-        - libprotobuf 3.21.*
+        - libprotobuf ${{ libprotobuf_ubuntu }}
         - glog 0.6.*
         - libabseil-debian3-compat
         - ceres-solver

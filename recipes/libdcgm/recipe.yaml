@@ -33,7 +33,7 @@ requirements:
     - python
   host:
     # DCGM 4.6 still uses the Boost.Process v1 API, removed in newer Boost.
-    - libboost-devel 1.85.*
+    - libboost-devel ${{ libboost_devel_dcgm }}
     - catch2
     - fmt
     - jsoncpp

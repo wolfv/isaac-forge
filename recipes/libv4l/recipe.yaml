@@ -68,7 +68,7 @@ outputs:
           - test -n "$(pkg-config --modversion libv4l2)"
           # $CC comes from the compiler activation; ${{ compiler('c') }} is a
           # package name, not a binary.
-          - ${CC} $(pkg-config --cflags --libs libv4l2) -o smoke smoke.c
+          - ${CC} $(pkg-config --cflags libv4l2) smoke.c -o smoke $(pkg-config --libs libv4l2) ${LDFLAGS}
           - ./smoke
         requirements:
           build:

@@ -62,10 +62,31 @@ jobs:
           # pixi.lock pins rattler-build, so CI builds with the same version as local.
           locked: true
 
+      # Work around rattler-build not initiating its challenge-reactive OIDC flow for
+      # repodata reads (upstream ticket pending). The upload command performs this exchange
+      # internally; mint the same short-lived token and register it for channel solves.
+      - name: Authenticate private channel with OIDC
+        shell: bash
+        run: |
+          set -euo pipefail
+          oidc_token=$(
+            curl --fail --silent --show-error \
+              -H "Authorization: Bearer ${ACTIONS_ID_TOKEN_REQUEST_TOKEN}" \
+              "${ACTIONS_ID_TOKEN_REQUEST_URL}&audience=prefix.dev" |
+              jq -er .value
+          )
+          publish_token=$(
+            jq -nc --arg token "$oidc_token" '{token: $token}' |
+              curl --fail --silent --show-error \
+                -H 'Content-Type: application/json' \
+                --data-binary @- \
+                https://prefix.dev/api/oidc/mint_token
+          )
+          pixi auth login prefix.dev --token "$publish_token"
+
       # -c ./output is what lets recipes resolve against packages built earlier in this
-      # same run. rattler-build's challenge-reactive OIDC authentication makes the private
-      # isaac-forge channel readable without a stored API key. Keep it second so local
-      # artifacts win while published foundations remain available to selective builds.
+      # same run. Keep authenticated isaac-forge second so local artifacts win while
+      # published foundations remain available to selective builds.
       # Tests are deliberately deferred to the next step rather than run inline, and the
       # reason is a real ordering limitation rather than a preference.
       #

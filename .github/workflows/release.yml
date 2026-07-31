@@ -65,11 +65,9 @@ jobs:
       # same run. rattler-build indexes the directory itself, but it has to exist before
       # being named as a channel.
       #
-      # The isaac-forge channel is deliberately NOT a read channel here: it is private,
-      # and its repodata returns 401. Trusted publishing grants upload rights at upload
-      # time via OIDC, not read access during the build. That also means
-      # `--skip-existing all` cannot see what is already published, so this is `local`
-      # -- see the note on the publish step below.
+      # The trusted-publisher OIDC identity also authenticates reads from the private
+      # isaac-forge channel. Keep it after ./output so packages built earlier in this run
+      # win, while already-published foundations remain available to selective builds.
       # Tests are deliberately deferred to the next step rather than run inline, and the
       # reason is a real ordering limitation rather than a preference.
       #
@@ -96,9 +94,10 @@ jobs:
           common_args=(
             --output-dir output
             -m variants.yaml
-            --skip-existing local
+            --skip-existing all
             --test skip
             -c ./output
+            -c https://prefix.dev/isaac-forge
             -c https://prefix.dev/robostack-jazzy
             -c conda-forge
           )
@@ -140,6 +139,7 @@ jobs:
             if ! pixi run rattler-build test \
                  --package-file "$p" \
                  -c ./output \
+                 -c https://prefix.dev/isaac-forge \
                  -c https://prefix.dev/robostack-jazzy \
                  -c conda-forge; then
               failed+=("$(basename "$p")")
@@ -157,11 +157,8 @@ jobs:
         if: always()
         run: rm -rf output/bld output/src_cache output/.tmp
 
-      # KNOWN LIMITATION while the channel is private: versions are fixed and build
-      # numbers are 0, so every push to main rebuilds identical filenames and this step
-      # will report duplicates once the channel is populated. The clean fix is to make
-      # the isaac-forge channel readable, then restore `--skip-existing all` with it as
-      # a read channel above, which makes a no-op push upload nothing at all.
+      # `--skip-existing all` above keeps already-published files out of ./output, so this
+      # step sees only genuinely new package artifacts.
       - name: Publish new packages to prefix.dev/isaac-forge
         run: |
           shopt -s nullglob

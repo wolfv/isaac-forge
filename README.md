@@ -583,8 +583,13 @@ GitHub's 132-byte LFS pointer files are never packaged.
 Two vendor-only packages still have no public JetPack 7 payload that can be built on a generic ARM
 runner: `nvv4l2` (the libraries are part of the Jetson system image) and the closed
 `isaac_ros_visual_mapping` tools. Their amd64 recipes remain explicitly skipped on ARM rather than
-mislabeling x86 ELF files. The rest of the stack can build and publish while those optional branches
-remain unavailable, and CI records any downstream packages they block.
+mislabeling x86 ELF files.
+
+The first complete CI bootstrap published **214 tested `linux-aarch64` packages**. The stable
+unpublished set is the two vendor roots above plus their direct leaves: H.264 encode/decode and
+benchmarks, three packages whose test closure reaches visual mapping, the Unitree recorder,
+`pynitros_benchmark`, and ARM DCGM (whose Boost 1.85 build is absent from conda-forge). CI
+quarantines unsatisfiable artifacts rather than uploading broken packages.
 
 To override the default GPU list for a particular Jetson, export `CUDA_ARCHITECTURES` before the
 build (for example `CUDA_ARCHITECTURES=87` for an Orin-only build).

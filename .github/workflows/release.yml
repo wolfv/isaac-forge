@@ -36,7 +36,7 @@ jobs:
     timeout-minutes: 360
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       # The GXF, NITROS and VPI host environments are multi-GB each, and VPI alone
       # unpacks to ~1 GB. A default runner does not have room. dotnet + android + ghc
@@ -184,7 +184,7 @@ jobs:
 
       - name: Upload build log
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: rattler-build-log
           path: output/rattler-build-log.txt

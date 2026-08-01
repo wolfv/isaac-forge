@@ -178,14 +178,28 @@ jobs:
             done
             if [ "$passed" != true ]; then
               failed+=("$(basename "$p")")
+              # Never upload an artifact that did not pass. Keep it outside output/
+              # because the publish glob intentionally includes every conda subdir.
+              mkdir -p failed-packages
+              mv "$p" failed-packages/
             fi
           done
           if [ "${#failed[@]}" -gt 0 ]; then
-            echo "::error::${#failed[@]} package(s) failed their tests:"
-            printf '  %s\n' "${failed[@]}"
-            exit 1
+            printf '%s\n' "${failed[@]}" > failed-packages/packages.txt
+            if [ "${{ matrix.platform }}" = linux-aarch64 ]; then
+              # During ARM bootstrap some leaf packages can compile before their run
+              # closure exists (currently nvv4l2/visual-mapping branches). Quarantine
+              # those artifacts, but publish everything that did pass.
+              echo "::warning::${#failed[@]} ARM64 package(s) quarantined:"
+              printf '  %s\n' "${failed[@]}"
+            else
+              echo "::error::${#failed[@]} package(s) failed their tests:"
+              printf '  %s\n' "${failed[@]}"
+              exit 1
+            fi
+          else
+            echo "all ${#pkgs[@]} packages passed their tests"
           fi
-          echo "all ${#pkgs[@]} packages passed their tests"
 
       # Build trees are large and are not needed to upload.
       - name: Drop build trees
@@ -206,11 +220,13 @@ jobs:
           printf '  %s\n' "${pkgs[@]}"
           pixi run rattler-build upload prefix -c isaac-forge "${pkgs[@]}"
 
-      - name: Upload build log
+      - name: Upload build diagnostics
         if: always()
         uses: actions/upload-artifact@v7
         with:
           name: rattler-build-log-${{ matrix.platform }}
-          path: output/rattler-build-log.txt
+          path: |
+            output/rattler-build-log.txt
+            failed-packages/packages.txt
           if-no-files-found: ignore
           retention-days: 14

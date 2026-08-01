@@ -682,7 +682,7 @@ recipes/                 Layer 0 rattler-build recipes
 demo/                    runnable Isaac-ROS-on-RoboStack demo
 scripts/build_all.sh     rebuild every recipe into output/ (resumable, prunes as it goes)
 scripts/test_all.sh      run every built package's own tests against the finished channel
-scripts/clone.sh         clone the 35 upstream repos
+scripts/clone.sh         clone the 36 upstream repos
 scripts/fetch_sources.sh populate .srccache/ with the tarballs gen_source.py inspects
 scripts/inventory.py     regenerate packages.json
 scripts/aptclosure.py    resolve deb dependency closures from the apt index
@@ -695,6 +695,7 @@ slam/                    cuVSLAM on the r2b Galileo dataset
 manip/                   the manipulation stack, cuMotion solving IK
 pose/                    the pose-estimation stack, 21 components loading
 detect/                  the object-detection stack, 6 components loading
+yolo/                    real YOLOv8 TensorRT inference with image/video Rerun visualization
 bench/                   NVIDIA's benchmark harness (partially working)
 src/                     cloned upstream sources (gitignored)
 output/                  built packages (gitignored)

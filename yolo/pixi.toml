@@ -1,0 +1,39 @@
+[workspace]
+name = "isaac-forge-yolov8-demo"
+description = "End-to-end Isaac ROS YOLOv8 demo using packages from prefix.dev/isaac-forge"
+channels = [
+  "https://prefix.dev/isaac-forge",
+  "https://prefix.dev/robostack-jazzy",
+  "conda-forge",
+]
+# The Isaac Forge binaries target Ubuntu 24.04's glibc floor.
+platforms = [{ platform = "linux-64", glibc = "2.38" }]
+
+[dependencies]
+python = "3.12.*"
+numpy = "*"
+py-opencv = ">=4.13,<5"
+pillow = "*"
+rerun-sdk = ">=0.24,<0.25"
+ros-jazzy-ros-base = "*"
+ros-jazzy-rclcpp-components = "*"
+ros-jazzy-sensor-msgs-py = "*"
+ros-jazzy-vision-msgs = "*"
+
+# New isaac-forge packages used by the actual pipeline:
+# Image -> CUDA/NITROS tensor -> TensorRT -> YOLOv8 decoder -> Detection2DArray.
+ros-jazzy-isaac-ros-dnn-image-encoder = "4.5.*"
+ros-jazzy-isaac-ros-tensor-rt = "4.5.*"
+ros-jazzy-isaac-ros-yolov8 = "4.5.*"
+
+[tasks.check]
+description = "Show that Pixi resolved the Isaac ROS packages from isaac-forge"
+cmd = "ros2 pkg prefix isaac_ros_yolov8 && ros2 pkg prefix isaac_ros_tensor_rt && ros2 component types | grep -E 'TensorRTNode|YoloV8DecoderNode'"
+
+[tasks.demo]
+description = "Run real YOLOv8n inference on a sample image and visualize it in Rerun"
+cmd = "python yolo_demo.py"
+
+[tasks.video]
+description = "Stream a webcam or video through YOLOv8 and visualize it live in Rerun"
+cmd = "python yolo_video.py"

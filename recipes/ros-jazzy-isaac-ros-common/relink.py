@@ -22,7 +22,9 @@ PREFIX = os.path.realpath(sys.argv[1])
 
 # Absolute prefixes that should collapse onto $PREFIX/lib.
 TO_LIB = ("/usr/local/cuda/lib64", "/usr/local/cuda/targets/x86_64-linux/lib",
-          "/usr/lib/x86_64-linux-gnu", "/usr/lib64", "/usr/lib", "/lib64")
+          "/usr/local/cuda/targets/aarch64-linux/lib", "/usr/lib/x86_64-linux-gnu",
+          "/usr/lib/aarch64-linux-gnu/nvidia", "/usr/lib/aarch64-linux-gnu",
+          "/usr/lib64", "/usr/lib", "/lib64")
 ROS_ROOT = "/opt/ros/jazzy"
 
 

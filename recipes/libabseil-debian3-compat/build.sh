@@ -6,8 +6,11 @@ STAGE="${SRC_DIR}/_stage"
 mkdir -p "${STAGE}" "${PREFIX}/lib"
 bsdtar -xOf "${SRC_DIR}/libabsl.deb" 'data.tar*' | bsdtar -xf - -C "${STAGE}"
 
-MULTIARCH="${STAGE}/usr/lib/x86_64-linux-gnu"
-[ -d "${MULTIARCH}" ] || { echo "expected ${MULTIARCH} -- deb layout changed" >&2; exit 1; }
+MULTIARCH=""
+for candidate in "${STAGE}"/usr/lib/*-linux-gnu; do
+  if [ -d "${candidate}" ]; then MULTIARCH="${candidate}"; break; fi
+done
+[ -n "${MULTIARCH}" ] || { echo "deb has no multiarch library directory" >&2; exit 1; }
 
 # Only libabsl_*.so.20220623*. No unversioned .so, no headers, no .a: this package is for
 # loading, never for linking against. Anything that compiles should use conda-forge's
@@ -61,7 +64,7 @@ for so in "${PREFIX}"/lib/libabsl_*.so.20220623.*; do
   [ -f "${so}" ] && [ ! -L "${so}" ] || continue
   while read -r need; do
     case "${need}" in
-      libabsl_*.so.20220623|ld-linux-x86-64.so.2|libc.so.6|libm.so.6|libgcc_s.so.1|libstdc++.so.6) ;;
+      libabsl_*.so.20220623|ld-linux-x86-64.so.2|ld-linux-aarch64.so.1|libc.so.6|libm.so.6|libgcc_s.so.1|libstdc++.so.6) ;;
       "") ;;
       *) echo "unexpected DT_NEEDED ${need} in $(basename "${so}")" >&2; exit 1 ;;
     esac

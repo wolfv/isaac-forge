@@ -575,12 +575,16 @@ useful for rendering and dependency audits, not end-to-end validation. The outpu
 The release workflow also builds and tests on GitHub's native `ubuntu-24.04-arm` runner and uploads
 passing ARM64 artifacts to the same `isaac-forge` prefix.dev channel.
 
-The remaining hard blocker is the proprietary binary floor. Recipes whose checked-in source is
-an `_amd64.deb` now explicitly skip ARM64 rather than accidentally publishing x86 ELF files as an
-ARM package. Those recipes need ARM blobs from the upstream git-lfs trees or Jetson repositories.
-RoboStack Jazzy's ARM64 dependency coverage must also be measured on the first native build. In
-other words, the scaffolding and first foundational package are ready, but the complete 224-recipe
-set is not yet claimed to build on Jetson.
+The proprietary binary floor is now architecture-aware: VPI, TensorRT, the Debian-abseil ABI shim,
+GXF core, all 16 GXF extensions, cuVSLAM, cuAprilTags and cuMotion select pinned ARM64 payloads.
+The git-lfs objects are fetched from upstream's media endpoint and independently SHA256-pinned;
+GitHub's 132-byte LFS pointer files are never packaged.
+
+Two vendor-only packages still have no public JetPack 7 payload that can be built on a generic ARM
+runner: `nvv4l2` (the libraries are part of the Jetson system image) and the closed
+`isaac_ros_visual_mapping` tools. Their amd64 recipes remain explicitly skipped on ARM rather than
+mislabeling x86 ELF files. The rest of the stack can build and publish while those optional branches
+remain unavailable, and CI records any downstream packages they block.
 
 To override the default GPU list for a particular Jetson, export `CUDA_ARCHITECTURES` before the
 build (for example `CUDA_ARCHITECTURES=87` for an Orin-only build).

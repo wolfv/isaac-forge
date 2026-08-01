@@ -15,8 +15,16 @@ for deb in libnvinfer10 libnvinfer-plugin10 libnvonnxparsers10 \
   bsdtar -xOf "${SRC_DIR}/${deb}.deb" 'data.*' | bsdtar -xf - -C "${STAGE}"
 done
 
-DEBLIB="${STAGE}/usr/lib/x86_64-linux-gnu"
-DEBINC="${STAGE}/usr/include/x86_64-linux-gnu"
+DEBLIB=""
+for candidate in "${STAGE}"/usr/lib/*-linux-gnu; do
+  if [ -d "${candidate}" ]; then DEBLIB="${candidate}"; break; fi
+done
+DEBINC=""
+for candidate in "${STAGE}"/usr/include/*-linux-gnu; do
+  if [ -d "${candidate}" ]; then DEBINC="${candidate}"; break; fi
+done
+[ -n "${DEBLIB}" ] || { echo "TensorRT deb has no multiarch library directory"; exit 1; }
+[ -n "${DEBINC}" ] || { echo "TensorRT deb has no multiarch include directory"; exit 1; }
 
 # Shared objects and their soname symlinks, copied with -a so the symlinks stay symlinks
 # rather than becoming six more copies of a 1.3 GB file.

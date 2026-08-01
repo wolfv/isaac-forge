@@ -35,7 +35,9 @@ schema_version: 1
 context:
   version: "4.5.0"
   tag: v4.5-0
-  deb: https://isaac.download.nvidia.com/isaac-ros/release-4/pool/main/r/ros-jazzy-isaac-ros-nitros/ros-jazzy-isaac-ros-nitros_4.5.0-0noble.20260706155832051_amd64.deb
+  cuvslam_dir: ${{ "lib_aarch64_jetpack70" if target_platform == "linux-aarch64" else "lib_x86_64_cuda_13_0" }}
+  cuapriltags_dir: ${{ "lib_aarch64_jetpack61" if target_platform == "linux-aarch64" else "lib_x86_64_cuda_12_6" }}
+  cumotion_dir: ${{ "aarch64_jetpack70" if target_platform == "linux-aarch64" else "x86_64_cuda_13_0" }}
 
 package:
   name: ros-jazzy-isaac-ros-nitros
@@ -45,15 +47,26 @@ source:
   - url: https://github.com/NVIDIA-ISAAC-ROS/isaac_ros_nitros/archive/refs/tags/${{ tag }}.tar.gz
     sha256: a8814fd02843a1098d00173671f03115b3b3575aabb078be371a7f977ad1e5c2
     target_directory: src
-  # Only for the git-lfs blobs the tarball cannot carry.
-  - url: ${{ deb }}
-    file_name: nitros.deb
-    sha256: 404eea642a9af0443e527f0442fa67c9c062d733f460f7979c5b16ca046b3723
+  # Resolve only the four git-lfs objects CMake installs. Each URL returns the real
+  # object rather than GitHub's pointer, and each architecture has its own pinned hash.
+  - url: https://media.githubusercontent.com/media/NVIDIA-ISAAC-ROS/isaac_ros_nitros/${{ tag }}/isaac_ros_nitros/lib/cuvslam/${{ cuvslam_dir }}/libcuvslam.so
+    file_name: libcuvslam.so
+    target_directory: blobs/cuvslam
+    sha256: ${{ "0f3c18f0da00ba9a5f3ad833c560b7132f8f71a9dfcff01f134ce5b7a6f83d02" if target_platform == "linux-aarch64" else "d870759dc6d78b9fe55dbb842cac3b6cd6d804bde04dd8b546b5f2c466834f5e" }}
+  - url: https://media.githubusercontent.com/media/NVIDIA-ISAAC-ROS/isaac_ros_nitros/${{ tag }}/isaac_ros_nitros/lib/cuvslam/${{ cuvslam_dir }}/cuvslam_api_launcher
+    file_name: cuvslam_api_launcher
+    target_directory: blobs/cuvslam
+    sha256: ${{ "c8b7bcb74c3da5adc69fdadf511b1096ccb1828e5fc5c78e308f977be837a630" if target_platform == "linux-aarch64" else "809717836ad7281cf5682f17c813c6418cc944a638072d43baad0f50d8bd7ecb" }}
+  - url: https://media.githubusercontent.com/media/NVIDIA-ISAAC-ROS/isaac_ros_nitros/${{ tag }}/isaac_ros_nitros/lib/cuapriltags/${{ cuapriltags_dir }}/libcuapriltags.a
+    file_name: libcuapriltags.a
+    target_directory: blobs/cuapriltags
+    sha256: ${{ "e67298e8ee52d6253cd702f4c55b3727bea177f57236aa23797bde50d74dfc24" if target_platform == "linux-aarch64" else "a7f32f58782de61dd23e507fe6ce5a907379498deec505669fe339ecd4facba7" }}
+  - url: https://media.githubusercontent.com/media/NVIDIA-ISAAC-ROS/isaac_ros_nitros/${{ tag }}/isaac_ros_nitros/lib/cumotion/${{ cumotion_dir }}/lib/libcumotion.so.1.1.0
+    file_name: libcumotion.so.1.1.0
+    target_directory: blobs/cumotion
+    sha256: ${{ "6977efcb757839a3d992c368d8bb9ef12c4ee728469b567ae3baa26d89717c76" if target_platform == "linux-aarch64" else "fe13f8b2c1b6d908a72f087041a2385a1b4c2157323623bdf3e905f2852c9a2c" }}
 
 build:
-  # The checked-in vendor payload is amd64. Do not mislabel it as an ARM package.
-  # Replace this with the corresponding ARM blob/source before enabling on Jetson.
-  skip: target_platform == "linux-aarch64"
   number: 0
   script: build.sh
   dynamic_linking:
@@ -73,7 +86,6 @@ requirements:
     - cmake
     - ninja
     - pkg-config
-    - libarchive          # bsdtar, to lift the blobs out of the deb
   host:
     - python
     - pyyaml

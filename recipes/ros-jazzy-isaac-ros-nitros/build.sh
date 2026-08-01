@@ -1,48 +1,30 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-# Fill in the git-lfs pointers from the official deb.
-#
-# The tarball carries 132-byte LFS pointer files where the vendored SDK binaries
-# belong. Replace each pointer *in place* with the real file of the same name from the
-# deb payload -- do not restructure the directories. The source tree keeps per-platform
-# subdirectories (lib_x86_64_cuda_12_6, lib_x86_64_cuda_13_0, ...) and CMake's install
-# rules reference those exact paths, whereas the deb ships a single already-resolved
-# copy. Overlaying the deb layout wholesale makes `cmake --install` fail looking for
-# lib_x86_64_cuda_12_6/libcuapriltags.a.
-STAGE="${SRC_DIR}/_deb"
-mkdir -p "${STAGE}"
-bsdtar -xOf "${SRC_DIR}/nitros.deb" 'data.tar*' | bsdtar -xf - -C "${STAGE}"
-
-filled=0
-unfilled=0
-while IFS= read -r ptr; do
-  base="$(basename "${ptr}")"
-  real="$(find "${STAGE}" -type f -name "${base}" ! -size -1k | head -1)"
-  if [ -z "${real}" ]; then
-    # Not everything vendored in the repo is shipped in the deb -- the cuMotion
-    # python_wheels are an example. Warn rather than fail: if the missing file is
-    # actually needed, `cmake --install` says so, and check_blobs.sh independently
-    # asserts that the blobs which matter are real ELF rather than pointers.
-    echo "WARN no deb replacement for ${ptr#"${SRC_DIR}"/src/isaac_ros_nitros/}"
-    unfilled=$((unfilled + 1))
-    continue
+# Replace the selected architecture's git-lfs pointers with the independently
+# SHA256-verified objects fetched by the recipe.
+case "${target_platform:-$(uname -m)}" in
+  linux-aarch64|aarch64)
+    CUVSLAM_DIR=lib_aarch64_jetpack70
+    CUAPRILTAGS_DIR=lib_aarch64_jetpack61
+    CUMOTION_DIR=aarch64_jetpack70
+    ;;
+  *)
+    CUVSLAM_DIR=lib_x86_64_cuda_13_0
+    CUAPRILTAGS_DIR=lib_x86_64_cuda_12_6
+    CUMOTION_DIR=x86_64_cuda_13_0
+    ;;
+esac
+NITROS_SRC="${SRC_DIR}/src/isaac_ros_nitros"
+cp -f "${SRC_DIR}/blobs/cuvslam/libcuvslam.so" "${NITROS_SRC}/lib/cuvslam/${CUVSLAM_DIR}/libcuvslam.so"
+cp -f "${SRC_DIR}/blobs/cuvslam/cuvslam_api_launcher" "${NITROS_SRC}/lib/cuvslam/${CUVSLAM_DIR}/cuvslam_api_launcher"
+cp -f "${SRC_DIR}/blobs/cuapriltags/libcuapriltags.a" "${NITROS_SRC}/lib/cuapriltags/${CUAPRILTAGS_DIR}/libcuapriltags.a"
+cp -f "${SRC_DIR}/blobs/cumotion/libcumotion.so.1.1.0" "${NITROS_SRC}/lib/cumotion/${CUMOTION_DIR}/lib/libcumotion.so.1.1.0"
+for blob in   "${NITROS_SRC}/lib/cuvslam/${CUVSLAM_DIR}/libcuvslam.so"   "${NITROS_SRC}/lib/cuvslam/${CUVSLAM_DIR}/cuvslam_api_launcher"   "${NITROS_SRC}/lib/cuapriltags/${CUAPRILTAGS_DIR}/libcuapriltags.a"   "${NITROS_SRC}/lib/cumotion/${CUMOTION_DIR}/lib/libcumotion.so.1.1.0"; do
+  if grep -q --binary-files=text 'git-lfs.github.com/spec' "${blob}"; then
+    echo "LFS pointer survived overlay: ${blob}" >&2; exit 1
   fi
-  cp -f "${real}" "${ptr}"
-  echo "filled $(printf '%-58s' "${ptr#"${SRC_DIR}"/src/isaac_ros_nitros/}") $(stat -c%s "${ptr}") bytes"
-  filled=$((filled + 1))
-# Scope: only this package's vendored SDK directory, and only this architecture.
-# The tarball also contains the sibling isaac_ros_gxf package and aarch64 variants of
-# everything, which an amd64 deb cannot supply and which we do not build here.
-done < <(grep -rl --binary-files=text 'git-lfs.github.com/spec' \
-           "${SRC_DIR}/src/isaac_ros_nitros/lib" 2>/dev/null |
-         grep -v aarch64 || true)
-
-if [ "${filled}" -eq 0 ]; then
-  echo "no LFS pointers found -- upstream may ship real content now, verify before trusting" >&2
-  exit 1
-fi
-echo "filled ${filled} git-lfs pointer(s) from the deb (${unfilled} left unfilled)"
+done
 
 cd src/isaac_ros_nitros
 
@@ -117,5 +99,3 @@ fi
 sed -i 's/find_dependency(Eigen3 3\.3)/find_dependency(Eigen3)  # version floor removed, see isaac-forge ISSUES.md #13/' \
   "${CUMOTION_CONFIG}"
 echo "patched cumotionConfig.cmake: find_dependency(Eigen3 3.3) -> find_dependency(Eigen3)"
-
-rm -rf "${STAGE}"

@@ -1,6 +1,6 @@
 # isaac-forge
 
-Packaging **Isaac ROS 4.5.0** (252 ROS 2 packages) on top of the **RoboStack** conda ecosystem,
+Packaging **Isaac ROS 4.5.0** (253 source-visible ROS packages) on top of the **RoboStack** conda ecosystem,
 using rattler-build recipes and pixi.
 
 [`ISSUES.md`](ISSUES.md) collects the upstream findings worth raising with NVIDIA;
@@ -21,7 +21,7 @@ machine-readable per-package inventory.
 
 **Done**
 
-- Full dependency, license and blocker analysis of all 35 repos / 252 packages (`FINDINGS.md`).
+- Full dependency, license and blocker analysis of 36 repos / 253 source-visible packages (`FINDINGS.md`), including the separately documented `sensor_mounting_rig` repository.
 - `recipes/vpi` — VPI 4.0.5 repacked from NVIDIA's Jetson apt repo. Builds clean, all tests pass
   including a real `find_package(vpi)` configure check. The shipped `libnvvpi.so.4.0.5` is verified
   byte-identical to NVIDIA's.
@@ -91,9 +91,10 @@ machine-readable per-package inventory.
   cd manip && pixi run check && pixi run ik
   ```
 
-  Only `bringup` and `asset_bringup` are out of reach, both for the same reason: their
-  closure is the whole DNN + nvblox stack (TensorRT, Triton, FoundationPose, ESS, RT-DETR,
-  SegmentAnything).
+  The stack is now complete: `isaac_ros_manipulation_asset_bringup` and
+  `isaac_ros_manipulation_bringup` are packaged too. Their reference graph resolves across
+  the whole DNN + nvblox stack. Both packaged inference backends, TensorRT and Triton, now
+  resolve in the reference graph.
 
   Two open-source ROS packages had to be built to get here, and neither is NVIDIA's:
   `topic_based_ros2_control` (declared by both robot-description packages but **never
@@ -376,7 +377,7 @@ replace a source recipe with a repack.
   path** when an engine cannot be built; and `export_extractor_engine` writes into the model
   directory as well as `--output_model_dir`, so it fails on a read-only install.
 
-- **82 more recipes in one pass — 202 of the 252 inventoried packages now have one**, up
+- **82 more recipes in one pass — subsequently extended to 212 of the 253 inventoried packages**, up
   from about 120. Three commits, each a batch whose dependencies the one before it supplied:
 
   | | |
@@ -428,12 +429,14 @@ replace a source recipe with a repack.
   Credit where due: its CMakeLists says "Ensure the IsaacTeleop submodule is initialized",
   which is far better than nvblox's failure. `ISSUES.md` #27.
 
-  **The remaining 50 are fully accounted for**, and most are not ours to fix: 23 blocked by
-  the tagging gap (`ISSUES.md` #23), 12 are ROS 1, 4 are the Triton `<depend>` benchmarks, 2
-  are `ISSUES.md` #26, and 9 are singletons each with a named reason — `isaac_ros_triton`
-  (#21), `unitree_g1_bridge` (needs the Unitree SDK), `isaac_ros_jetson_stats` (needs `jtop`,
-  which conda-forge has no package for — the one genuinely missing dependency in the whole
-  pass).
+  **The remaining 41 are fully accounted for**: 23 are blocked by the tagging gap
+  (`ISSUES.md` #23), 12 are ROS 1, 2 are `ISSUES.md` #26, and 4 have individual reasons:
+  `isaac_ros_jetson_stats` (`jtop`), the ARM64-only `isaac_ros_sipl_camera`, and the two
+  dataset/test packages `isaac_ros_r2b_galileo` and `nvblox_test`.
+
+  **The Unitree G1 bridge is complete.** `ros-jazzy-unitree-api` builds the public BSD ROS
+  interfaces from a pinned `unitreerobotics/unitree_ros2` commit; the Python bridge imports
+  those generated messages and no native Unitree SDK is required.
 
 **Next**
 
@@ -481,10 +484,9 @@ replace a source recipe with a repack.
 - A cuMotion *trajectory* against ground reference, the way `slam/` does for cuVSLAM.
   `manip/fk_check.py` verifies an IK solution to 0.000 mm, which covers kinematics; it says
   nothing about whether a planned trajectory is smooth, collision-free or time-optimal.
-- **`isaac_ros_manipulation_bringup` and `_asset_bringup`** are the last two manipulation
-  packages, and the only DNN-adjacent ones still without a recipe. Their closure is the whole
-  DNN + nvblox stack; most of it now exists, so this is a matter of working through what the
-  bringup graphs actually require rather than waiting on a blocker.
+- Validate the complete manipulation bringup graph on hardware. Both bringup packages now
+  build, solve and pass their package tests; end-to-end execution still needs the robot,
+  cameras and model assets selected by the launch configuration.
 - **Build and test the 82 recipes added today.** They are generated and their dependencies
   are validated against the channels — every external dep exists and the whole set co-solves
   — but none has been compiled. `output/` was lost between sessions and is being rebuilt from
@@ -522,11 +524,13 @@ Two decisions, both recorded in the recipe:
 The 1.3 GB `libnvinfer_builder_resource.so` is dlopen'd rather than linked, so no file list
 or ELF check covers it; building a real engine in `detect/check.py` is what does.
 
-**Triton is not packaged, and that one is upstream's to unblock** — `isaac_ros_triton`
-defaults x86_64 to a tarball on `artifactory.pdx.nvidia.com`, an internal host that does not
-resolve, and there is no public x86_64 Triton server tarball to point at instead. See
-`ISSUES.md` #21. It is the alternative backend for `isaac_ros_centerpose` alone, which also
-ships a TensorRT launch file, so nothing in the stack is unreachable for want of it.
+**Triton is packaged.** `recipes/triton-server` builds the 2.60 C server API from public
+source against the RoboStack-compatible protobuf/Abseil stack. `isaac_ros_triton` is patched
+to consume its exported `TritonCore::triton-core-serverstub` target instead of downloading
+the nonexistent public x86_64 tarball from NVIDIA's internal artifactory. The ROS component
+dlopens cleanly; a C-API smoke test creates a GPU-enabled server and reports it live; and the
+four formerly blocked Triton-dependent benchmarks now build and test. `ISSUES.md` #21 remains
+an upstream distribution bug, but no longer blocks this channel.
 
 #### The original analysis, for context
 
@@ -545,7 +549,7 @@ It blocks less than `packages.json` suggests. That inventory propagates a `tenso
 to every package whose manifest names `isaac_ros_tensor_rt`, and a manifest naming it is not
 the same as code calling it — `pose/` built all five pose-estimation packages without it, two
 of them only needing a `<depend>` → `<exec_depend>` correction (`ISSUES.md` #18). The blocker
-is real for `isaac_ros_tensor_rt` and `isaac_ros_triton` themselves, and for any *pipeline*
+was real for `isaac_ros_tensor_rt` and `isaac_ros_triton` themselves, and for any *pipeline*
 that has to actually run inference. It is worth re-testing rather than assuming for the rest
 of the DNN packages: the question to ask each one is whether it includes a TensorRT header,
 not whether it lists one.
@@ -555,8 +559,8 @@ not whether it lists one.
 Three layers, because only the middle one can be a normal RoboStack contribution.
 
 **Layer 0 — vendored NVIDIA binaries** (`recipes/`, rattler-build).
-`vpi`, `tensorrt`, `triton-server`, and the GXF extensions NVIDIA ships only as debs. These have no
-ROS linkage, so repacking prebuilt binaries is sound.
+`vpi`, `tensorrt`, and the GXF extensions NVIDIA ships only as debs. These have no ROS
+linkage, so repacking prebuilt binaries is sound. `triton-server` is built from public source.
 
 `recipes/vpi` is hand-written and installs `libnvvpi.so` untouched (verified byte-identical), using
 an activation script for the loader path. The generated repacks instead rewrite RUNPATHs to
@@ -567,7 +571,7 @@ an activation script for the loader path. The generated repacks instead rewrite 
 The ~8 genuinely missing open-source ROS packages (`negotiated`, `hesai_ros_driver`,
 `topic_based_ros2_control`, …). These belong upstream in RoboStack, not here.
 
-**Layer 2 — the 252 Isaac ROS packages.** Either route works:
+**Layer 2 — the 253 source-visible Isaac ROS packages.** Either route works:
 
 - **Repack the debs.** Cheapest, and gives the exact binaries NVIDIA tested. Verified to link
   cleanly against RoboStack: ROS 2 sonames are unversioned and match, and
@@ -582,7 +586,7 @@ Apache-2.0 layer on top. See `FINDINGS.md` §5 for the measurements.
 
 ### A fully-from-source build is not achievable
 
-Source *is* published for all 252 ROS packages and for GXF core (395 `.cpp`, and 15 of its 16
+Source *is* published for all 253 inventoried ROS packages and for GXF core (395 `.cpp`, and 15 of its 16
 third-party deps have `if(X_DIR OR X_ROOT)` escape hatches so conda-forge can satisfy them without
 patching). But there is a hard binary floor with no source anywhere:
 

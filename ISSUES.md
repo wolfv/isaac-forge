@@ -891,10 +891,14 @@ way, with the asset name matching its script's basename; the generated build scr
 that text is present before rewriting, so a change in shape upstream fails the build loudly
 instead of quietly restoring the download.
 
-## 21. `isaac_ros_triton` cannot be built on x86_64 outside NVIDIA
+## 21. `isaac_ros_triton` cannot use its upstream x86_64 binary outside NVIDIA
 
-**Severity:** blocks `isaac_ros_triton` completely on x86_64 — not "needs a workaround",
-blocks it, because the artifact it needs is not published anywhere public. The CMake is
+**Downstream status:** resolved here by building Triton Core 2.60 from public source
+(`recipes/triton-server`) and patching `isaac_ros_triton` to consume the exported CMake
+target. The upstream default remains broken and should still be fixed.
+
+**Original severity:** blocked `isaac_ros_triton` completely on x86_64 because the artifact
+it requests is not published anywhere public. The CMake is
 Apache-2.0 and the fix is a one-line URL change, but only NVIDIA can supply the artifact
 that URL should point at.
 

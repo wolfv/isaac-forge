@@ -33,6 +33,7 @@ REPOS=(
   isaac_ros_physical_ai isaac_ros_learned_policies isaac_ros_teleop
   isaac_ros_robots isaac_ros_jetson isaac_ros_cloud_control
   isaac_ros_sipl_camera isaac_ros_nitros_bridge isaac_ros_noetic_interfaces
+  sensor_mounting_rig
 )
 
 mkdir -p "${SRC}"

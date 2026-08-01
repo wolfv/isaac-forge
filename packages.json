@@ -1107,8 +1107,7 @@
    "isaac_ros_vpi_utils"
   ],
   "blockers": [
-   "needs_new_ros_pkg",
-   "triton"
+   "needs_new_ros_pkg"
   ],
   "proprietary": false,
   "closure_proprietary": true
@@ -1170,8 +1169,7 @@
    "ros2_benchmark_interfaces"
   ],
   "blockers": [
-   "needs_new_ros_pkg",
-   "triton"
+   "needs_new_ros_pkg"
   ],
   "proprietary": true,
   "closure_proprietary": true
@@ -1792,9 +1790,7 @@
    "isaac_ros_tensor_list_interfaces",
    "isaac_ros_triton"
   ],
-  "blockers": [
-   "triton"
-  ],
+  "blockers": [],
   "proprietary": false,
   "closure_proprietary": true
  },
@@ -1829,9 +1825,7 @@
    "isaac_ros_tensor_list_interfaces",
    "isaac_ros_triton"
   ],
-  "blockers": [
-   "triton"
-  ],
+  "blockers": [],
   "proprietary": false,
   "closure_proprietary": true
  },
@@ -1877,9 +1871,7 @@
    "isaac_ros_tensor_list_interfaces",
    "isaac_ros_triton"
   ],
-  "blockers": [
-   "triton"
-  ],
+  "blockers": [],
   "proprietary": false,
   "closure_proprietary": true
  },
@@ -1949,9 +1941,7 @@
    "isaac_ros_tensor_list_interfaces",
    "isaac_ros_triton"
   ],
-  "blockers": [
-   "triton"
-  ],
+  "blockers": [],
   "proprietary": false,
   "closure_proprietary": true
  },
@@ -2106,9 +2096,7 @@
    "ros2_benchmark",
    "ros2_benchmark_interfaces"
   ],
-  "blockers": [
-   "triton"
-  ],
+  "blockers": [],
   "proprietary": true,
   "closure_proprietary": true
  },
@@ -3908,8 +3896,7 @@
    "isaac_ros_vpi_utils"
   ],
   "blockers": [
-   "needs_new_ros_pkg",
-   "triton"
+   "needs_new_ros_pkg"
   ],
   "proprietary": false,
   "closure_proprietary": true
@@ -4068,8 +4055,7 @@
    "semantic_label_conversion"
   ],
   "blockers": [
-   "needs_new_ros_pkg",
-   "triton"
+   "needs_new_ros_pkg"
   ],
   "proprietary": false,
   "closure_proprietary": true
@@ -5897,8 +5883,7 @@
    "semantic_label_conversion"
   ],
   "blockers": [
-   "needs_new_ros_pkg",
-   "triton"
+   "needs_new_ros_pkg"
   ],
   "proprietary": false,
   "closure_proprietary": true
@@ -6157,8 +6142,7 @@
    "isaac_ros_vpi_utils"
   ],
   "blockers": [
-   "needs_new_ros_pkg",
-   "triton"
+   "needs_new_ros_pkg"
   ],
   "proprietary": false,
   "closure_proprietary": true
@@ -6361,8 +6345,7 @@
    "ros2_benchmark_interfaces"
   ],
   "blockers": [
-   "needs_new_ros_pkg",
-   "triton"
+   "needs_new_ros_pkg"
   ],
   "proprietary": true,
   "closure_proprietary": true
@@ -6696,8 +6679,7 @@
    "isaac_ros_vpi_utils"
   ],
   "blockers": [
-   "needs_new_ros_pkg",
-   "triton"
+   "needs_new_ros_pkg"
   ],
   "proprietary": false,
   "closure_proprietary": true
@@ -6761,8 +6743,7 @@
    "ros2_benchmark_interfaces"
   ],
   "blockers": [
-   "needs_new_ros_pkg",
-   "triton"
+   "needs_new_ros_pkg"
   ],
   "proprietary": true,
   "closure_proprietary": true
@@ -6824,9 +6805,7 @@
    "isaac_ros_triton",
    "isaac_ros_vpi_utils"
   ],
-  "blockers": [
-   "triton"
-  ],
+  "blockers": [],
   "proprietary": false,
   "closure_proprietary": true
  },
@@ -6883,9 +6862,7 @@
    "isaac_ros_triton",
    "isaac_ros_vpi_utils"
   ],
-  "blockers": [
-   "triton"
-  ],
+  "blockers": [],
   "proprietary": false,
   "closure_proprietary": true
  },
@@ -6949,9 +6926,7 @@
    "ros2_benchmark",
    "ros2_benchmark_interfaces"
   ],
-  "blockers": [
-   "triton"
-  ],
+  "blockers": [],
   "proprietary": false,
   "closure_proprietary": true
  },
@@ -7035,9 +7010,7 @@
    "ros2_benchmark",
    "ros2_benchmark_interfaces"
   ],
-  "blockers": [
-   "triton"
-  ],
+  "blockers": [],
   "proprietary": true,
   "closure_proprietary": true
  },
@@ -7493,9 +7466,7 @@
    "isaac_ros_nitros_tensor_list_type",
    "isaac_ros_tensor_list_interfaces"
   ],
-  "blockers": [
-   "triton"
-  ],
+  "blockers": [],
   "proprietary": false,
   "closure_proprietary": true
  },
@@ -7552,9 +7523,7 @@
    "ros2_benchmark",
    "ros2_benchmark_interfaces"
   ],
-  "blockers": [
-   "triton"
-  ],
+  "blockers": [],
   "proprietary": true,
   "closure_proprietary": true
  },
@@ -7603,8 +7572,7 @@
    "isaac_ros_vpi_utils"
   ],
   "blockers": [
-   "needs_new_ros_pkg",
-   "triton"
+   "needs_new_ros_pkg"
   ],
   "proprietary": false,
   "closure_proprietary": true
@@ -7667,8 +7635,7 @@
    "ros2_benchmark_interfaces"
   ],
   "blockers": [
-   "needs_new_ros_pkg",
-   "triton"
+   "needs_new_ros_pkg"
   ],
   "proprietary": true,
   "closure_proprietary": true
@@ -7734,9 +7701,7 @@
    "unitree_g1_description",
    "unitree_g1_ros2_control"
   ],
-  "blockers": [
-   "triton"
-  ],
+  "blockers": [],
   "proprietary": false,
   "closure_proprietary": true
  },
@@ -7834,9 +7799,7 @@
    "unitree_g1_description",
    "unitree_g1_ros2_control"
   ],
-  "blockers": [
-   "triton"
-  ],
+  "blockers": [],
   "proprietary": false,
   "closure_proprietary": true
  },
@@ -8387,8 +8350,7 @@
    "semantic_label_conversion"
   ],
   "blockers": [
-   "needs_new_ros_pkg",
-   "triton"
+   "needs_new_ros_pkg"
   ],
   "proprietary": false,
   "closure_proprietary": true
@@ -8690,8 +8652,7 @@
    "semantic_label_conversion"
   ],
   "blockers": [
-   "needs_new_ros_pkg",
-   "triton"
+   "needs_new_ros_pkg"
   ],
   "proprietary": false,
   "closure_proprietary": true
@@ -8898,6 +8859,29 @@
   "closure_proprietary": true
  },
  {
+  "name": "thor_devkit_realsense_rig_description",
+  "repo": "sensor_mounting_rig",
+  "path": "sensor_mounting_rig/thor_devkit_realsense_rig_description",
+  "license": "Apache-2.0",
+  "version": "4.5.0",
+  "direct_deps": [
+   "ament_cmake",
+   "isaac_ros_common",
+   "isaac_ros_launch_utils",
+   "launch",
+   "launch_ros",
+   "robot_state_publisher"
+  ],
+  "conditional_deps": [],
+  "internal_closure": [
+   "isaac_ros_common",
+   "isaac_ros_launch_utils"
+  ],
+  "blockers": [],
+  "proprietary": false,
+  "closure_proprietary": true
+ },
+ {
   "name": "unitree_g1_bridge",
   "repo": "isaac_ros_robots",
   "path": "isaac_ros_robots/unitree_g1/unitree_g1_bridge",
@@ -8913,9 +8897,7 @@
   ],
   "conditional_deps": [],
   "internal_closure": [],
-  "blockers": [
-   "needs_new_ros_pkg"
-  ],
+  "blockers": [],
   "proprietary": false,
   "closure_proprietary": false
  },
@@ -8976,9 +8958,7 @@
    "unitree_g1_description",
    "unitree_g1_ros2_control"
   ],
-  "blockers": [
-   "triton"
-  ],
+  "blockers": [],
   "proprietary": false,
   "closure_proprietary": true
  },

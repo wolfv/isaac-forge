@@ -35,10 +35,6 @@ DEP_TAG = re.compile(
 # label at all: it stops anyone from trying. Both entries in RESOLVED were labels of that
 # kind for months.
 BLOCKERS = {
-    # No public x86_64 tarball exists and the CMake default points at NVIDIA's internal
-    # artifactory, which does not resolve. ISSUES.md #21 -- the one dependency in the
-    # corpus that is genuinely stuck on someone else.
-    "triton": {"triton-server"},
     # Out of scope rather than missing: these are ROS 1, from isaac_ros_noetic_interfaces.
     "ros1": {"roscpp", "rospy", "catkin", "message_generation", "message_runtime", "nodelet"},
 }
@@ -49,6 +45,9 @@ BLOCKERS = {
 RESOLVED = {
     "vpi": {"libnvvpi4", "vpi4-dev"},            # recipes/vpi -- was under 219 packages
     "tensorrt": {"tensorrt"},                    # recipes/tensorrt -- was under 37
+    # recipes/triton-server builds the public C API from source; isaac_ros_triton uses
+    # its exported target instead of NVIDIA's unreachable private x86_64 tarball.
+    "triton": {"triton-server"},                 # was under 27 packages
 }
 
 # GXF extensions NVIDIA ships only as prebuilt debs -- no source in any repo. This is a
@@ -77,6 +76,7 @@ CLOSED_GXF = {
 #   robotiq_controllers                   released into robostack-jazzy 2026-07-30
 #   rosidl_generator_dds_idl              released into robostack-jazzy 2026-07-30
 #   vision_msgs_rviz_plugins              released into robostack-jazzy 2026-07-30
+#   unitree_api                            built here from unitreerobotics/unitree_ros2
 #   cvcuda0-dev                           conda-forge libcvcuda-dev
 #
 # Note the two rviz/dds additions freed no packages on their own: everything naming them
@@ -86,7 +86,6 @@ MISSING_ROS = {
     # Hardware drivers with no jazzy release anywhere.
     "hesai_ros_driver",
     "sllidar_ros2",
-    "unitree_api",
     # NVIDIA's, and not published as source we can reach.
     "isaac-ros-cli",
     "isaac_ros_bi3d_interfaces",
@@ -211,7 +210,7 @@ def main() -> None:
         print(f"  {n:4d}  {', '.join(keys)}")
 
     print("\ntransitive reach of each blocker:")
-    for key in ("vpi", "needs_new_ros_pkg", "tensorrt", "ros1", "triton", "closed_gxf"):
+    for key in ("vpi", "needs_new_ros_pkg", "tensorrt", "triton", "ros1", "closed_gxf"):
         print(f"  {key:20s} {sum(1 for r in rows if key in r['blockers']):4d}")
 
     print(f"\nproprietary packages: {sum(1 for r in rows if r['proprietary'])}")

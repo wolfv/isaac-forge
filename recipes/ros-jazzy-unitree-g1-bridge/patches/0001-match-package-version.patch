@@ -1,0 +1,11 @@
+--- a/unitree_g1/unitree_g1_bridge/setup.py
++++ b/unitree_g1/unitree_g1_bridge/setup.py
+@@ -24,7 +24,7 @@
+ 
+ setup(
+     name=PACKAGE_NAME,
+-    version='4.4.0',
++    version='4.5.0',
+     packages=find_packages(exclude=['test']),
+     data_files=[
+         ('share/ament_index/resource_index/packages',

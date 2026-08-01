@@ -53,6 +53,13 @@ fetch isaac_ros_cloud_control      "$B/isaac_ros_cloud_control/archive/refs/tags
 fetch isaac_ros_data_tools         "$B/isaac_ros_data_tools/archive/refs/tags/v4.5-0.tar.gz"
 fetch isaac_ros_jetson             "$B/isaac_ros_jetson/archive/refs/tags/v4.5-0.tar.gz"
 fetch isaac_ros_examples           "$B/isaac_ros_examples/archive/refs/tags/v4.5-0.tar.gz"
+# Jetson Thor + RealSense mounting-rig URDF, documented separately from the main package
+# list but tagged as part of Isaac ROS 4.5.
+fetch sensor_mounting_rig           "$B/sensor_mounting_rig/archive/refs/tags/v4.5-0.tar.gz"
+# Unitree's public ROS message definitions used by unitree_g1_bridge. No release tags;
+# keep this commit synchronized with REPOS in gen_source.py.
+fetch unitree_ros2 \
+  "https://github.com/unitreerobotics/unitree_ros2/archive/668d1ec5a05d1c38d3306bdca7d59f2ba3581a88.tar.gz"
 fetch negotiated "https://github.com/osrf/negotiated/archive/eac198b55dcd052af5988f0f174902913c5f20e7.tar.gz"
 # Not NVIDIA's, and not in RoboStack: topic_based_ros2_control has no jazzy release at all
 # (ISSUES.md #15), so it is pinned to a commit. robotiq_controllers used to be here too and

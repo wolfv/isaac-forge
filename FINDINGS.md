@@ -8,15 +8,15 @@ conda channel repodata on 2026-07-27. Machine-readable inventory: `packages.json
 
 | | |
 |---|---|
-| Core repos (`NVIDIA-ISAAC-ROS/isaac_ros_*`, `gxf`, `ros2_benchmark`) | 35 |
-| ROS 2 packages (distinct `package.xml` names) | **252** |
+| Inventoried repos (`NVIDIA-ISAAC-ROS/isaac_ros_*`, `gxf`, `ros2_benchmark`, `sensor_mounting_rig`) | 36 |
+| Source-visible packages (distinct `package.xml` names) | **253** |
 | Upstream release | 4.5.0 (coordinated push 2026-07-07) |
 | Target ROS distro | **Jazzy** |
 | Reference platform | Ubuntu 24.04 / CUDA **13.0** / driver 580+ / Ampere or newer |
 | Jetson reference | JetPack 7.1 on Jetson Thor |
 | Upstream distribution | apt debs, `https://isaac.download.nvidia.com/isaac-ros/release-4 noble main` (public, no auth) |
 
-13 of the 252 are ROS 1 packages (`isaac_ros_noetic_interfaces`) — out of scope for a Jazzy stack.
+12 distinct inventoried names are ROS 1 packages (`isaac_ros_noetic_interfaces` and the ROS 1 bridge) — out of scope for a Jazzy stack. The source tree has one additional ROS 1 `nvblox_msgs`, but the inventory deliberately keeps the ROS 2 package with the same name.
 
 ## 2. RoboStack fit: very good
 

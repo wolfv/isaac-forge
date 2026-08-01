@@ -125,6 +125,18 @@ REPOS = {
     "isaac_ros_sipl_camera": dict(
         url="https://github.com/NVIDIA-ISAAC-ROS/isaac_ros_sipl_camera/archive/refs/tags/v4.5-0.tar.gz",
         sha256="539ecf9078080cd27690e0985ce91ad030bbcec9d177c23cd3f000ba301f3620"),
+    # Documented as part of Isaac ROS 4.5, but kept in its own repository rather than
+    # the original 35-repository source inventory. Pure URDF/mesh/launch data.
+    "sensor_mounting_rig": dict(
+        url="https://github.com/NVIDIA-ISAAC-ROS/sensor_mounting_rig/archive/refs/tags/v4.5-0.tar.gz",
+        sha256="56f353f88bc519176ae09a0f73192182d5ce54c75939233a09ff8ac8c9f48b4d"),
+    # Public ROS interfaces used by unitree_g1_bridge. Pin the commit because upstream
+    # publishes no releases and the master branch moves.
+    "unitree_ros2": dict(
+        url="https://github.com/unitreerobotics/unitree_ros2/archive/"
+            "668d1ec5a05d1c38d3306bdca7d59f2ba3581a88.tar.gz",
+        sha256="3e96da843c611878e28148ce113d978e5464dec922fc06dcd8c340f8232a6883",
+        homepage="https://github.com/unitreerobotics/unitree_ros2"),
     # Not NVIDIA's, and not in RoboStack either -- see the note on
     # ros-jazzy-topic-based-ros2-control below. Pinned to a commit because there is no
     # jazzy release to pin to.
@@ -172,9 +184,9 @@ PACKAGES = [
     ("ros-jazzy-isaac-ros-image-proc-benchmark", "isaac_ros_benchmark", "benchmarks/isaac_ros_image_proc_benchmark"),
     # --- the manipulation stack ------------------------------------------------
     # Interfaces it needs from sibling repos, then the manipulation packages
-    # themselves. isaac_ros_manipulation_bringup and _asset_bringup are absent on
-    # purpose: their closure is the entire DNN + nvblox stack, which needs TensorRT
-    # and Triton. See README.md.
+    # themselves. The two bringup packages follow near the end, after their complete
+    # DNN + nvblox closure. Their optional Triton launch path is omitted at runtime;
+    # TensorRT supplies the usable inference backend.
     # topic_based_ros2_control is the ros2_control hardware interface both robot
     # description packages name for their Isaac Sim configuration. It has never been
     # released for jazzy -- rosdistro carries it for humble only, and ros-controls has
@@ -245,8 +257,8 @@ PACKAGES = [
     # isaac_ros_dnn_image_encoder are CV-CUDA tensor plumbing with no inference engine
     # anywhere in their manifests or their CMakeLists, and everything under them
     # (isaac_ros_image_proc, managed_nitros, nitros, the type adapters, libcvcuda) is
-    # already built here. isaac_ros_tensor_rt and isaac_ros_triton are the two that are
-    # genuinely blocked and are absent on purpose.
+    # already built here. The two actual inference nodes follow below, backed by the
+    # packaged TensorRT and source-built Triton C APIs.
     #
     # That distinction is what puts isaac_ros_foundationpose in reach: TensorRT appears
     # in its manifest only as an <exec_depend>, never as a <depend>, so nothing about
@@ -306,11 +318,13 @@ PACKAGES = [
     # permission -- see that recipe for why 10.13/cuda13 rather than the 10.9/cuda12.8
     # Isaac ships against).
     #
-    # isaac_ros_triton, its sibling in the same repo, is still absent and not for want of
-    # trying: its CMakeLists defaults x86_64 to a tarball on artifactory.pdx.nvidia.com,
-    # which is internal and does not resolve, and no public x86_64 Triton server tarball
-    # exists to override it with. See ISSUES.md #21.
+    # Its Triton sibling used to be blocked by a private-artifactory FetchContent URL;
+    # recipes/triton-server plus the patch below replace that hidden input.
     ("ros-jazzy-isaac-ros-tensor-rt", "isaac_ros_dnn_inference", "isaac_ros_tensor_rt"),
+    # The public x86_64 server tarball is missing upstream, but recipes/triton-server
+    # now builds the C API from source. A small patch replaces FetchContent with its
+    # exported CMake target.
+    ("ros-jazzy-isaac-ros-triton", "isaac_ros_dnn_inference", "isaac_ros_triton"),
     # --- the previously unattempted packages, first batch -------------------------
     #
     # Everything here is in a repo already cached, needs no new REPOS entry, and follows a
@@ -428,9 +442,8 @@ PACKAGES = [
     # (segment_anything, segment_anything2), and ament_auto_find_build_dependencies() sees
     # neither kind -- so nothing about Triton runs at configure time.
     #
-    # isaac_ros_triton itself stays absent, and for the reason in ISSUES.md #21: its
-    # CMakeLists defaults x86_64 to a tarball on an internal NVIDIA host. What that costs
-    # is the *pipelines*, not these packages.
+    # Triton is packaged now; these packages remain independently installable because
+    # their manifests correctly describe it as an optional runtime backend.
     ("ros-jazzy-isaac-ros-unet-kernels", "isaac_ros_image_segmentation", "isaac_ros_unet_kernels"),
     ("ros-jazzy-isaac-ros-unet", "isaac_ros_image_segmentation", "isaac_ros_unet"),
     ("ros-jazzy-isaac-ros-peoplesemseg-models-install", "isaac_ros_image_segmentation",
@@ -511,10 +524,10 @@ PACKAGES = [
     # including mujoco_ros2_control, pinocchio, foxglove_bridge and realsense2_camera,
     # each of which looked like a likely gap and is not.
     #
-    # unitree_g1_bridge is the exception and the only package in these five repos left out:
-    # it <depend>s on unitree_api, the Unitree SDK's ROS interface, which is in no channel.
-    # Nothing else depends on it -- unitree_g1_bringup reaches the robot through
-    # unitree_g1_ros2_control -- so it costs exactly one package.
+    # unitree_g1_bridge uses only Unitree's public ROS messages, not the native SDK.
+    # Package that interface directly from unitree_ros2, then build the Python bridge.
+    ("ros-jazzy-unitree-api", "unitree_ros2", "cyclonedds_ws/src/unitree/unitree_api"),
+    ("ros-jazzy-unitree-g1-bridge", "isaac_ros_robots", "unitree_g1/unitree_g1_bridge"),
     ("ros-jazzy-isaac-ros-agile-unitree-g1", "isaac_ros_learned_policies", "isaac_ros_agile_unitree_g1"),
     ("ros-jazzy-isaac-ros-franka-fr3-reach", "isaac_ros_learned_policies", "isaac_ros_franka_fr3_reach"),
     ("ros-jazzy-isaac-ros-gr00t-unitree-g1-install", "isaac_ros_learned_policies",
@@ -532,6 +545,10 @@ PACKAGES = [
     # before ament_package() unless CMAKE_SYSTEM_PROCESSOR is aarch64, so an x86_64 build
     # installs zero files. SIPL is NVIDIA DRIVE's ARM64-only camera SDK; publishing an
     # empty package here would falsely claim that the node exists.
+    # The Thor/RealSense mounting rig is different: it is platform-independent URDF and
+    # mesh data from a separately documented, tagged Isaac ROS 4.5 repository.
+    ("ros-jazzy-thor-devkit-realsense-rig-description", "sensor_mounting_rig",
+     "thor_devkit_realsense_rig_description"),
     # --- the benchmark suite: 25 of its 29 packages --------------------------------
     #
     # ros2_benchmark, isaac_ros_benchmark and isaac_ros_image_proc_benchmark have been built
@@ -545,24 +562,8 @@ PACKAGES = [
     # before the four robot benchmarks, and the two ur5 description/config packages before the
     # ur5 pair that consumes them.
     #
-    # Four are left out, and it is one dependency for all four:
-    #
-    #   isaac_ros_triton_benchmark          <depend>isaac_ros_triton
-    #   isaac_ros_detectnet_benchmark       <depend>isaac_ros_triton
-    #   isaac_ros_segment_anything_benchmark  <depend>isaac_ros_triton
-    #   isaac_ros_segment_anything2_benchmark <depend>isaac_ros_triton
-    #
-    # Note the kind: <depend>, not <exec_depend>. That is what makes these different from
-    # isaac_ros_unet and the other four segmentation packages added above, where Triton is an
-    # <exec_depend> that DROP_DEPS can simply keep out of `run`. A <depend> becomes a REQUIRED
-    # find_package through ament_auto_find_build_dependencies(), so it fails at configure and
-    # no recipe-side change can help -- it would take a manifest patch, as ISSUES.md #18 did
-    # for isaac_ros_dope and isaac_ros_centerpose.
-    #
-    # For isaac_ros_triton_benchmark that patch would be pointless: the package exists to
-    # measure Triton. For the other three it would be arguable, since each also has a
-    # TensorRT variant, but they are benchmarks -- measuring the backend you could not
-    # install is not a result -- so they wait for ISSUES.md #21 rather than for a patch.
+    # The final four benchmarks require isaac_ros_triton as a real <depend>. They become
+    # buildable now that the packaged Triton core replaces NVIDIA's private tarball.
     ("ros-jazzy-isaac-ros-apriltag-benchmark", "isaac_ros_benchmark", "benchmarks/isaac_ros_apriltag_benchmark"),
     ("ros-jazzy-isaac-ros-centerpose-benchmark", "isaac_ros_benchmark", "benchmarks/isaac_ros_centerpose_benchmark"),
     ("ros-jazzy-isaac-ros-dnn-image-encoder-benchmark", "isaac_ros_benchmark",
@@ -586,6 +587,14 @@ PACKAGES = [
     ("ros-jazzy-isaac-ros-pynitros-benchmark", "isaac_ros_benchmark", "benchmarks/isaac_ros_pynitros_benchmark"),
     ("ros-jazzy-isaac-ros-rtdetr-benchmark", "isaac_ros_benchmark", "benchmarks/isaac_ros_rtdetr_benchmark"),
     ("ros-jazzy-isaac-ros-segformer-benchmark", "isaac_ros_benchmark", "benchmarks/isaac_ros_segformer_benchmark"),
+    ("ros-jazzy-isaac-ros-detectnet-benchmark", "isaac_ros_benchmark",
+     "benchmarks/isaac_ros_detectnet_benchmark"),
+    ("ros-jazzy-isaac-ros-segment-anything-benchmark", "isaac_ros_benchmark",
+     "benchmarks/isaac_ros_segment_anything_benchmark"),
+    ("ros-jazzy-isaac-ros-segment-anything2-benchmark", "isaac_ros_benchmark",
+     "benchmarks/isaac_ros_segment_anything2_benchmark"),
+    ("ros-jazzy-isaac-ros-triton-benchmark", "isaac_ros_benchmark",
+     "benchmarks/isaac_ros_triton_benchmark"),
     ("ros-jazzy-isaac-ros-stereo-image-proc-benchmark", "isaac_ros_benchmark",
      "benchmarks/isaac_ros_stereo_image_proc_benchmark"),
     ("ros-jazzy-isaac-ros-tensor-rt-benchmark", "isaac_ros_benchmark", "benchmarks/isaac_ros_tensor_rt_benchmark"),
@@ -607,6 +616,13 @@ PACKAGES = [
      "benchmarks/isaac_ros_moveit_benchmark/isaac_ros_moveit_robot_benchmark/ur5/isaac_ros_ur5_cumotion_benchmark"),
     ("ros-jazzy-isaac-ros-ur5-ompl-benchmark", "isaac_ros_benchmark",
      "benchmarks/isaac_ros_moveit_benchmark/isaac_ros_moveit_robot_benchmark/ur5/isaac_ros_ur5_ompl_benchmark"),
+    # Complete the manipulation stack after every package used by its reference launch
+    # graph is available. The asset package installs the on-target model setup utility;
+    # it does not download models during this build because BUILD_TESTING is disabled.
+    ("ros-jazzy-isaac-ros-manipulation-asset-bringup", "isaac_ros_manipulation",
+     "isaac_ros_manipulation_asset_bringup"),
+    ("ros-jazzy-isaac-ros-manipulation-bringup", "isaac_ros_manipulation",
+     "isaac_ros_manipulation_bringup"),
 ]
 
 DEP_TAG = re.compile(
@@ -695,6 +711,11 @@ EXTRA_DEPS = {
 # itself for no gain -- and everything dropped here is reachable by installing it
 # alongside once it exists.
 DROP_DEPS = {
+    # A Python bridge generates no interfaces. Upstream carries this as build metadata,
+    # but keeping it would unnecessarily install a code generator at runtime.
+    "ros-jazzy-unitree-g1-bridge": {
+        "rosidl_generator_dds_idl": "build-only generator unused by this ament_python package",
+    },
     "ros-jazzy-isaac-ros-foundationpose": {
         # The three inference/perception stages of NVIDIA's reference launch graph, all
         # of which need TensorRT. The FoundationPose node consumes their *topics*; it
@@ -951,6 +972,9 @@ EXTRA_HOST = {
 # cuda-version compatibility metapackage used for runtime pinning.
 EXTRA_HOST["ros-jazzy-isaac-deploy-core"] = [
     "cuda-toolkit", "triton-server ==2.60.0"]
+EXTRA_HOST["ros-jazzy-isaac-ros-triton"] = ["triton-server ==2.60.0"]
+# Unitree's CMakeLists invokes this generator but package.xml omits it.
+EXTRA_HOST["ros-jazzy-unitree-api"] = ["ros-jazzy-rosidl-generator-dds-idl"]
 
 # These packages do not compile CUDA themselves, but dependencies in their public CMake
 # closure load isaac_ros_common-extras.cmake, which requires CUDAToolkit. Without a complete
@@ -975,6 +999,7 @@ EXTRA_RUN = {
     # are therefore insufficient for downstream CMake consumers: the exported package
     # requires the development toolkit as part of its public interface.
     "ros-jazzy-isaac-deploy-core": ["cuda-toolkit", "triton-server ==2.60.0"],
+    "ros-jazzy-isaac-ros-triton": ["triton-server ==2.60.0"],
     "ros-jazzy-isaac-ros-h264-encoder": ["nvv4l2"],
 }
 
@@ -992,6 +1017,8 @@ PATCHES = {
     # Replace NVIDIA's private-artifactory FetchContent fallback with the packaged
     # Triton C API. This makes the dependency reproducible and visible to the solver.
     "ros-jazzy-isaac-deploy-core": ["use-packaged-triton.patch"],
+    "ros-jazzy-isaac-ros-triton": ["patches/0001-use-packaged-triton-core.patch"],
+    "ros-jazzy-unitree-g1-bridge": ["patches/0001-match-package-version.patch"],
     # The encoder hard-codes Ubuntu multiarch paths for nvv4l2 libraries even though
     # CMake can resolve the declared package from any installation prefix.
     "ros-jazzy-isaac-ros-h264-encoder": [
@@ -1021,6 +1048,27 @@ PATCHES = {
 # exists, or wherever a patch is what puts it there -- a passing build says the compiler
 # was happy, not that the payload arrived.
 EXTRA_TEST_FILES = {
+    "ros-jazzy-isaac-ros-triton": [
+        "lib/libtriton_node.so",
+    ],
+    "ros-jazzy-unitree-api": [
+        "share/unitree_api/msg/Request.msg",
+    ],
+    "ros-jazzy-unitree-g1-bridge": [
+        "bin/unitree_bridge_node",
+        "share/unitree_g1_bridge/launch/unitree_g1_bridge.launch.py",
+    ],
+    "ros-jazzy-thor-devkit-realsense-rig-description": [
+        "share/thor_devkit_realsense_rig_description/urdf/thor_devkit_realsense_rig_d455.urdf.xacro",
+        "share/thor_devkit_realsense_rig_description/meshes/thor_devkit_realsense_rig_frame.stl",
+        "share/thor_devkit_realsense_rig_description/launch/thor_devkit_realsense_rig_description.launch.py",
+    ],
+    "ros-jazzy-isaac-ros-manipulation-asset-bringup": [
+        "lib/isaac_ros_manipulation_asset_bringup/setup_perception_models.py",
+    ],
+    "ros-jazzy-isaac-ros-manipulation-bringup": [
+        "share/isaac_ros_manipulation_bringup/launch/workflows.launch.py",
+    ],
 }
 
 
@@ -1038,7 +1086,7 @@ def license_id(declared: str) -> str:
     """
     if declared.startswith("Apache"):
         return "Apache-2.0"
-    if declared.strip() in ("BSD", "BSD-3-Clause"):
+    if declared.strip() in ("BSD", "BSD-3-Clause", "BSD 3-Clause License"):
         return "BSD-3-Clause"
     if declared.strip() == "MIT":
         return "MIT"
@@ -1197,6 +1245,7 @@ SYSTEM = {
     "python3-opencv": "py-opencv",
     "python3-matplotlib": "matplotlib-base",
     "python3-scipy": "scipy",
+    "python3-gdown": "gdown",
     # NVIDIA's ROS shim means "install the Python torch distribution". This package
     # also supplies LibTorch headers, libraries, and TorchConfig.cmake, all of which
     # isaac_deploy_core uses directly during its C++ build.

@@ -26,6 +26,11 @@ build:
   script:
     - export AMENT_PREFIX_PATH="${PREFIX}${AMENT_PREFIX_PATH:+:${AMENT_PREFIX_PATH}}"
     - export CMAKE_PREFIX_PATH="${PREFIX}${CMAKE_PREFIX_PATH:+:${CMAKE_PREFIX_PATH}}"
+    # GXF expected_macro.hpp includes magic_enum.hpp by bare name, while current
+    # conda-forge installs it under include/magic_enum/.
+    - export CXXFLAGS="${CXXFLAGS:-} -I${PREFIX}/include/magic_enum"
+    - export CUDAFLAGS="${CUDAFLAGS:-} -I${PREFIX}/include/magic_enum"
+    - blob_dir="$(case "${target_platform:-$(uname -m)}" in linux-aarch64|aarch64) echo gxf_aarch64_cuda_13_0;; *) echo gxf_x86_64_cuda_13_0;; esac)"
     - cd src/isaac_ros_gxf_extensions/gxf_isaac_utils
     - grep -qE 'find_package\(Eigen3 [0-9]' CMakeLists.txt
     - sed -i -E 's|find_package\(Eigen3 [0-9.]+|find_package(Eigen3|' CMakeLists.txt

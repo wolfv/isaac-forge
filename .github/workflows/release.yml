@@ -62,38 +62,8 @@ jobs:
           # pixi.lock pins rattler-build, so CI builds with the same version as local.
           locked: true
 
-      # Work around rattler-build not initiating its challenge-reactive OIDC flow for
-      # repodata reads (upstream ticket pending). Publisher tokens are short-lived, so
-      # install a refresh helper and invoke it before every build/test solve.
-      - name: Configure private-channel OIDC authentication
-        shell: bash
-        run: |
-          set -euo pipefail
-          refresh_script="${RUNNER_TEMP}/refresh-prefix-auth"
-          cat > "$refresh_script" <<'EOF'
-          #!/usr/bin/env bash
-          set -euo pipefail
-          oidc_token=$(
-            curl --fail --silent --show-error \
-              -H "Authorization: Bearer ${ACTIONS_ID_TOKEN_REQUEST_TOKEN}" \
-              "${ACTIONS_ID_TOKEN_REQUEST_URL}&audience=prefix.dev" |
-              jq -er .value
-          )
-          publish_token=$(
-            jq -nc --arg token "$oidc_token" '{token: $token}' |
-              curl --fail --silent --show-error \
-                -H 'Content-Type: application/json' \
-                --data-binary @- \
-                https://prefix.dev/api/oidc/mint_token
-          )
-          jq -nc --arg token "$publish_token" \
-            '{"prefix.dev": {"BearerToken": $token}, "*.prefix.dev": {"BearerToken": $token}}' \
-            > "${RATTLER_AUTH_FILE}"
-          chmod 600 "${RATTLER_AUTH_FILE}"
-          EOF
-          chmod 700 "$refresh_script"
-          echo "RATTLER_AUTH_FILE=${RUNNER_TEMP}/rattler-auth.json" >> "$GITHUB_ENV"
-          echo "PREFIX_AUTH_REFRESH=$refresh_script" >> "$GITHUB_ENV"
+      # rattler-build 0.72.2+ performs trusted-publisher OIDC authentication for private
+      # prefix.dev reads as well as uploads, including solves and --skip-existing checks.
 
       # -c ./output is what lets recipes resolve against packages built earlier in this
       # same run. Keep authenticated isaac-forge second so local artifacts win while
@@ -134,7 +104,6 @@ jobs:
 
           if [ -z "${SELECTED_RECIPES//[[:space:],]/}" ]; then
             echo "No recipe subset selected; building all recipes."
-            "$PREFIX_AUTH_REFRESH"
             pixi run rattler-build build --recipe-dir recipes "${common_args[@]}"
           else
             # Build in the caller's order so a small dependency chain can be bootstrapped
@@ -153,7 +122,6 @@ jobs:
                 echo "::error::Recipe does not exist: $recipe"
                 exit 2
               fi
-              "$PREFIX_AUTH_REFRESH"
               pixi run rattler-build build --recipe "$recipe" "${common_args[@]}"
             done
           fi
@@ -170,7 +138,6 @@ jobs:
           for p in "${pkgs[@]}"; do
             passed=false
             for attempt in 1 2 3; do
-              "$PREFIX_AUTH_REFRESH"
               if pixi run rattler-build test \
                    --package-file "$p" \
                    -c ./output \

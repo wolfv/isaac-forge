@@ -140,6 +140,9 @@ build:
     # Upstream shells out to uname, which defeats conda's target toolchain during
     # cross-build audits. CMAKE_SYSTEM_PROCESSOR is aarch64 both cross and native.
     - sed -i 's|execute_process(COMMAND uname -m COMMAND tr -d '\''\\n'\'' OUTPUT_VARIABLE ARCHITECTURE)|set(ARCHITECTURE "${CMAKE_SYSTEM_PROCESSOR}")|' CMakeLists.txt
+    # Like the extension packages, GXF core puts INSTALL_PREFIX directly on in-tree
+    # interface targets. Keep those paths install-only so CMake can generate exports.
+    - sed -i -E 's|"\$<INSTALL_PREFIX>([^"]+)"|"$<INSTALL_INTERFACE:$<INSTALL_PREFIX>\1>"|g' CMakeLists.txt
     - >
       cmake -S . -B build -G Ninja ${CMAKE_ARGS:-}
       -DCMAKE_BUILD_TYPE=Release
@@ -162,13 +165,20 @@ requirements:
   build:
     - ${{ compiler('c') }}
     - ${{ compiler('cxx') }}
+    # isaac_ros_common's exported extras unconditionally call FindCUDAToolkit.
+    - ${{ compiler('cuda') }}
     - cmake
     - ninja
     - patchelf
+    # CMake runs isaac_ros_version_embed.py with build-prefix Python.
     - python
+    - pyyaml
   host:
     - ros-jazzy-ament-cmake-auto
     - ros-jazzy-isaac-ros-common
+    - cuda-version 13.*
+    - cuda-cudart-dev
+    - cuda-nvtx-dev
     - magic_enum
     - ucx
     - python

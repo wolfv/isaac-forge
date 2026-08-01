@@ -19,6 +19,10 @@ import subprocess
 import sys
 
 PREFIX = os.path.realpath(sys.argv[1])
+# Optional paths are relative to PREFIX and limit rewriting to files owned by the
+# package being built. Scanning the whole host prefix mutates dependencies and can
+# make patchelf choke on non-shared ELF objects such as Python's python.o.
+TARGETS = [os.path.realpath(os.path.join(PREFIX, p)) for p in sys.argv[2:]] or [PREFIX]
 
 # Absolute prefixes that should collapse onto $PREFIX/lib.
 TO_LIB = ("/usr/local/cuda/lib64", "/usr/local/cuda/targets/x86_64-linux/lib",
@@ -89,8 +93,10 @@ def link_gxf_into_lib() -> int:
     libdir = os.path.join(PREFIX, "lib")
     os.makedirs(libdir, exist_ok=True)
     linked = 0
-    share = os.path.join(PREFIX, "share")
-    for dirpath, _dirnames, filenames in os.walk(share):
+    for target in TARGETS:
+      if not os.path.isdir(target):
+        continue
+      for dirpath, _dirnames, filenames in os.walk(target):
         if f"{os.sep}gxf{os.sep}lib" not in dirpath:
             continue
         for name in filenames:
@@ -111,12 +117,18 @@ def link_gxf_into_lib() -> int:
 
 def main() -> None:
     changed = 0
-    for dirpath, _dirnames, filenames in os.walk(PREFIX):
-        for name in filenames:
-            path = os.path.join(dirpath, name)
+    paths = []
+    for target in TARGETS:
+        if os.path.isfile(target):
+            paths.append(target)
+        elif os.path.isdir(target):
+            for dirpath, _dirnames, filenames in os.walk(target):
+                paths.extend(os.path.join(dirpath, name) for name in filenames)
+    for path in paths:
             if os.path.islink(path) or not is_elf(path):
                 continue
             old = runpath(path)
+            dirpath = os.path.dirname(path)
             rel = os.path.relpath(dirpath, PREFIX)
             depth = 0 if rel == "." else len(rel.split(os.sep))
             up = "/".join([".."] * depth)

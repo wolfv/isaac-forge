@@ -29,6 +29,10 @@ build:
     - blob_dir="$(case "${target_platform:-$(uname -m)}" in linux-aarch64|aarch64) echo gxf_aarch64_cuda_13_0;; *) echo gxf_x86_64_cuda_13_0;; esac)"
     - cd src/isaac_ros_gxf_extensions/gxf_isaac_optimizer
     - cp "${SRC_DIR}/libgxf_isaac_optimizer.so" "lib/${blob_dir}/libgxf_isaac_optimizer.so"
+    # Upstream puts $<INSTALL_PREFIX> directly on the in-tree interface target;
+    # CMake permits it only inside INSTALL_INTERFACE while generating exports.
+    - sed -i 's|"$<INSTALL_PREFIX>/share/${PROJECT_NAME}/gxf/lib/lib${PROJECT_NAME}.so"|"$<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/${GXF_EXT_LIB_PATH}/lib${PROJECT_NAME}.so>;$<INSTALL_INTERFACE:$<INSTALL_PREFIX>/share/${PROJECT_NAME}/gxf/lib/lib${PROJECT_NAME}.so>"|' CMakeLists.txt
+    - sed -i 's|"$<INSTALL_PREFIX>/share/${PROJECT_NAME}/gxf/include"|"$<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/gxf>;$<INSTALL_INTERFACE:$<INSTALL_PREFIX>/share/${PROJECT_NAME}/gxf/include>"|' CMakeLists.txt
     - >
       cmake -S . -B build -G Ninja ${CMAKE_ARGS:-}
       -DCMAKE_BUILD_TYPE=Release
@@ -39,7 +43,7 @@ build:
       -DBUILD_TESTING=OFF
     - cmake --build build --parallel "${CPU_COUNT:-2}"
     - cmake --install build
-    - python "${RECIPE_DIR}/relink.py" "${PREFIX}"
+    - python "${RECIPE_DIR}/relink.py" "${PREFIX}" "share/gxf_isaac_optimizer"
   dynamic_linking:
     binary_relocation: false
     missing_dso_allowlist:

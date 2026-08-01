@@ -5,8 +5,8 @@ set -euo pipefail
 #
 # The shipped libnvvpi.so.* is installed byte-for-byte unmodified. We only add
 # packaging glue: a relocatable CMake package config, because NVIDIA's generated
-# one resolves its prefix by walking four directories up from
-# lib/x86_64-linux-gnu/cmake/vpi/, which does not match a conda layout.
+# one resolves its prefix by walking four directories up from the Debian
+# multiarch CMake directory, which does not match a conda layout.
 
 DEB_ROOT="${SRC_DIR}/deb"
 mkdir -p "${DEB_ROOT}"
@@ -17,7 +17,17 @@ for deb in libnvvpi4 vpi4-dev; do
 done
 
 VPI="${DEB_ROOT}/opt/nvidia/vpi4"
-LIBDIR="${VPI}/lib/x86_64-linux-gnu"
+# amd64 uses x86_64-linux-gnu and Jetson uses aarch64-linux-gnu. Avoid deriving
+# this from the build machine so render/cross-build audits select the deb payload.
+LIBDIR=""
+for candidate in "${VPI}"/lib/*-linux-gnu; do
+  if [ -d "${candidate}" ]; then LIBDIR="${candidate}"; break; fi
+done
+if [ -z "${LIBDIR}" ]; then
+  echo "VPI deb has no Debian multiarch library directory" >&2
+  find "${VPI}" -maxdepth 3 -type d >&2
+  exit 1
+fi
 
 # --- runtime + dev libraries ------------------------------------------------
 mkdir -p "${PREFIX}/lib"

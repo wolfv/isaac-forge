@@ -32,7 +32,7 @@ export CUDACXX="${BUILD_PREFIX}/bin/nvcc"
 
 # Build for the architectures Isaac ROS supports (Ampere and newer): 80 (A100),
 # 86 (RTX 30xx), 89 (RTX 40xx / Ada), 90 (Hopper), plus PTX for anything later.
-CUDA_ARCHS="80;86;89;90"
+CUDA_ARCHS="${CUDA_ARCHITECTURES:-$(case "${target_platform:-$(uname -m)}" in linux-aarch64|aarch64) echo "87;110;120";; *) echo "80;86;89;90";; esac)}"
 
 cmake -S . -B build -G Ninja ${CMAKE_ARGS:-} \
   -DCMAKE_BUILD_TYPE=Release \

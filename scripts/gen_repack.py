@@ -594,6 +594,9 @@ source:
 {source_block}
 
 build:
+  # The apt index used to generate this recipe is amd64. Never publish its ELF
+  # payload under an ARM subdir; ARM blob recipes must point at an ARM source.
+  skip: target_platform == "linux-aarch64"
   number: 0
   script: build.sh
   dynamic_linking:

@@ -21,6 +21,9 @@ source:
     sha256: 006095a498f87c7f78d4a422bf9e3dcc6ef1048b2582a02bbd252054a7c0a58c
 
 build:
+  # The checked-in vendor payload is amd64. Do not mislabel it as an ARM package.
+  # Replace this with the corresponding ARM blob/source before enabling on Jetson.
+  skip: target_platform == "linux-aarch64"
   number: 0
   script: build.sh
   dynamic_linking:

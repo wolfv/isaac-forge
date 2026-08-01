@@ -15,16 +15,17 @@ machine-readable per-package inventory.
 
 | | |
 |---|---|
-| Target | Isaac ROS 4.5.0 · ROS 2 Jazzy · CUDA 13 · `linux-64` |
+| Target | Isaac ROS 4.5.0 · ROS 2 Jazzy · CUDA 13 · `linux-64`; `linux-aarch64` in progress |
 | RoboStack coverage | 133 of 149 external ROS deps already in `robostack-jazzy` (89%) |
 | Chokepoint | VPI — sits under 218 of 252 packages (packaged; see `recipes/vpi`) |
 
 **Done**
 
 - Full dependency, license and blocker analysis of 36 repos / 253 source-visible packages (`FINDINGS.md`), including the separately documented `sensor_mounting_rig` repository.
-- `recipes/vpi` — VPI 4.0.5 repacked from NVIDIA's Jetson apt repo. Builds clean, all tests pass
-  including a real `find_package(vpi)` configure check. The shipped `libnvvpi.so.4.0.5` is verified
-  byte-identical to NVIDIA's.
+- `recipes/vpi` — VPI 4.0.5 repacked from NVIDIA's apt repos. The amd64 build and tests pass,
+  including a real `find_package(vpi)` configure check, and its `libnvvpi.so.4.0.5` is verified
+  byte-identical to NVIDIA's. The ARM64 payload and checksum are now pinned for native Jetson
+  validation.
 
 - Verified that binary repacking composes with RoboStack (`FINDINGS.md` §5) — this is the
   cheap path, and it works.
@@ -553,6 +554,36 @@ was real for `isaac_ros_tensor_rt` and `isaac_ros_triton` themselves, and for an
 that has to actually run inference. It is worth re-testing rather than assuming for the rest
 of the DNN packages: the question to ask each one is whether it includes a TensorRT header,
 not whether it lists one.
+
+## Jetson / ARM64 status
+
+ARM64 enablement is in progress. The build workspace and build/test drivers understand
+`linux-aarch64`, CUDA source builds select Jetson GPU architectures (`87;110;120`), and the VPI
+recipe now selects NVIDIA's verified `arm64` VPI 4.0.5 debs and checksums. Build natively on a
+Jetson running JetPack 7 / Ubuntu 24.04:
+
+```bash
+pixi install
+pixi run arm64-render                 # quick recipe rendering audit
+pixi run build -- --target linux-aarch64
+pixi run test                         # tests intentionally require native execution
+```
+
+Native builds are the supported path for CUDA; an x86_64 `--target linux-aarch64` invocation is
+useful for rendering and dependency audits, not end-to-end validation. The output goes to
+`output/linux-aarch64/`, alongside architecture-independent packages in `output/noarch/`.
+The release workflow also builds and tests on GitHub's native `ubuntu-24.04-arm` runner and uploads
+passing ARM64 artifacts to the same `isaac-forge` prefix.dev channel.
+
+The remaining hard blocker is the proprietary binary floor. Recipes whose checked-in source is
+an `_amd64.deb` now explicitly skip ARM64 rather than accidentally publishing x86 ELF files as an
+ARM package. Those recipes need ARM blobs from the upstream git-lfs trees or Jetson repositories.
+RoboStack Jazzy's ARM64 dependency coverage must also be measured on the first native build. In
+other words, the scaffolding and first foundational package are ready, but the complete 224-recipe
+set is not yet claimed to build on Jetson.
+
+To override the default GPU list for a particular Jetson, export `CUDA_ARCHITECTURES` before the
+build (for example `CUDA_ARCHITECTURES=87` for an Orin-only build).
 
 ## Architecture
 

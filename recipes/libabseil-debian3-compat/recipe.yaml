@@ -56,6 +56,8 @@ source:
     sha256: dec97687bc3bc4edbd1c26bc9182f7584e3ff1c36a9bb7ce80211951e5a5893d
 
 build:
+  # This compatibility package currently repacks Ubuntu's amd64 binary.
+  skip: target_platform == "linux-aarch64"
   number: 0
   script: build.sh
 

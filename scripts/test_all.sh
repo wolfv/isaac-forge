@@ -20,10 +20,21 @@ set -uo pipefail
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "${ROOT}"
 
-CHANNELS=(-c ./output -c https://prefix.dev/robostack-jazzy -c conda-forge)
+case "$(uname -m)" in
+  x86_64) NATIVE_PLATFORM=linux-64 ;;
+  aarch64|arm64) NATIVE_PLATFORM=linux-aarch64 ;;
+  *) echo "unsupported test architecture: $(uname -m)" >&2; exit 2 ;;
+esac
+TARGET_PLATFORM="${ISAAC_FORGE_TARGET_PLATFORM:-${NATIVE_PLATFORM}}"
+if [ "${TARGET_PLATFORM}" != "${NATIVE_PLATFORM}" ]; then
+  echo "package tests must run natively (${NATIVE_PLATFORM}), not for ${TARGET_PLATFORM}" >&2
+  exit 2
+fi
+
+CHANNELS=(-c ./output -c https://prefix.dev/isaac-forge -c https://prefix.dev/robostack-jazzy -c conda-forge)
 
 shopt -s nullglob
-pkgs=(output/linux-64/*.conda output/noarch/*.conda)
+pkgs=(output/"${TARGET_PLATFORM}"/*.conda output/noarch/*.conda)
 present=${#pkgs[@]}
 
 if [ "${present}" -eq 0 ]; then

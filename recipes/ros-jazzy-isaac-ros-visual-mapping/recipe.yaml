@@ -96,6 +96,8 @@ outputs:
   - package:
       name: ros-jazzy-isaac-ros-visual-mapping
     build:
+      # The checked-in visual-mapping deb is amd64-only.
+      skip: target_platform == "linux-aarch64"
       number: 0
       script: build.sh
       dynamic_linking:
@@ -193,6 +195,8 @@ outputs:
   - package:
       name: ros-jazzy-isaac-ros-visual-mapping-tools
     build:
+      # The checked-in visual-mapping deb is amd64-only.
+      skip: target_platform == "linux-aarch64"
       number: 0
       script: build.sh
       dynamic_linking:

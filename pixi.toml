@@ -2,7 +2,9 @@
 name = "isaac-forge"
 description = "Isaac ROS 4.5 packaged on top of the RoboStack conda ecosystem"
 channels = ["conda-forge"]
-platforms = ["linux-64"]
+# Build tools are available on both workstation x86_64 and native Jetson ARM64.
+# The CUDA/proprietary parts should be built natively on the target architecture.
+platforms = ["linux-64", "linux-aarch64"]
 
 # ---------------------------------------------------------------------------
 # Development / build environment.
@@ -45,7 +47,11 @@ cmd = "rm -rf output/bld output/src_cache output/.tmp && du -sh output"
 
 [tasks.vpi]
 description = "Build just the VPI package"
-cmd = "rattler-build build --recipe recipes/vpi/recipe.yaml --output-dir output -m variants.yaml"
+cmd = "./scripts/build_all.sh --recipe vpi"
+
+[tasks.arm64-render]
+description = "Render every recipe for linux-aarch64 without building (porting audit)"
+cmd = "rattler-build build --recipe-dir recipes --target-platform linux-aarch64 --render-only -m variants.yaml"
 
 [tasks.inventory]
 description = "Regenerate packages.json from the cloned sources in src/"

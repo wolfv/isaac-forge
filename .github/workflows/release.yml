@@ -1,6 +1,7 @@
 name: release
 
-# Builds every recipe in recipes/ and publishes the new ones to
+# Builds every recipe in recipes/ for x86_64 and ARM64, tests the resulting
+# artifacts natively on GitHub-hosted runners, and publishes new packages to
 # https://prefix.dev/channels/isaac-forge.
 #
 # The filename matters: the prefix.dev trusted publisher is bound to `release.yml`.
@@ -25,15 +26,27 @@ permissions:
   # with prefix.dev itself, so there is no API key anywhere in this repo.
   id-token: write
 
-# Never run two publishes at once, and never cancel one midway through uploading.
+# Never run two release workflows at once, and never cancel one midway through uploading.
+# The two architecture jobs in one workflow may upload concurrently; their conda subdirs
+# are disjoint (`linux-64` and `linux-aarch64`).
 concurrency:
   group: release
   cancel-in-progress: false
 
 jobs:
   build-and-publish:
-    runs-on: ubuntu-24.04
-    timeout-minutes: 360
+    name: build-and-publish (${{ matrix.platform }})
+    strategy:
+      # One architecture failing must not cancel publishing on the other.
+      fail-fast: false
+      matrix:
+        include:
+          - platform: linux-64
+            runner: ubuntu-24.04
+          - platform: linux-aarch64
+            runner: ubuntu-24.04-arm
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 720
 
     steps:
       - uses: actions/checkout@v7
@@ -93,6 +106,7 @@ jobs:
           mkdir -p output
           common_args=(
             --output-dir output
+            --target-platform "${{ matrix.platform }}"
             -m variants.yaml
             --skip-existing all
             --test skip
@@ -103,8 +117,18 @@ jobs:
           )
 
           if [ -z "${SELECTED_RECIPES//[[:space:],]/}" ]; then
-            echo "No recipe subset selected; building all recipes."
-            pixi run rattler-build build --recipe-dir recipes "${common_args[@]}"
+            echo "No recipe subset selected; building all recipes for ${{ matrix.platform }}."
+            if [ "${{ matrix.platform }}" = linux-aarch64 ]; then
+              # ARM64 is being bootstrapped: amd64-only blob recipes are deliberately
+              # skipped, so continue building independent/source-only packages when a
+              # dependent package cannot solve yet. Any artifact still has to pass its
+              # own package test below before it can be uploaded.
+              pixi run rattler-build build --recipe-dir recipes \
+                --continue-on-failure "${common_args[@]}" || \
+                echo "::warning::Some ARM64 recipes remain blocked; testing the artifacts that did build."
+            else
+              pixi run rattler-build build --recipe-dir recipes "${common_args[@]}"
+            fi
           else
             # Build in the caller's order so a small dependency chain can be bootstrapped
             # in one run (for example libv4l before nvv4l2).
@@ -186,7 +210,7 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v7
         with:
-          name: rattler-build-log
+          name: rattler-build-log-${{ matrix.platform }}
           path: output/rattler-build-log.txt
           if-no-files-found: ignore
           retention-days: 14

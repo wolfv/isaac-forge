@@ -12,7 +12,9 @@ schema_version: 1
 
 context:
   version: "4.0.5"
-  pool: https://repo.download.nvidia.com/jetson/x86_64/noble/pool/main
+  # NVIDIA publishes workstation and Jetson builds in different apt repositories.
+  deb_arch: ${{ "arm64" if target_platform == "linux-aarch64" else "amd64" }}
+  pool: ${{ "https://repo.download.nvidia.com/jetson/common/pool/main" if target_platform == "linux-aarch64" else "https://repo.download.nvidia.com/jetson/x86_64/noble/pool/main" }}
 
 package:
   name: vpi
@@ -21,13 +23,13 @@ package:
 source:
   # Runtime library. `file_name` stops rattler-build from trying to unpack the
   # .deb itself -- we do that in the build script with bsdtar.
-  - url: ${{ pool }}/libn/libnvvpi4/libnvvpi4_${{ version }}_amd64.deb
+  - url: ${{ pool }}/libn/libnvvpi4/libnvvpi4_${{ version }}_${{ deb_arch }}.deb
     file_name: libnvvpi4.deb
-    sha256: 7c6f94dacf9d85a9563a39b3f7f6fb6dbb8554622fd83a9c61fd17bea63f1572
+    sha256: ${{ "5d2878cb967c41716c0e809bda871ba177f69641c3ba69f5fdaa6dfa8a0e11c9" if target_platform == "linux-aarch64" else "7c6f94dacf9d85a9563a39b3f7f6fb6dbb8554622fd83a9c61fd17bea63f1572" }}
   # Headers and the generated CMake package config.
-  - url: ${{ pool }}/v/vpi4-dev/vpi4-dev_${{ version }}_amd64.deb
+  - url: ${{ pool }}/v/vpi4-dev/vpi4-dev_${{ version }}_${{ deb_arch }}.deb
     file_name: vpi4-dev.deb
-    sha256: f962b787a3c9139ce6a12cba7cc7a463b610bd296448d248d45de9276bbae37e
+    sha256: ${{ "103534332aefe8045e6844116dd71d012331e9b1a48c47bc24c5478d3caacf4f" if target_platform == "linux-aarch64" else "f962b787a3c9139ce6a12cba7cc7a463b610bd296448d248d45de9276bbae37e" }}
 
 build:
   number: 0
@@ -84,9 +86,9 @@ about:
   summary: NVIDIA Vision Programming Interface (VPI) runtime and development files
   description: |
     VPI is NVIDIA's computer-vision and image-processing library with backends
-    for CPU, CUDA, PVA, VIC and OFA. This package repacks the official amd64
-    debian packages from the NVIDIA Jetson apt repository without modifying the
-    shipped binaries.
+    for CPU, CUDA, PVA, VIC and OFA. This package repacks the official
+    architecture-specific Debian packages from NVIDIA's workstation or Jetson apt repository without
+    modifying the shipped binaries.
 
     Redistribution is restricted -- see the bundled VPI EULA and the note at the
     top of the recipe.

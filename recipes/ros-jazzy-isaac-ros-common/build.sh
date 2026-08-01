@@ -12,7 +12,7 @@ export CUDACXX="${BUILD_PREFIX}/bin/nvcc"
 # Ampere and newer, matching Isaac ROS 4.5's supported GPUs, plus PTX for later.
 cmake -S . -B build -G Ninja ${CMAKE_ARGS:-} \
   -DCMAKE_CUDA_COMPILER="${CUDACXX}" \
-  -DCMAKE_CUDA_ARCHITECTURES="80;86;89;90" \
+  -DCMAKE_CUDA_ARCHITECTURES="${CUDA_ARCHITECTURES:-$(case "${target_platform:-$(uname -m)}" in linux-aarch64|aarch64) echo "87;110;120";; *) echo "80;86;89;90";; esac)}" \
   -DCMAKE_BUILD_TYPE=Release \
   -DCMAKE_INSTALL_PREFIX="${PREFIX}" \
   -DCMAKE_PREFIX_PATH="${PREFIX}" \

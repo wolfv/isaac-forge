@@ -56,7 +56,7 @@ GXF, ROS, CUDA, and other library dependencies automatically.
 For a complete working project, see [`yolo/`](yolo/README.md). Its `pixi.toml` consumes the
 public channel and runs YOLOv8 TensorRT inference on an image, video, webcam, or RTSP stream.
 
-[![Isaac Forge YOLOv8 demo](https://img.youtube.com/vi/DbLr-rPKjwo/maxresdefault.jpg)](https://www.youtube.com/watch?v=DbLr-rPKjwo)
+https://github.com/user-attachments/assets/3fdf53d4-5ca1-434b-a05b-74456d565907
 
 ## What is in the channel?
 

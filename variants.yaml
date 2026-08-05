@@ -58,9 +58,9 @@ cuda_compiler_version:
 python:
   - "3.12.* *_cpython"
 
-# TensorRT has distinct CUDA 13 ARM payloads. The SBSA payload supports Orin's SM87;
-# NVIDIA's Jetson-common r38 payload targets Thor. Only recipes/tensorrt consumes this
-# key, so it does not multiply variants for the rest of the repository.
+# TensorRT has distinct CUDA 13 ARM payloads. NVIDIA's SBSA deb carries verified
+# compute_86 PTX for Orin's SM87; its Jetson-common r38 deb targets Thor. Only
+# recipes/tensorrt consumes this key, so other recipes do not gain extra variants.
 tensorrt_flavor:
   - jetson
   - orin

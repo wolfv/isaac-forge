@@ -1,6 +1,6 @@
 schema_version: 1
 
-# NVIDIA TensorRT 10.13.3.9, repacked from the official CUDA apt repository.
+# NVIDIA TensorRT 10.13.3.9, repacked from the official CUDA apt repositories.
 #
 # This is what `isaac_ros_tensor_rt` needs, and through it every DNN inference pipeline
 # in Isaac ROS: RT-DETR, YOLOv8, DetectNet, Grounding DINO, DOPE, CenterPose, ESS depth
@@ -13,8 +13,15 @@ schema_version: 1
 # grant of its own.
 #
 # ---------------------------------------------------------------------------
-# Why debs, and not the tarball conda-forge's PR uses
+# Why deb sources, and not the tarball or Python wheel
 # ---------------------------------------------------------------------------
+# NVIDIA publishes both CUDA 13 SBSA debs and a broad aarch64 Python wheel. Direct
+# cuobjdump inspection established that the SBSA runtime and plugin both contain
+# compute_86 PTX, which the CUDA driver can JIT for Orin's SM87. The recipe verifies
+# that property rather than inferring GPU support from an aarch64 filename. Since
+# the deb has the required payload, using debs for every platform keeps this recipe
+# smaller and homogeneous and provides the headers without mixing distributions.
+#
 # conda-forge staged-recipes#29445 builds from
 # TensorRT-<v>.Linux.x86_64-gnu.cuda-<x>.tar.gz. That tarball is **6.18 GB** and
 # extracts to roughly 14 GB, because it carries the static archives --
@@ -70,8 +77,8 @@ context:
   lib_version: "10.13.3"
   deb_version: "10.13.3.9-1+cuda13.0"
   deb_arch: ${{ "arm64" if target_platform == "linux-aarch64" else "amd64" }}
-  # CUDA 13 has two different ARM payloads. Jetson-common r38 is the native Thor
-  # build, while NVIDIA's SBSA build retains SM87 support for Orin on JetPack 7.
+  # CUDA 13 has two ARM payloads: Jetson-common r38 for native Thor and the broad
+  # SBSA build whose compute_86 PTX provides the verified Orin SM87 path.
   pool: ${{ "https://developer.download.nvidia.com/compute/cuda/repos/ubuntu2404/sbsa" if target_platform == "linux-aarch64" and tensorrt_flavor == "orin" else "https://repo.download.nvidia.com/jetson/common/pool/main/t/tensorrt" if target_platform == "linux-aarch64" else "https://developer.download.nvidia.com/compute/cuda/repos/ubuntu2404/x86_64" }}
 
 package:
@@ -103,7 +110,7 @@ source:
     sha256: ${{ "965f83a6885d6a9df57103574f763a19f9be792b12c8fb085a4f973adec7057d" if target_platform == "linux-aarch64" and tensorrt_flavor == "orin" else "c6345331c14119f0bd236b74c82dc967fdd6f9a55f489f626423b3d9268cdb55" if target_platform == "linux-aarch64" else "1efba486fcf795f4ebbb802ed3cf5e999ca6e75caed25c90b4920265e5ccc43e" }}
 
 build:
-  number: 1
+  number: 2
   # There is only one x86 payload; the second flavor is ARM-only.
   skip: target_platform != "linux-aarch64" and tensorrt_flavor == "orin"
   script: build.sh
@@ -121,7 +128,8 @@ build:
 
 requirements:
   build:
-    - libarchive          # bsdtar, which reads .deb (ar) archives
+    - libarchive          # bsdtar reads .deb (ar) archives
+    - cuda-cuobjdump      # prove that the Orin SBSA deb contains forward-compatible PTX
   run:
     # Ubuntu 24.04 build, so the binaries reference GLIBC_2.38.
     - __glibc >=2.38
@@ -135,7 +143,7 @@ requirements:
     - cuda-version 13.*
     - cuda-cudart
     - libcublas
-  # Select the correct CUDA 13 ARM binary when the machine advertises a GPU
+  # Select the verified CUDA 13 ARM payload when the machine advertises a GPU
   # compute capability. Keep this a constraint rather than a hard dependency so
   # packages can still be built and inspected on GPU-less ARM CI runners.
   run_constraints:
@@ -168,9 +176,9 @@ about:
   homepage: https://developer.nvidia.com/tensorrt
   summary: NVIDIA TensorRT runtime, plugin and ONNX parser libraries
   description: |
-    Repacked from NVIDIA's CUDA apt repository, redistributed from this channel with
-    NVIDIA's permission. Contains the TensorRT 10 runtime (libnvinfer), the plugin
-    library, the ONNX parser and the headers -- enough to build and run
+    Repacked from NVIDIA's official CUDA apt repositories and redistributed from this
+    channel with NVIDIA's permission. Contains the TensorRT 10 runtime (libnvinfer),
+    the plugin library, the ONNX parser and the headers -- enough to build and run
     isaac_ros_tensor_rt and every Isaac ROS DNN pipeline above it.
   # No SPDX identifier exists for the TensorRT terms, hence the LicenseRef. The debs
   # install NVIDIA's license text under share/doc/, which build.sh preserves.

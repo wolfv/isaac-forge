@@ -71,9 +71,25 @@ cp "${STAGE}/usr/share/doc/libnvinfer10/copyright" "${SRC_DIR}/LICENSE"
 for f in libnvinfer.so.10 libnvinfer_plugin.so.10 libnvonnxparser.so.10; do
   real="$(readlink -f "${PREFIX}/lib/${f}")"
   orig="${DEBLIB}/$(basename "${real}")"
-  cmp -s "${real}" "${orig}" || { echo "FAIL: ${f} differs from the deb payload"; exit 1; }
+  cmp -s "${real}" "${orig}" || { echo "FAIL: ${f} differs from the NVIDIA source payload"; exit 1; }
 done
-echo "  verified: shared objects are byte-identical to the deb payload"
+echo "  verified: shared objects are byte-identical to the NVIDIA source payload"
+
+# Do not infer GPU support from an aarch64 filename. Verify the SBSA deb's actual
+# fatbin inventory for the Orin variant: compute_86 PTX is forward-compatible with
+# SM87 and is JIT-compiled by the CUDA driver. Native sm_86 cubins alone would not
+# establish that. Match the recipe-pinned SBSA source hash rather than relying on
+# the build host to export an arbitrary variant key into this script.
+SM87_DEB_SHA256="9735db4e06f2d64d8847f207c991cf76724416da23314b30f201c14cc5d78f29"
+if [ "$(sha256sum "${SRC_DIR}/libnvinfer10.deb" | awk '{print $1}')" = "${SM87_DEB_SHA256}" ]; then
+  for lib in libnvinfer.so.10 libnvinfer_plugin.so.10; do
+    cuobjdump --list-ptx "${PREFIX}/lib/${lib}" > "${SRC_DIR}/${lib}.ptx-list"
+    grep -q 'sm_86.ptx' "${SRC_DIR}/${lib}.ptx-list" || {
+      echo "FAIL: ${lib} has no SM87-compatible compute_86 PTX"; exit 1;
+    }
+  done
+  echo "  verified: runtime and plugin contain compute_86 PTX for SM87"
+fi
 
 # The dlopen'd builder resource is the bulk of the package and is invisible to every ELF
 # check, so confirm it arrived. Without it TensorRT loads and then fails the first time it

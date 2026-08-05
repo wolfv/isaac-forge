@@ -24,11 +24,15 @@ channels = [
   "https://prefix.dev/robostack-jazzy",
   "conda-forge",
 ]
-platforms = [{ platform = "linux-64", glibc = "2.38" }]
+platforms = [
+  { platform = "linux-64", glibc = "2.38" },
+  { platform = "linux-aarch64", glibc = "2.38" },
+]
 
 [dependencies]
 python = "3.12.*"
 ros-jazzy-ros-base = "*"
+ros-jazzy-isaac-ros-image-proc = "4.5.*"
 ros-jazzy-isaac-ros-dnn-image-encoder = "4.5.*"
 ros-jazzy-isaac-ros-tensor-rt = "4.5.*"
 ros-jazzy-isaac-ros-yolov8 = "4.5.*"
@@ -42,7 +46,7 @@ pixi run ros2 pkg prefix isaac_ros_yolov8
 pixi run ros2 component types | grep -E 'TensorRTNode|YoloV8DecoderNode'
 ```
 
-For a Jetson, use `linux-aarch64` instead of `linux-64`. The packages target the Ubuntu
+On a Jetson, Pixi selects the `linux-aarch64` environment. The packages target the Ubuntu
 24.04 glibc floor (`2.38`) and the CUDA 13 stack, so GPU workloads also need a compatible
 NVIDIA driver. Pixi installs the user-space CUDA libraries; it does not install the host
 driver.
@@ -60,7 +64,7 @@ https://github.com/user-attachments/assets/3fdf53d4-5ca1-434b-a05b-74456d565907
 
 ## What is in the channel?
 
-The channel currently has **226 package names for `linux-64`** and **213 for
+The channel has **226 package names for `linux-64`** and **214 for
 `linux-aarch64`**. It contains:
 
 - the NITROS and GXF foundations, including the NITROS ROS type adapters;
@@ -79,29 +83,11 @@ The channel currently has **226 package names for `linux-64`** and **213 for
 The `*-models-install` packages provide NVIDIA's asset download/install tooling. Model
 weights and GPU-specific TensorRT engine plans are not baked into the conda packages.
 
-There are currently 13 x86-only names: `libdcgm`, `nvv4l2`, the four H.264 packages,
-`isaac_ros_image_proc`, the two PyNITROS packages, the Unitree recorder, the two visual
-mapping packages, and `isaac_ros_visual_slam`. Their vendor payload or test closure is not
-portable to the generic ARM build runner. The other 213 packages were built and tested
-natively on ARM64 rather than cross-compiled or relabelled from x86_64.
-
-## Examples and checks
-
-The repository contains a few environments used to exercise different parts of the channel:
-
-| Directory | What it runs or checks |
-|---|---|
-| [`yolo/`](yolo/README.md) | YOLOv8 with the public channel, TensorRT, and image/video visualization |
-| [`demo/`](demo/README.md) | Image processing, visual SLAM, and AprilTag components |
-| [`slam/`](slam/README.md) | NVDEC → CV-CUDA → cuVSLAM on NVIDIA's r2b Galileo dataset |
-| [`manip/`](manip/README.md) | cuMotion GPU IK with an independent forward-kinematics check |
-| [`pose/`](pose/README.md) | Pose-estimation packages and composable components |
-| [`detect/`](detect/README.md) | Object detection components and TensorRT engine creation |
-| [`bench/`](bench/README.md) | NVIDIA's benchmark harness running against the conda packages |
-
-Most of the older check environments still point to `../output`, the local build channel.
-To use published packages instead, replace that channel entry with
-`https://prefix.dev/isaac-forge`, as shown in `yolo/pixi.toml`.
+There are currently 12 x86-only names: `libdcgm`, `nvv4l2`, the four H.264 packages,
+the two PyNITROS packages, the Unitree recorder, the two visual mapping packages, and
+`isaac_ros_visual_slam`. Their vendor payload or test closure is not portable to the generic
+ARM build runner. The other packages, including `isaac_ros_image_proc`, build natively on
+ARM64 rather than being cross-compiled or relabelled from x86_64.
 
 ## Building the packages
 
@@ -173,9 +159,7 @@ scripts/gen_source.py    source-recipe generator
 scripts/gen_repack.py    vendor-package recipe generator
 packages.json            generated Isaac ROS package inventory
 variants.yaml            shared CUDA, Python, and compiler pins
-demo/, slam/, manip/     runnable GPU checks
-pose/, detect/, yolo/    inference and component checks
-bench/                   benchmark harness
+yolo/                    YOLOv8 inference example for x86_64 and Jetson/ARM64
 output/                  local package channel (gitignored)
 ```
 

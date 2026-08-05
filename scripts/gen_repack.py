@@ -3,10 +3,10 @@
 
 One recipe per deb. Each recipe downloads the official deb (pinned by sha256),
 unpacks it into the conda prefix, and rewrites RUNPATHs to be $ORIGIN-relative so
-no activation hook is needed -- unlike demo/, which uses LD_LIBRARY_PATH.
+no activation hook or LD_LIBRARY_PATH override is needed.
 
-    python scripts/gen_repack.py demo/.cache/Packages ros-jazzy-isaac-ros-nitros
-    python scripts/gen_repack.py --closure demo/.cache/Packages ros-jazzy-isaac-ros-visual-slam
+    python scripts/gen_repack.py /path/to/Packages ros-jazzy-isaac-ros-nitros
+    python scripts/gen_repack.py --closure /path/to/Packages ros-jazzy-isaac-ros-visual-slam
 
 With --closure, the full Isaac-side dependency closure of the named targets is
 generated. --exclude skips a package explicitly; packages listed in SOURCE_BUILT and

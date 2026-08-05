@@ -7,7 +7,10 @@ channels = [
   "conda-forge",
 ]
 # The Isaac Forge binaries target Ubuntu 24.04's glibc floor.
-platforms = [{ platform = "linux-64", glibc = "2.38" }]
+platforms = [
+  { platform = "linux-64", glibc = "2.38" },
+  { platform = "linux-aarch64", glibc = "2.38" },
+]
 
 [dependencies]
 python = "3.12.*"
@@ -22,6 +25,8 @@ ros-jazzy-vision-msgs = "*"
 
 # New isaac-forge packages used by the actual pipeline:
 # Image -> CUDA/NITROS tensor -> TensorRT -> YOLOv8 decoder -> Detection2DArray.
+# image_proc supplies the GPU resize/format conversion used by the Jetson launch path.
+ros-jazzy-isaac-ros-image-proc = "4.5.*"
 ros-jazzy-isaac-ros-dnn-image-encoder = "4.5.*"
 ros-jazzy-isaac-ros-tensor-rt = "4.5.*"
 ros-jazzy-isaac-ros-yolov8 = "4.5.*"

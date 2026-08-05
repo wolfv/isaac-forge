@@ -22,7 +22,25 @@ gxf="$(find "${PREFIX}/share" -name '*.so' -path '*gxf*' -printf '%h\n' 2>/dev/n
         sort -u | tr '\n' ':')"
 out="$(LD_LIBRARY_PATH="${gxf}${PREFIX}/lib" ldd "${SO}" 2>&1)"
 
-printf '%s\n' "${out}" | grep -E 'not found' | sed 's/^/    MISSING /' || true
+missing=0
+while IFS= read -r line; do
+  case "${line}" in *'not found'*) ;; *) continue ;; esac
+  soname="$(echo "${line%%=>*}" | tr -d '[:space:]')"
+  # A generic ARM64 CI runner is not a Jetson and therefore has none of the
+  # driver-side JetPack libraries. They are supplied by the Jetson host, just
+  # like libcuda; all other unresolved libraries still fail the test.
+  if [ "$(uname -m)" = aarch64 ]; then
+    case "${soname}" in
+      libcuda.so*|libnv*.so*|libEGL_nvidia.so*|visibility=hidden) continue ;;
+    esac
+  else
+    case "${soname}" in libcuda.so*|libnvidia-*.so*) continue ;; esac
+  fi
+  echo "    MISSING ${line}"
+  missing=$((missing + 1))
+done <<EOF
+${out}
+EOF
 
 leaked=0
 while IFS= read -r line; do
@@ -31,8 +49,8 @@ while IFS= read -r line; do
   path="${line#*=> }"; path="$(echo "${path%% (*}" | tr -d '[:space:]')"
   case "${path}" in /*) ;; *) continue ;; esac
   case "${soname}" in
-    libc.so*|libm.so*|libdl.so*|librt.so*|libpthread.so*|libgcc_s.so*|\
-    libstdc++.so*|ld-linux-x86-64.so*|linux-vdso.so*) continue ;;
+    libc.so*|libm.so*|libmvec.so*|libdl.so*|librt.so*|libpthread.so*|libgcc_s.so*|\
+    libstdc++.so*|ld-linux-x86-64.so*|ld-linux-aarch64.so*|linux-vdso.so*) continue ;;
     # The CUDA driver always comes from the host driver package.
     libcuda.so*|libnvidia-*) continue ;;
   esac
@@ -44,7 +62,7 @@ done <<EOF
 ${out}
 EOF
 
-if [ "${leaked}" -gt 0 ] || printf '%s\n' "${out}" | grep -q 'not found'; then
+if [ "${leaked}" -gt 0 ] || [ "${missing}" -gt 0 ]; then
   echo "FAIL: unresolved or host-leaked dependencies"
   exit 1
 fi

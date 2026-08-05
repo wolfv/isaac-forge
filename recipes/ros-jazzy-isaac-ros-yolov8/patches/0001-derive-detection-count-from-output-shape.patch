@@ -1,0 +1,41 @@
+From 9d7746348d66b9cd7fb59c0781539bb52537cc8e Mon Sep 17 00:00:00 2001
+From: Wolf Vollprecht <w.vollprecht@gmail.com>
+Date: Wed, 5 Aug 2026 15:00:00 +0200
+Subject: [PATCH] Derive detection count from the output tensor shape
+
+The decoder hard-coded the 8400 candidates produced by a 640x640 YOLOv8
+model. Smaller valid exports (for example 320x320, with 2100 candidates)
+therefore read beyond the output buffer and crash. Validate the standard
+[1, classes + 4, candidates] layout and take the candidate count from it.
+---
+ src/yolov8_decoder_node.cpp | 14 ++++++++++++--
+ 1 file changed, 12 insertions(+), 2 deletions(-)
+
+diff --git a/isaac_ros_yolov8/src/yolov8_decoder_node.cpp b/isaac_ros_yolov8/src/yolov8_decoder_node.cpp
+index ea851b1..fc05715 100644
+--- a/isaac_ros_yolov8/src/yolov8_decoder_node.cpp
++++ b/isaac_ros_yolov8/src/yolov8_decoder_node.cpp
+@@ -104,8 +104,18 @@ void YoloV8DecoderNode::InputCallback(
+   std::vector<int> indices;
+   std::vector<int> classes;
+ 
+-  //  Output dimensions = [1, 84, 8400]
+-  int out_dim = 8400;
++  // Standard YOLOv8 output dimensions are [1, classes + 4, candidates].
++  // The candidate count depends on the network resolution: 8400 at 640x640,
++  // 2100 at 320x320, and so on.
++  const std::vector<int32_t> output_shape = input_tensor->shape().dims();
++  if (output_shape.size() != 3 || output_shape[0] != 1 ||
++    output_shape[1] != num_classes_ + 4 || output_shape[2] <= 0)
++  {
++    RCLCPP_ERROR(get_logger(),
++      "[YoloV8DecoderNode] Expected output shape [1, %ld, candidates], got %zu dimensions",
++      num_classes_ + 4, output_shape.size());
++    return;
++  }
++  const int out_dim = output_shape[2];
+   float * results_data = reinterpret_cast<float *>(results_vector.data());
+ 
+   for (int i = 0; i < out_dim; i++) {
+-- 
+2.51.0

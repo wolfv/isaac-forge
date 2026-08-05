@@ -1041,6 +1041,15 @@ PATCHES = {
         "patches/0001-tensor-rt-is-a-runtime-dependency.patch"],
     "ros-jazzy-isaac-ros-centerpose": [
         "patches/0001-tensor-rt-and-triton-are-runtime-dependencies.patch"],
+    # The decoder hard-codes 8400 candidates (the 640x640 output shape), reads past a
+    # smaller model's tensor, and segfaults. Derive that dimension from the tensor.
+    "ros-jazzy-isaac-ros-yolov8": [
+        "patches/0001-derive-detection-count-from-output-shape.patch"],
+}
+
+# Build-number bumps that must survive recipe regeneration.
+BUILD_NUMBERS = {
+    "ros-jazzy-isaac-ros-yolov8": 1,
 }
 
 # Files a package must ship beyond share/<pkg>/package.xml, checked declaratively at the
@@ -1508,7 +1517,7 @@ source:
     target_directory: src{patch_block}
 
 build:
-  number: 0
+  number: {BUILD_NUMBERS.get(name, 0)}
   script:
     - export AMENT_PREFIX_PATH="${{PREFIX}}${{AMENT_PREFIX_PATH:+:${{AMENT_PREFIX_PATH}}}}"
     - cd src/{path}
@@ -1724,7 +1733,7 @@ source:
     target_directory: src
 {patch_block}{extra_sources}
 build:
-  number: 0
+  number: {BUILD_NUMBERS.get(name, 0)}
   script:
     - export AMENT_PREFIX_PATH="${{PREFIX}}${{AMENT_PREFIX_PATH:+:${{AMENT_PREFIX_PATH}}}}"
     - export CMAKE_PREFIX_PATH="${{PREFIX}}${{CMAKE_PREFIX_PATH:+:${{CMAKE_PREFIX_PATH}}}}"{magic_enum_include}

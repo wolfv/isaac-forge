@@ -22,21 +22,22 @@ import rerun as rr
 from sensor_msgs.msg import CameraInfo, Image
 from vision_msgs.msg import Detection2DArray
 
-WIDTH = 640
-HEIGHT = 640
+# YOLOv8n is already Ultralytics' smallest model. Use its 320x320 export to cut
+# TensorRT activation/tactic memory substantially on memory-constrained Orin Nano.
+WIDTH = 320
+HEIGHT = 320
 CACHE = Path(__file__).resolve().parent / ".cache"
-MODEL = CACHE / "yolov8n.onnx"
-ENGINE = CACHE / "yolov8n.plan"
+MODEL = CACHE / "yolov8n-320.onnx"
+ENGINE = CACHE / "yolov8n-320.plan"
 INPUT_IMAGE = CACHE / "bus.jpg"
 RESULT_IMAGE = CACHE / "yolov8_result.png"
 RECORDING = CACHE / "yolov8_result.rrd"
 
 # This is an Ultralytics 8.2.67 export of the official COCO YOLOv8n weights.
 MODEL_URL = (
-    "https://huggingface.co/salim4n/yolov8n-detect-onnx/resolve/main/"
-    "yolov8n-onnx-web/yolov8n.onnx"
+    "https://huggingface.co/flightsnotights/yolov8n_onnx/resolve/main/yolov8n.onnx"
 )
-MODEL_SHA256 = "162ec5e9d2886fc411e4b81811c731e81a72c8f85571de1e0ab040833d92d4f2"
+MODEL_SHA256 = "0180037abbc2697e289ad5bdf0a31eaae4c0f9da9e44f455fccab776b1a6a185"
 IMAGE_URL = "https://ultralytics.com/images/bus.jpg"
 IMAGE_SHA256 = "c02019c4979c191eb739ddd944445ef408dad5679acab6fd520ef9d434bfbc63"
 
@@ -119,8 +120,10 @@ class Demo(Node):
         info.height = HEIGHT
         info.width = WIDTH
         info.distortion_model = "plumb_bob"
-        info.k = [500.0, 0.0, 320.0, 0.0, 500.0, 320.0, 0.0, 0.0, 1.0]
-        info.p = [500.0, 0.0, 320.0, 0.0, 0.0, 500.0, 320.0, 0.0, 0.0, 0.0, 1.0, 0.0]
+        focal = float(WIDTH)
+        cx, cy = WIDTH / 2.0, HEIGHT / 2.0
+        info.k = [focal, 0.0, cx, 0.0, focal, cy, 0.0, 0.0, 1.0]
+        info.p = [focal, 0.0, cx, 0.0, 0.0, focal, cy, 0.0, 0.0, 0.0, 1.0, 0.0]
         self.image_pub.publish(image)
         self.info_pub.publish(info)
 
@@ -209,10 +212,10 @@ def main() -> int:
         "ros2", "launch", "isaac_ros_yolov8", "yolov8_tensor_rt.launch.py",
         f"model_file_path:={MODEL}",
         f"engine_file_path:={ENGINE}",
-        "input_image_width:=640",
-        "input_image_height:=640",
-        "network_image_width:=640",
-        "network_image_height:=640",
+        f"input_image_width:={WIDTH}",
+        f"input_image_height:={HEIGHT}",
+        f"network_image_width:={WIDTH}",
+        f"network_image_height:={HEIGHT}",
         "image_mean:=[0.0,0.0,0.0]",
         # ImageToTensorNode already scales uint8 pixels to [0, 1]. YOLOv8 expects
         # that range directly, so applying another /255 here suppresses every box.

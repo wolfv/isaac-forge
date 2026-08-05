@@ -17,9 +17,11 @@ source:
   - url: https://github.com/NVIDIA-ISAAC-ROS/isaac_ros_object_detection/archive/refs/tags/v4.5-0.tar.gz
     sha256: 349b78dcdbd22c019f982d343c65bd690d4affcdf8aca85183b1505943962098
     target_directory: src
+    patches:
+      - patches/0001-derive-detection-count-from-output-shape.patch
 
 build:
-  number: 0
+  number: 1
   script:
     - export AMENT_PREFIX_PATH="${PREFIX}${AMENT_PREFIX_PATH:+:${AMENT_PREFIX_PATH}}"
     - export CMAKE_PREFIX_PATH="${PREFIX}${CMAKE_PREFIX_PATH:+:${CMAKE_PREFIX_PATH}}"

@@ -36,7 +36,7 @@ SAMPLE_VIDEO_SHA256 = "452b11b7e0efbd019f1d9570d0c790e90416ad4ad29eec6003872d084
 
 
 def letterbox(frame: np.ndarray) -> np.ndarray:
-    """Convert a BGR frame to a 640x640 RGB YOLO input without stretching it."""
+    """Convert a BGR frame to the compact RGB YOLO input without stretching it."""
     height, width = frame.shape[:2]
     scale = min(WIDTH / width, HEIGHT / height)
     resized = cv2.resize(
@@ -76,8 +76,10 @@ class VideoDemo(Node):
         info.height = HEIGHT
         info.width = WIDTH
         info.distortion_model = "plumb_bob"
-        info.k = [500.0, 0.0, 320.0, 0.0, 500.0, 320.0, 0.0, 0.0, 1.0]
-        info.p = [500.0, 0.0, 320.0, 0.0, 0.0, 500.0, 320.0, 0.0, 0.0, 0.0, 1.0, 0.0]
+        focal = float(WIDTH)
+        cx, cy = WIDTH / 2.0, HEIGHT / 2.0
+        info.k = [focal, 0.0, cx, 0.0, focal, cy, 0.0, 0.0, 1.0]
+        info.p = [focal, 0.0, cx, 0.0, 0.0, focal, cy, 0.0, 0.0, 0.0, 1.0, 0.0]
         self.image_pub.publish(image)
         self.info_pub.publish(info)
         return stamp.sec, stamp.nanosec
@@ -184,8 +186,8 @@ def main() -> int:
     command = [
         "ros2", "launch", "isaac_ros_yolov8", "yolov8_tensor_rt.launch.py",
         f"model_file_path:={MODEL}", f"engine_file_path:={ENGINE}",
-        "input_image_width:=640", "input_image_height:=640",
-        "network_image_width:=640", "network_image_height:=640",
+        f"input_image_width:={WIDTH}", f"input_image_height:={HEIGHT}",
+        f"network_image_width:={WIDTH}", f"network_image_height:={HEIGHT}",
         "image_mean:=[0.0,0.0,0.0]", "image_stddev:=[1.0,1.0,1.0]",
         "input_binding_names:=[images]", "output_binding_names:=[output0]",
         "input_tensor_names:=[input_tensor]", "output_tensor_names:=[output_tensor]",

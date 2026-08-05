@@ -75,27 +75,32 @@ for f in libnvinfer.so.10 libnvinfer_plugin.so.10 libnvonnxparser.so.10; do
 done
 echo "  verified: shared objects are byte-identical to the NVIDIA source payload"
 
-# Do not infer GPU support from an aarch64 filename. Verify the SBSA deb's actual
-# fatbin inventory for the Orin variant: compute_86 PTX is forward-compatible with
-# SM87 and is JIT-compiled by the CUDA driver. Native sm_86 cubins alone would not
-# establish that. Match the recipe-pinned SBSA source hash rather than relying on
-# the build host to export an arbitrary variant key into this script.
-SM87_DEB_SHA256="9735db4e06f2d64d8847f207c991cf76724416da23314b30f201c14cc5d78f29"
-if [ "$(sha256sum "${SRC_DIR}/libnvinfer10.deb" | awk '{print $1}')" = "${SM87_DEB_SHA256}" ]; then
+# Do not infer GPU support from a Jetson repository name. Match the pinned r39.2
+# runtime deb, then verify native SM87 SASS in both CUDA-bearing libraries.
+ORIN_DEB_SHA256="d02111e3600d91bef407fe537a4179445cdc73fb259bf1f83dd256804de1897e"
+is_orin=0
+if [ "$(sha256sum "${SRC_DIR}/libnvinfer10.deb" | awk '{print $1}')" = "${ORIN_DEB_SHA256}" ]; then
+  is_orin=1
   for lib in libnvinfer.so.10 libnvinfer_plugin.so.10; do
-    cuobjdump --list-ptx "${PREFIX}/lib/${lib}" > "${SRC_DIR}/${lib}.ptx-list"
-    grep -q 'sm_86.ptx' "${SRC_DIR}/${lib}.ptx-list" || {
-      echo "FAIL: ${lib} has no SM87-compatible compute_86 PTX"; exit 1;
+    cuobjdump --list-elf "${PREFIX}/lib/${lib}" > "${SRC_DIR}/${lib}.elf-list"
+    grep -q 'sm_87.cubin' "${SRC_DIR}/${lib}.elf-list" || {
+      echo "FAIL: ${lib} has no native SM87 cubin"; exit 1;
     }
   done
-  echo "  verified: runtime and plugin contain compute_86 PTX for SM87"
+  echo "  verified: runtime and plugin contain native SM87 SASS"
 fi
 
-# The dlopen'd builder resource is the bulk of the package and is invisible to every ELF
-# check, so confirm it arrived. Without it TensorRT loads and then fails the first time it
-# is asked to build an engine from ONNX -- which is all isaac_ros_tensor_rt does.
-ls -1 "${PREFIX}/lib"/libnvinfer_builder_resource.so.* >/dev/null || {
-  echo "FAIL: libnvinfer_builder_resource.so.* missing"; exit 1; }
+# Builder resources are dlopen'd rather than linked, so confirm they arrived. TensorRT
+# 10.13 uses one monolithic file; 10.16 splits it by GPU family plus a PTX fallback.
+if [ "${is_orin}" = 1 ]; then
+  test -f "${PREFIX}/lib/libnvinfer_builder_resource_sm86.so.10.16.2" || {
+    echo "FAIL: Orin builder resource missing"; exit 1; }
+  test -f "${PREFIX}/lib/libnvinfer_builder_resource_ptx.so.10.16.2" || {
+    echo "FAIL: PTX builder resource missing"; exit 1; }
+else
+  ls -1 "${PREFIX}/lib"/libnvinfer_builder_resource.so.* >/dev/null || {
+    echo "FAIL: libnvinfer_builder_resource.so.* missing"; exit 1; }
+fi
 
 # The Windows builder resource ships in its own deb (libnvinfer-win-builder-resource10),
 # which this recipe does not fetch -- assert it did not arrive by another route, since it

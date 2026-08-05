@@ -1,6 +1,6 @@
 schema_version: 1
 
-# NVIDIA TensorRT 10.13.3.9, repacked from the official CUDA apt repositories.
+# NVIDIA TensorRT 10, repacked from the official CUDA and Jetson apt repositories.
 #
 # This is what `isaac_ros_tensor_rt` needs, and through it every DNN inference pipeline
 # in Isaac ROS: RT-DETR, YOLOv8, DetectNet, Grounding DINO, DOPE, CenterPose, ESS depth
@@ -15,12 +15,11 @@ schema_version: 1
 # ---------------------------------------------------------------------------
 # Why deb sources, and not the tarball or Python wheel
 # ---------------------------------------------------------------------------
-# NVIDIA publishes both CUDA 13 SBSA debs and a broad aarch64 Python wheel. Direct
-# cuobjdump inspection established that the SBSA runtime and plugin both contain
-# compute_86 PTX, which the CUDA driver can JIT for Orin's SM87. The recipe verifies
-# that property rather than inferring GPU support from an aarch64 filename. Since
-# the deb has the required payload, using debs for every platform keeps this recipe
-# smaller and homogeneous and provides the headers without mixing distributions.
+# NVIDIA's generic CUDA 13 aarch64 artifacts are SBSA builds, not native Jetson
+# builds. The r39.2 Jetson-common repository supplies TensorRT 10.16.2 for CUDA 13.2;
+# direct cuobjdump inspection found 55 native SM87 cubins in libnvinfer and 63 in
+# libnvinfer_plugin. The Orin variant therefore uses that payload and verifies the
+# actual SASS inventory rather than inferring support from an aarch64 filename.
 #
 # conda-forge staged-recipes#29445 builds from
 # TensorRT-<v>.Linux.x86_64-gnu.cuda-<x>.tar.gz. That tarball is **6.18 GB** and
@@ -35,7 +34,7 @@ schema_version: 1
 # nothing here links statically.
 #
 # ---------------------------------------------------------------------------
-# Why 10.13.3.9 + cuda13.0, and not the 10.9.0.34 + cuda12.8 that Isaac ships against
+# Why CUDA 13 TensorRT, not the 10.9.0.34 + cuda12.8 that Isaac ships against
 # ---------------------------------------------------------------------------
 # NVIDIA's own libnvinfer10 deb for Isaac ROS 4.5 is 10.9.0.34-1+cuda12.8, and README.md
 # notes the oddity: the rest of Isaac ROS 4.5 is CUDA 13 while its TensorRT is the CUDA
@@ -48,13 +47,11 @@ schema_version: 1
 # environment. So a cuda-12.8 TensorRT is not installable next to the rest of the stack;
 # it is not a compatibility judgement, the environment simply does not solve.
 #
-# 10.13.3.9 is the same TensorRT major, so the soname is unchanged -- libnvinfer.so.10,
-# exactly what Isaac's own binaries and `find_trt_library(nvinfer)` look for -- and NVIDIA
-# publishes it built against CUDA 13.0. That makes it the one choice that satisfies both
-# ends. What we give up is bit-for-bit parity with the TensorRT NVIDIA tested Isaac ROS
-# 4.5 against, and that is worth knowing: an engine plan built by 10.13 will not load in
-# 10.9 and vice versa, so anyone mixing this channel with NVIDIA's own debs should expect
-# to rebuild their .plan files.
+# TensorRT 10 keeps the libnvinfer.so.10 soname expected by Isaac's binaries while
+# NVIDIA publishes CUDA 13 builds for every target. Workstations and Thor use 10.13.3;
+# Orin uses the native r39.2 10.16.2 build because the generic ARM artifact lacks SM87
+# SASS. Engine plans are not portable between these releases, so users must rebuild
+# rather than moving .plan files between this channel and NVIDIA's 10.9 installation.
 #
 # ---------------------------------------------------------------------------
 # What is in the package
@@ -63,23 +60,21 @@ schema_version: 1
 # find_library for nvinfer, nvinfer_plugin and nvonnxparser, then builds three imported
 # targets. All six inputs are here.
 #
-# libnvinfer_builder_resource.so is 1.3 GB of the 1.4 GB and is not optional: libnvinfer
-# dlopens it whenever it *builds* an engine, which is precisely what isaac_ros_tensor_rt
-# does with the ONNX models the *_models_install packages fetch. Dropping it would give a
-# package that loads and then fails the moment it is asked to do its job.
+# The builder resources are most of the package and are not optional: libnvinfer dlopens
+# them whenever it builds an engine, precisely what isaac_ros_tensor_rt does with ONNX
+# models. TensorRT 10.13 has one monolithic resource; 10.16 splits it by GPU family.
 
 context:
-  version: "10.13.3.9"
-  # The soname triple as it appears in the file names (libnvinfer.so.10.13.3). Spelled
-  # out rather than derived: rattler-build's jinja has no string .split(), so
-  # `version.split('.')[:3] | join('.')` renders as "unknown method: string has no
-  # method named split" -- and only at test time, after a two-minute build.
-  lib_version: "10.13.3"
-  deb_version: "10.13.3.9-1+cuda13.0"
+  # Orin on JetPack 7/r39 needs NVIDIA's native Tegra build. Other platforms stay on
+  # 10.13.3 to avoid an unnecessary ABI change.
+  version: ${{ "10.16.2.10" if target_platform == "linux-aarch64" and tensorrt_flavor == "orin" else "10.13.3.9" }}
+  # The soname triple as it appears in the file names. Spelled out rather than derived:
+  # rattler-build's jinja has no string .split().
+  lib_version: ${{ "10.16.2" if target_platform == "linux-aarch64" and tensorrt_flavor == "orin" else "10.13.3" }}
+  deb_version: ${{ "10.16.2.10-1+cuda13.2" if target_platform == "linux-aarch64" and tensorrt_flavor == "orin" else "10.13.3.9-1+cuda13.0" }}
   deb_arch: ${{ "arm64" if target_platform == "linux-aarch64" else "amd64" }}
-  # CUDA 13 has two ARM payloads: Jetson-common r38 for native Thor and the broad
-  # SBSA build whose compute_86 PTX provides the verified Orin SM87 path.
-  pool: ${{ "https://developer.download.nvidia.com/compute/cuda/repos/ubuntu2404/sbsa" if target_platform == "linux-aarch64" and tensorrt_flavor == "orin" else "https://repo.download.nvidia.com/jetson/common/pool/main/t/tensorrt" if target_platform == "linux-aarch64" else "https://developer.download.nvidia.com/compute/cuda/repos/ubuntu2404/x86_64" }}
+  pool: ${{ "https://repo.download.nvidia.com/jetson/common/pool/main/t/tensorrt" if target_platform == "linux-aarch64" else "https://developer.download.nvidia.com/compute/cuda/repos/ubuntu2404/x86_64" }}
+  build_number: ${{ 0 if target_platform == "linux-aarch64" and tensorrt_flavor == "orin" else 2 }}
 
 package:
   name: tensorrt
@@ -90,27 +85,27 @@ source:
   # does that with bsdtar, the same way recipes/vpi does.
   - url: ${{ pool }}/libnvinfer10_${{ deb_version }}_${{ deb_arch }}.deb
     file_name: libnvinfer10.deb
-    sha256: ${{ "9735db4e06f2d64d8847f207c991cf76724416da23314b30f201c14cc5d78f29" if target_platform == "linux-aarch64" and tensorrt_flavor == "orin" else "c153dd67175d12661437d5bc9b573344467bc716c03133bc77ed1befa820eac6" if target_platform == "linux-aarch64" else "bc99693fa55a62afc193b32b1eecb18006393ff2959d95a737683b6c238ab546" }}
+    sha256: ${{ "d02111e3600d91bef407fe537a4179445cdc73fb259bf1f83dd256804de1897e" if target_platform == "linux-aarch64" and tensorrt_flavor == "orin" else "c153dd67175d12661437d5bc9b573344467bc716c03133bc77ed1befa820eac6" if target_platform == "linux-aarch64" else "bc99693fa55a62afc193b32b1eecb18006393ff2959d95a737683b6c238ab546" }}
   - url: ${{ pool }}/libnvinfer-plugin10_${{ deb_version }}_${{ deb_arch }}.deb
     file_name: libnvinfer-plugin10.deb
-    sha256: ${{ "d5435886ec8c5757e0cf0d5f805cbec96849a2d0a01265b25ed58726bd907bd6" if target_platform == "linux-aarch64" and tensorrt_flavor == "orin" else "0af6f955b17da27fc94284cdd39a67b6702452bc8bc8587f9f6a63be58ca1f71" if target_platform == "linux-aarch64" else "7a40cdf6618b7e25f716554d0804632677e46df3503e5d8dfa50c62940f8517f" }}
+    sha256: ${{ "a19ba2f43860e768045947f59a63fecd1464feeba353bfb6a096985b3a634710" if target_platform == "linux-aarch64" and tensorrt_flavor == "orin" else "0af6f955b17da27fc94284cdd39a67b6702452bc8bc8587f9f6a63be58ca1f71" if target_platform == "linux-aarch64" else "7a40cdf6618b7e25f716554d0804632677e46df3503e5d8dfa50c62940f8517f" }}
   - url: ${{ pool }}/libnvonnxparsers10_${{ deb_version }}_${{ deb_arch }}.deb
     file_name: libnvonnxparsers10.deb
-    sha256: ${{ "7def3506a3f2f70353d7de425a1fa27b939ed29700355f25bba0b730b3d80e0c" if target_platform == "linux-aarch64" and tensorrt_flavor == "orin" else "64c34bd51d057c048baa7c055ab676e20bb30100f3d63d3eb0ef3032d6686d4f" if target_platform == "linux-aarch64" else "1d4d48eca9ba5eafb2c48e1f62b0631194ac43967577666ed24b36b95d64184e" }}
+    sha256: ${{ "f146cbcc4d5d0d29f2c0123dd6a4b16ed1159eff27d03beeab27bbe9a766bff8" if target_platform == "linux-aarch64" and tensorrt_flavor == "orin" else "64c34bd51d057c048baa7c055ab676e20bb30100f3d63d3eb0ef3032d6686d4f" if target_platform == "linux-aarch64" else "1d4d48eca9ba5eafb2c48e1f62b0631194ac43967577666ed24b36b95d64184e" }}
   # Headers, in three packages. NvInferVersion.h is the one FindTENSORRT.cmake searches
   # for; NvInferPluginUtils.h is included directly by tensor_rt_node.cpp.
   - url: ${{ pool }}/libnvinfer-headers-dev_${{ deb_version }}_${{ deb_arch }}.deb
     file_name: libnvinfer-headers-dev.deb
-    sha256: ${{ "483deba5a9cab0bb08acd96aeddbf0ea821c950d23ef5b23b7dfa9144678a20a" if target_platform == "linux-aarch64" and tensorrt_flavor == "orin" else "61baa587776b5a074fc4bc794836b32c3fb4d0573ce7610389fc65f58ac0336b" if target_platform == "linux-aarch64" else "ddc5a6f2bc72e572141cf9f117604fe07ec0d01a59edfb411decdaa780dc4b08" }}
+    sha256: ${{ "6208dbba5dc7fd04ca1bca71a3dcaed6642cb08765edbfcc10996b52844b2ec9" if target_platform == "linux-aarch64" and tensorrt_flavor == "orin" else "61baa587776b5a074fc4bc794836b32c3fb4d0573ce7610389fc65f58ac0336b" if target_platform == "linux-aarch64" else "ddc5a6f2bc72e572141cf9f117604fe07ec0d01a59edfb411decdaa780dc4b08" }}
   - url: ${{ pool }}/libnvinfer-headers-plugin-dev_${{ deb_version }}_${{ deb_arch }}.deb
     file_name: libnvinfer-headers-plugin-dev.deb
-    sha256: ${{ "b1ff80a7e3a57f60d2645816570edc766a037fc8f76e2f16d2b7784b56306b0f" if target_platform == "linux-aarch64" and tensorrt_flavor == "orin" else "8e66fb552c748f7c890cf69eb7596d4a42ab48f916dfbc2036987a79aab43cd5" if target_platform == "linux-aarch64" else "a6b9d2f8adec9b158ba44cd6bd154cafcf4b4597f35ccc18b0093396218e1479" }}
+    sha256: ${{ "951ebb46c7a33ff71dca064e62fab19c8ebdc4b895aa14027e6907113aa3e928" if target_platform == "linux-aarch64" and tensorrt_flavor == "orin" else "8e66fb552c748f7c890cf69eb7596d4a42ab48f916dfbc2036987a79aab43cd5" if target_platform == "linux-aarch64" else "a6b9d2f8adec9b158ba44cd6bd154cafcf4b4597f35ccc18b0093396218e1479" }}
   - url: ${{ pool }}/libnvonnxparsers-dev_${{ deb_version }}_${{ deb_arch }}.deb
     file_name: libnvonnxparsers-dev.deb
-    sha256: ${{ "965f83a6885d6a9df57103574f763a19f9be792b12c8fb085a4f973adec7057d" if target_platform == "linux-aarch64" and tensorrt_flavor == "orin" else "c6345331c14119f0bd236b74c82dc967fdd6f9a55f489f626423b3d9268cdb55" if target_platform == "linux-aarch64" else "1efba486fcf795f4ebbb802ed3cf5e999ca6e75caed25c90b4920265e5ccc43e" }}
+    sha256: ${{ "53bcf84f06c20f2b171379db79389d6680775a94c761b57ea7480134d0c038a7" if target_platform == "linux-aarch64" and tensorrt_flavor == "orin" else "c6345331c14119f0bd236b74c82dc967fdd6f9a55f489f626423b3d9268cdb55" if target_platform == "linux-aarch64" else "1efba486fcf795f4ebbb802ed3cf5e999ca6e75caed25c90b4920265e5ccc43e" }}
 
 build:
-  number: 2
+  number: ${{ build_number }}
   # There is only one x86 payload; the second flavor is ARM-only.
   skip: target_platform != "linux-aarch64" and tensorrt_flavor == "orin"
   script: build.sh
@@ -129,7 +124,7 @@ build:
 requirements:
   build:
     - libarchive          # bsdtar reads .deb (ar) archives
-    - cuda-cuobjdump      # prove that the Orin SBSA deb contains forward-compatible PTX
+    - cuda-cuobjdump      # prove that the native Orin deb contains SM87 SASS
   run:
     # Ubuntu 24.04 build, so the binaries reference GLIBC_2.38.
     - __glibc >=2.38
@@ -166,7 +161,7 @@ tests:
   # than linked, so nothing about the ELF metadata would notice if it went missing, and
   # the failure would surface only when a node first tries to build an engine.
   - script:
-      - test -f "${PREFIX}/lib/libnvinfer_builder_resource.so.${{ lib_version }}"
+      - find "${PREFIX}/lib" -maxdepth 1 -name 'libnvinfer_builder_resource*.so.*' -print -quit | grep -q .
       - python -c "import ctypes; ctypes.CDLL('libnvinfer.so.10')"
     requirements:
       run:

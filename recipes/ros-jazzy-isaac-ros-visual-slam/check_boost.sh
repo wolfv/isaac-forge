@@ -36,8 +36,8 @@ while IFS= read -r line; do
   case "${path}" in /*) ;; *) continue ;; esac
   # ld.so and the libc/toolchain family always come from the host.
   case "${soname}" in
-    libc.so*|libm.so*|libdl.so*|librt.so*|libpthread.so*|libgcc_s.so*|\
-    libstdc++.so*|ld-linux-x86-64.so*|linux-vdso.so*) continue ;;
+    libc.so*|libm.so*|libmvec.so*|libdl.so*|librt.so*|libpthread.so*|libgcc_s.so*|\
+    libstdc++.so*|ld-linux-x86-64.so*|ld-linux-aarch64.so*|linux-vdso.so*) continue ;;
     # The CUDA driver is installed by the host driver package, never by conda.
     libcuda.so*|libnvidia-*) continue ;;
   esac

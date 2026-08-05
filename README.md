@@ -26,7 +26,8 @@ channels = [
 ]
 platforms = [
   { platform = "linux-64", glibc = "2.38" },
-  { platform = "linux-aarch64", glibc = "2.38" },
+  # JetPack 7 on Orin Nano (SM87)
+  { platform = "linux-aarch64", glibc = "2.38", cuda = { driver = "13", arch = "8.7" } },
 ]
 
 [dependencies]
@@ -46,10 +47,10 @@ pixi run ros2 pkg prefix isaac_ros_yolov8
 pixi run ros2 component types | grep -E 'TensorRTNode|YoloV8DecoderNode'
 ```
 
-On a Jetson, Pixi selects the `linux-aarch64` environment. The packages target the Ubuntu
-24.04 glibc floor (`2.38`) and the CUDA 13 stack, so GPU workloads also need a compatible
-NVIDIA driver. Pixi installs the user-space CUDA libraries; it does not install the host
-driver.
+On an Orin Jetson, Pixi selects the `linux-aarch64` environment and uses the declared SM87
+compute capability to choose the Orin TensorRT build. The packages target the Ubuntu 24.04
+glibc floor (`2.38`) and the CUDA 13 stack, so GPU workloads also need a compatible NVIDIA
+driver. Pixi installs the user-space CUDA libraries; it does not install the host driver.
 
 Package names follow the usual RoboStack convention: the ROS package
 `isaac_ros_visual_slam`, for example, is named

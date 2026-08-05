@@ -70,7 +70,9 @@ context:
   lib_version: "10.13.3"
   deb_version: "10.13.3.9-1+cuda13.0"
   deb_arch: ${{ "arm64" if target_platform == "linux-aarch64" else "amd64" }}
-  pool: ${{ "https://repo.download.nvidia.com/jetson/common/pool/main/t/tensorrt" if target_platform == "linux-aarch64" else "https://developer.download.nvidia.com/compute/cuda/repos/ubuntu2404/x86_64" }}
+  # CUDA 13 has two different ARM payloads. Jetson-common r38 is the native Thor
+  # build, while NVIDIA's SBSA build retains SM87 support for Orin on JetPack 7.
+  pool: ${{ "https://developer.download.nvidia.com/compute/cuda/repos/ubuntu2404/sbsa" if target_platform == "linux-aarch64" and tensorrt_flavor == "orin" else "https://repo.download.nvidia.com/jetson/common/pool/main/t/tensorrt" if target_platform == "linux-aarch64" else "https://developer.download.nvidia.com/compute/cuda/repos/ubuntu2404/x86_64" }}
 
 package:
   name: tensorrt
@@ -81,27 +83,29 @@ source:
   # does that with bsdtar, the same way recipes/vpi does.
   - url: ${{ pool }}/libnvinfer10_${{ deb_version }}_${{ deb_arch }}.deb
     file_name: libnvinfer10.deb
-    sha256: ${{ "c153dd67175d12661437d5bc9b573344467bc716c03133bc77ed1befa820eac6" if target_platform == "linux-aarch64" else "bc99693fa55a62afc193b32b1eecb18006393ff2959d95a737683b6c238ab546" }}
+    sha256: ${{ "9735db4e06f2d64d8847f207c991cf76724416da23314b30f201c14cc5d78f29" if target_platform == "linux-aarch64" and tensorrt_flavor == "orin" else "c153dd67175d12661437d5bc9b573344467bc716c03133bc77ed1befa820eac6" if target_platform == "linux-aarch64" else "bc99693fa55a62afc193b32b1eecb18006393ff2959d95a737683b6c238ab546" }}
   - url: ${{ pool }}/libnvinfer-plugin10_${{ deb_version }}_${{ deb_arch }}.deb
     file_name: libnvinfer-plugin10.deb
-    sha256: ${{ "0af6f955b17da27fc94284cdd39a67b6702452bc8bc8587f9f6a63be58ca1f71" if target_platform == "linux-aarch64" else "7a40cdf6618b7e25f716554d0804632677e46df3503e5d8dfa50c62940f8517f" }}
+    sha256: ${{ "d5435886ec8c5757e0cf0d5f805cbec96849a2d0a01265b25ed58726bd907bd6" if target_platform == "linux-aarch64" and tensorrt_flavor == "orin" else "0af6f955b17da27fc94284cdd39a67b6702452bc8bc8587f9f6a63be58ca1f71" if target_platform == "linux-aarch64" else "7a40cdf6618b7e25f716554d0804632677e46df3503e5d8dfa50c62940f8517f" }}
   - url: ${{ pool }}/libnvonnxparsers10_${{ deb_version }}_${{ deb_arch }}.deb
     file_name: libnvonnxparsers10.deb
-    sha256: ${{ "64c34bd51d057c048baa7c055ab676e20bb30100f3d63d3eb0ef3032d6686d4f" if target_platform == "linux-aarch64" else "1d4d48eca9ba5eafb2c48e1f62b0631194ac43967577666ed24b36b95d64184e" }}
+    sha256: ${{ "7def3506a3f2f70353d7de425a1fa27b939ed29700355f25bba0b730b3d80e0c" if target_platform == "linux-aarch64" and tensorrt_flavor == "orin" else "64c34bd51d057c048baa7c055ab676e20bb30100f3d63d3eb0ef3032d6686d4f" if target_platform == "linux-aarch64" else "1d4d48eca9ba5eafb2c48e1f62b0631194ac43967577666ed24b36b95d64184e" }}
   # Headers, in three packages. NvInferVersion.h is the one FindTENSORRT.cmake searches
   # for; NvInferPluginUtils.h is included directly by tensor_rt_node.cpp.
   - url: ${{ pool }}/libnvinfer-headers-dev_${{ deb_version }}_${{ deb_arch }}.deb
     file_name: libnvinfer-headers-dev.deb
-    sha256: ${{ "61baa587776b5a074fc4bc794836b32c3fb4d0573ce7610389fc65f58ac0336b" if target_platform == "linux-aarch64" else "ddc5a6f2bc72e572141cf9f117604fe07ec0d01a59edfb411decdaa780dc4b08" }}
+    sha256: ${{ "483deba5a9cab0bb08acd96aeddbf0ea821c950d23ef5b23b7dfa9144678a20a" if target_platform == "linux-aarch64" and tensorrt_flavor == "orin" else "61baa587776b5a074fc4bc794836b32c3fb4d0573ce7610389fc65f58ac0336b" if target_platform == "linux-aarch64" else "ddc5a6f2bc72e572141cf9f117604fe07ec0d01a59edfb411decdaa780dc4b08" }}
   - url: ${{ pool }}/libnvinfer-headers-plugin-dev_${{ deb_version }}_${{ deb_arch }}.deb
     file_name: libnvinfer-headers-plugin-dev.deb
-    sha256: ${{ "8e66fb552c748f7c890cf69eb7596d4a42ab48f916dfbc2036987a79aab43cd5" if target_platform == "linux-aarch64" else "a6b9d2f8adec9b158ba44cd6bd154cafcf4b4597f35ccc18b0093396218e1479" }}
+    sha256: ${{ "b1ff80a7e3a57f60d2645816570edc766a037fc8f76e2f16d2b7784b56306b0f" if target_platform == "linux-aarch64" and tensorrt_flavor == "orin" else "8e66fb552c748f7c890cf69eb7596d4a42ab48f916dfbc2036987a79aab43cd5" if target_platform == "linux-aarch64" else "a6b9d2f8adec9b158ba44cd6bd154cafcf4b4597f35ccc18b0093396218e1479" }}
   - url: ${{ pool }}/libnvonnxparsers-dev_${{ deb_version }}_${{ deb_arch }}.deb
     file_name: libnvonnxparsers-dev.deb
-    sha256: ${{ "c6345331c14119f0bd236b74c82dc967fdd6f9a55f489f626423b3d9268cdb55" if target_platform == "linux-aarch64" else "1efba486fcf795f4ebbb802ed3cf5e999ca6e75caed25c90b4920265e5ccc43e" }}
+    sha256: ${{ "965f83a6885d6a9df57103574f763a19f9be792b12c8fb085a4f973adec7057d" if target_platform == "linux-aarch64" and tensorrt_flavor == "orin" else "c6345331c14119f0bd236b74c82dc967fdd6f9a55f489f626423b3d9268cdb55" if target_platform == "linux-aarch64" else "1efba486fcf795f4ebbb802ed3cf5e999ca6e75caed25c90b4920265e5ccc43e" }}
 
 build:
-  number: 0
+  number: 1
+  # There is only one x86 payload; the second flavor is ARM-only.
+  skip: target_platform != "linux-aarch64" and tensorrt_flavor == "orin"
   script: build.sh
   dynamic_linking:
     # NVIDIA's binaries are installed untouched -- no RPATH rewriting, no relinking, so
@@ -131,6 +135,11 @@ requirements:
     - cuda-version 13.*
     - cuda-cudart
     - libcublas
+  # Select the correct CUDA 13 ARM binary when the machine advertises a GPU
+  # compute capability. Keep this a constraint rather than a hard dependency so
+  # packages can still be built and inspected on GPU-less ARM CI runners.
+  run_constraints:
+    - ${{ "__cuda_arch >=8.7,<8.8" if target_platform == "linux-aarch64" and tensorrt_flavor == "orin" else "__cuda_arch >=11" if target_platform == "linux-aarch64" else "__unix" }}
 
 tests:
   - package_contents:

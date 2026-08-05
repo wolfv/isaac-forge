@@ -58,6 +58,13 @@ cuda_compiler_version:
 python:
   - "3.12.* *_cpython"
 
+# TensorRT has distinct CUDA 13 ARM payloads. The SBSA payload supports Orin's SM87;
+# NVIDIA's Jetson-common r38 payload targets Thor. Only recipes/tensorrt consumes this
+# key, so it does not multiply variants for the rest of the repository.
+tensorrt_flavor:
+  - jetson
+  - orin
+
 # Dependency ABI pins used by recipes that intentionally target different compatibility
 # lines. Keep these here rather than burying concrete versions in individual recipes.
 # A single global Boost or protobuf pin would be incorrect: DCGM still uses the removed

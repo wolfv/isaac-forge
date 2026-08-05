@@ -9,7 +9,8 @@ channels = [
 # The Isaac Forge binaries target Ubuntu 24.04's glibc floor.
 platforms = [
   { platform = "linux-64", glibc = "2.38" },
-  { platform = "linux-aarch64", glibc = "2.38" },
+  # JetPack 7 on Orin Nano: CUDA 13 driver, SM87 GPU.
+  { platform = "linux-aarch64", glibc = "2.38", cuda = { driver = "13", arch = "8.7" } },
 ]
 
 [dependencies]

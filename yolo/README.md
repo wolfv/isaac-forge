@@ -18,8 +18,9 @@ pixi run check
 pixi run demo
 ```
 
-The environment supports both x86_64 Linux and Jetson/ARM64. On Jetson, Pixi resolves the
-`linux-aarch64` packages, including `ros-jazzy-isaac-ros-image-proc`, from isaac-forge.
+The environment supports both x86_64 Linux and Jetson/ARM64. Its ARM platform declares
+JetPack 7, CUDA 13, and SM87, so Pixi selects the Orin TensorRT payload as well as
+`ros-jazzy-isaac-ros-image-proc` from isaac-forge.
 
 The demo opens the Rerun viewer with the image and 2D detection boxes, and also
 writes an annotated image to `.cache/yolov8_result.png`.

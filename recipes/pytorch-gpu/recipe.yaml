@@ -1,0 +1,38 @@
+schema_version: 1
+
+# Compatibility metapackage matching conda-forge's user-facing pytorch-gpu name.
+# The actual CUDA 13.3 build is recipes/pytorch.
+
+context:
+  version: "2.13.0"
+
+package:
+  name: pytorch-gpu
+  version: ${{ version }}
+
+build:
+  number: 0
+  skip: target_platform != "linux-aarch64" and tensorrt_flavor == "orin"
+  script:
+    - mkdir -p "${PREFIX}/share/pytorch-gpu"
+    - echo "PyTorch ${{ version }} CUDA 13.3 compatibility build" > "${PREFIX}/share/pytorch-gpu/README"
+
+requirements:
+  run:
+    - pytorch ==${{ version }}
+  run_constraints:
+    - pytorch-cpu <0.0a0
+    - ${{ "__cuda_arch >=8.7,<8.8" if target_platform == "linux-aarch64" and tensorrt_flavor == "orin" else "__cuda_arch >=11" if target_platform == "linux-aarch64" else "__unix" }}
+
+tests:
+  - python:
+      imports:
+        - torch
+  - script:
+      - python -c "import torch; assert torch.version.cuda.startswith('13.')"
+
+about:
+  homepage: https://pytorch.org/
+  repository: https://github.com/pytorch/pytorch
+  summary: Metapackage for the isaac-forge CUDA 13.3 PyTorch build
+  license: BSD-3-Clause

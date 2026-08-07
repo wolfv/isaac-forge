@@ -1,0 +1,170 @@
+schema_version: 1
+
+# CUDA-13 PyTorch compatibility build for isaac-forge.
+#
+# Ported from conda-forge/pytorch-cpu-feedstock at
+# 95da7a513f99832677f69deec7dc31bf0b74684c (2026-08-07). The feedstock is still a
+# conda-build v0 recipe and its published GPU packages currently pin CUDA 12.9/13.0,
+# which cannot coexist with this channel's CUDA 13.3 Isaac ROS stack. This v1 port keeps
+# the feedstock patches and dependency choices but deliberately narrows the matrix to:
+# Linux, CUDA 13.3, CPython 3.12 and generic BLAS.
+#
+# The feedstock splits libtorch and pytorch using conda-build's shared output work tree.
+# Here they stay in one package so the multi-hour C++/CUDA build runs exactly once.
+
+context:
+  version: "2.13.0"
+  triton_version: "3.7.1"
+
+package:
+  name: pytorch
+  version: ${{ version }}
+
+source:
+  url: https://github.com/pytorch/pytorch/releases/download/v${{ version }}/pytorch-v${{ version }}.tar.gz
+  sha256: 66614a19060f69cfd63cd0295f65a1241bd15df2fa65c60ae51066c11c2ce812
+  patches:
+    - patches/0001-Force-usage-of-python-3-and-error-without-numpy.patch
+    - patches/0002-Honor-the-CMAKE_ARGS-environment-variable-in-setup.p.patch
+    - patches/0003-Allow-overriding-CUDA-related-paths.patch
+    - patches/0004-Use-BLAS_USE_CBLAS_DOT-for-OpenBLAS-builds.patch
+    - patches/0005-Fix-FindOpenBLAS.patch
+    - patches/0006-use-our-own-PREFIX-for-include-paths-etc.patch
+    - patches/0007-make-ATEN_INCLUDE_DIR-relative-to-TORCH_INSTALL_PREF.patch
+    - patches/0009-avoid-deprecated-find_package-CUDA-in-caffe2-CMake-m.patch
+    - patches/0010-skip-test_norm_matrix_degenerate_shapes-on-numpy-2.3.patch
+    - patches/0011-Define-PY_SSIZE_T_CLEAN-before-include-Python.h.patch
+    - patches/0012-Add-USE_SYSTEM-options-for-KLEIDI-CUDNN_FRONTEND-CUT.patch
+    - patches/0013-Fix-building-kineto-against-system-fmt.patch
+    - patches/0014-Use-Intel-LLVM-openmp.patch
+    - patches/0015-for-win-CUDA-remove-USE_CUDA-guard-for-skip-in-compi.patch
+    - patches/0016-Declare-_tryToInferTypeImpl-with-TORCH_PYTHON_API.patch
+    - patches/0017-Escape-backslashes-quotes-in-macros.h-build-strings-.patch
+    - patches/0018-Update-cuDSS-matrix-create-calls-for-cuDSS-0.8-API.patch
+    - patches/0019-Add-missing-includes-in-c10d-control_plane-Handlers..patch
+    - patches/0020-Use-serializable-subtest-labels-in-autograd-test.patch
+    - patches/0021-Set-CPU-flags-via-add_definitions.patch
+    - patches/0022-Set-Python_SOABI-when-cross-compiling-so-extension-m.patch
+    - patches/0023-Disable-bundling-win32-runtime-libraries.patch
+    - patches_submodules/tensorpipe/0001-switch-away-from-find_package-CUDA.patch
+
+build:
+  number: 0
+  # The global TensorRT flavor is also exactly the GPU split needed here: one x86 build,
+  # native SM87 code for Orin, and native SM110 code for Thor.
+  skip: target_platform != "linux-aarch64" and tensorrt_flavor == "orin"
+  script: build.sh
+  prefix_detection:
+    ignore_binary_files: true
+  dynamic_linking:
+    missing_dso_allowlist:
+      # Supplied by the host driver, never by a conda environment.
+      - libcuda.so.*
+
+requirements:
+  build:
+    - ${{ compiler('c') }}
+    - ${{ compiler('cxx') }}
+    - ${{ compiler('cuda') }}
+    - cmake
+    - ninja
+    - make
+    - grep
+    - pkg-config
+    - rsync
+    - libprotobuf
+    - protobuf
+  host:
+    - python
+    - numpy
+    - pip
+    - setuptools <82
+    - pyyaml
+    - requests
+    - six
+    - typing_extensions
+    - packaging
+    - pybind11
+    - pybind11-abi
+    - eigen
+    - zlib
+    - fmt
+    - sleef
+    - libuv
+    - llvm-openmp
+    - onednn
+    - libabseil
+    - libprotobuf
+    - libblas
+    - libcblas
+    - liblapack
+    # CUDA 13.3 -- the incompatibility this recipe exists to remove.
+    - cuda-version ==13.3
+    - cuda-cudart-dev
+    - cuda-cupti-dev
+    - cuda-driver-dev
+    - cuda-nvml-dev
+    - cuda-nvrtc-dev
+    - cuda-nvtx-dev
+    - cuda-profiler-api
+    - cusparselt
+    - libcublas-dev
+    - libcudnn-dev
+    - libcudss-dev
+    - libcufile-dev
+    - libcufft-dev
+    - libcurand-dev
+    - libcusolver-dev
+    - libcusparse-dev
+    - libmagma-devel
+    - nccl
+    - nvtx-c
+  run:
+    - python
+    - llvm-openmp
+    - nomkl
+    - filelock
+    - fsspec
+    - jinja2
+    - networkx
+    - optree >=0.13.0
+    - setuptools <82
+    - sympy >=1.13.3
+    - typing_extensions >=4.10.0
+    - triton ==${{ triton_version }}
+    - cuda-version 13.*
+  run_constraints:
+    - pytorch-cpu <0.0a0
+    - ${{ "__cuda_arch >=8.7,<8.8" if target_platform == "linux-aarch64" and tensorrt_flavor == "orin" else "__cuda_arch >=11" if target_platform == "linux-aarch64" else "__unix" }}
+
+# Import and CUDA compile-support tests do not require a GPU or driver. Actual kernels must
+# be tested later on Orin/Thor hardware, as with TensorRT.
+tests:
+  - python:
+      imports:
+        - torch
+        - torch._C
+  - script:
+      - python -c "import torch; print(torch.__version__, torch.version.cuda); assert torch.backends.cuda.is_built(); assert torch.version.cuda.startswith('13.')"
+      - python -c "import torch; torch.tensor(1).to('cpu').numpy()"
+      - python -c "import torch; assert torch.distributed.is_available()"
+      - test -f "${SP_DIR}/torch/lib/libtorch_python.so"
+
+about:
+  homepage: https://pytorch.org/
+  repository: https://github.com/pytorch/pytorch
+  documentation: https://pytorch.org/docs/
+  summary: PyTorch tensor and deep-learning library built for CUDA 13.3
+  description: |
+    PyTorch built from source against the CUDA 13.3 dependency stack used by
+    isaac-forge. Includes the Python module, libtorch libraries, headers and CMake
+    metadata in one package.
+  license: BSD-3-Clause
+  license_file:
+    - LICENSE
+    - NOTICE
+    - third_party/CMake/Copyright.txt
+
+extra:
+  upstream_feedstock: https://github.com/conda-forge/pytorch-cpu-feedstock
+  upstream_feedstock_commit: 95da7a513f99832677f69deec7dc31bf0b74684c

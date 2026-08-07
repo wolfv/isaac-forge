@@ -95,9 +95,13 @@ requirements:
     - onednn
     - libabseil
     - libprotobuf
-    - libblas
-    - libcblas
-    - liblapack
+    # The BLAS metapackages provide only libraries. PyTorch's FindOpenBLAS also
+    # needs cblas.h/openblas_config.h from the openblas development package.
+    - libblas * *_openblas
+    - libcblas * *_openblas
+    - liblapack * *_openblas
+    - libopenblas * openmp_*
+    - openblas * openmp_*
     # CUDA 13.3 -- the incompatibility this recipe exists to remove.
     - cuda-version ==13.3
     - cuda-cudart-dev

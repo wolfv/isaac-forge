@@ -1,0 +1,72 @@
+schema_version: 1
+
+# NVIDIA's official CPython bindings for the TensorRT runtimes packaged in
+# recipes/tensorrt. These cannot be noarch: tensorrt/tensorrt.so is a native pybind11
+# extension tied to both the target architecture and the CPython ABI. Keep the bindings
+# separate so the large C++ runtime remains usable without Python and is not Python-tagged.
+#
+# The binding sources are public, but NVIDIA has not published a source tag matching the
+# native Jetson 10.16.2.10 runtime (the v10.16 tag is 10.16.0.72). Repacking the matching
+# python3-libnvinfer debs therefore gives every platform the exact binding built and tested
+# with its runtime. We can revisit source builds once NVIDIA publishes matching sources or
+# confirms compatibility across those patch releases.
+
+context:
+  version: ${{ "10.16.2.10" if target_platform == "linux-aarch64" and tensorrt_flavor == "orin" else "10.13.3.9" }}
+  deb_version: ${{ "10.16.2.10-1+cuda13.2" if target_platform == "linux-aarch64" and tensorrt_flavor == "orin" else "10.13.3.9-1+cuda13.0" }}
+  deb_arch: ${{ "arm64" if target_platform == "linux-aarch64" else "amd64" }}
+  pool: ${{ "https://repo.download.nvidia.com/jetson/common/pool/main/t/tensorrt" if target_platform == "linux-aarch64" else "https://developer.download.nvidia.com/compute/cuda/repos/ubuntu2404/x86_64" }}
+
+package:
+  name: tensorrt-python
+  version: ${{ version }}
+
+source:
+  - url: ${{ pool }}/python3-libnvinfer_${{ deb_version }}_${{ deb_arch }}.deb
+    file_name: python3-libnvinfer.deb
+    sha256: ${{ "da1282da12166871f731bb3f058f81b76c4ef22036668111723b0116ba2cf216" if target_platform == "linux-aarch64" and tensorrt_flavor == "orin" else "9da52f8b3ae64d836c6bb08e9755410170882cffd9290565ef6a90fff2ce7be0" if target_platform == "linux-aarch64" else "d179508a9e5f4aae8f7276f6b698c942ea511cb0ada54e4478a62a39923e781d" }}
+
+build:
+  number: 0
+  # There is only one x86 payload; the second flavor is ARM-only.
+  skip: target_platform != "linux-aarch64" and tensorrt_flavor == "orin"
+  script: build.sh
+  dynamic_linking:
+    # build.sh installs one deliberate RPATH. Do not let the generic relocation pass
+    # replace it: old-style RPATH is inherited while loading libnvinfer's CUDA DSOs.
+    binary_relocation: false
+
+requirements:
+  build:
+    - libarchive
+    - patchelf
+  host:
+    - python
+    # Makes the native extension's NEEDED entries resolvable during package inspection.
+    - tensorrt ==${{ version }}
+  run:
+    - python
+    - numpy
+    - tensorrt ==${{ version }}
+  # Match the runtime variant. This prevents a Thor binding from being selected on Orin
+  # merely because both packages happen to use the same aarch64 conda subdir.
+  run_constraints:
+    - ${{ "__cuda_arch >=8.7,<8.8" if target_platform == "linux-aarch64" and tensorrt_flavor == "orin" else "__cuda_arch >=11" if target_platform == "linux-aarch64" else "__unix" }}
+
+tests:
+  - python:
+      imports:
+        - tensorrt
+  - script:
+      - python -c "import tensorrt as trt; print('TensorRT Python', trt.__version__)"
+
+about:
+  homepage: https://developer.nvidia.com/tensorrt
+  repository: https://github.com/NVIDIA/TensorRT/tree/main/python
+  summary: Python bindings for NVIDIA TensorRT
+  description: |
+    NVIDIA's native CPython bindings for the matching TensorRT runtime. The import name
+    is `tensorrt`; the conda package is named `tensorrt-python` to keep it separate from
+    the C++ runtime package.
+  license: LicenseRef-NVIDIA-TensorRT
+  license_file: LICENSE

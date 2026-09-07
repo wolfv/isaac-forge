@@ -1,6 +1,6 @@
 # isaac-forge
 
-`isaac-forge` packages Isaac ROS 4.5.0 for ROS 2 Jazzy as conda packages. The
+`isaac-forge` packages Isaac ROS 4.6.0 for ROS 2 Jazzy as conda packages. The
 packages work alongside [RoboStack](https://robostack.github.io/) and can be installed with
 [Pixi](https://pixi.sh/) on x86_64 Linux and Jetson/ARM64.
 
@@ -33,10 +33,10 @@ platforms = [
 [dependencies]
 python = "3.12.*"
 ros-jazzy-ros-base = "*"
-ros-jazzy-isaac-ros-image-proc = "4.5.*"
-ros-jazzy-isaac-ros-dnn-image-encoder = "4.5.*"
-ros-jazzy-isaac-ros-tensor-rt = "4.5.*"
-ros-jazzy-isaac-ros-yolov8 = "4.5.*"
+ros-jazzy-isaac-ros-image-proc = "4.6.*"
+ros-jazzy-isaac-ros-dnn-image-encoder = "4.6.*"
+ros-jazzy-isaac-ros-tensor-rt = "4.6.*"
+ros-jazzy-isaac-ros-yolov8 = "4.6.*"
 ```
 
 Install it and run ROS commands through Pixi:
@@ -56,7 +56,7 @@ Package names follow the usual RoboStack convention: the ROS package
 `isaac_ros_visual_slam`, for example, is named
 `ros-jazzy-isaac-ros-visual-slam`. You can browse or search all available names on the
 [channel page](https://prefix.dev/channels/isaac-forge). Pixi resolves the package's NITROS,
-GXF, ROS, CUDA, and other library dependencies automatically.
+ROS, CUDA, and other library dependencies automatically.
 
 For a complete working project, see [`yolo/`](yolo/README.md). Its `pixi.toml` consumes the
 public channel and runs YOLOv8 TensorRT inference on an image, video, webcam, or RTSP stream.
@@ -65,10 +65,9 @@ https://github.com/user-attachments/assets/3fdf53d4-5ca1-434b-a05b-74456d565907
 
 ## What is in the channel?
 
-The channel has **226 package names for `linux-64`** and **214 for
-`linux-aarch64`**. It contains:
+The channel contains:
 
-- the NITROS and GXF foundations, including the NITROS ROS type adapters;
+- the NITROS foundation and ROS type adapters;
 - VPI, TensorRT, Triton Server, cuVSLAM, cuAprilTags, and cuMotion;
 - image, stereo, depth, tensor, and point-cloud processing;
 - visual SLAM, nvblox, occupancy-grid localization, and AprilTag detection;
@@ -84,11 +83,10 @@ The channel has **226 package names for `linux-64`** and **214 for
 The `*-models-install` packages provide NVIDIA's asset download/install tooling. Model
 weights and GPU-specific TensorRT engine plans are not baked into the conda packages.
 
-There are currently 12 x86-only names: `libdcgm`, `nvv4l2`, the four H.264 packages,
-the two PyNITROS packages, the Unitree recorder, the two visual mapping packages, and
-`isaac_ros_visual_slam`. Their vendor payload or test closure is not portable to the generic
-ARM build runner. The other packages, including `isaac_ros_image_proc`, build natively on
-ARM64 rather than being cross-compiled or relabelled from x86_64.
+Architecture-specific vendor payloads remain separate. In particular, visual mapping and
+`nvv4l2` are x86-only, while TensorRT uses conda-forge on x86 and NVIDIA's native payloads
+on Jetson. Source packages such as `isaac_ros_image_proc` build natively on ARM64 rather
+than being cross-compiled or relabelled from x86_64.
 
 ## Building the packages
 
@@ -140,13 +138,18 @@ python scripts/gen_repack.py --help
 
 Most Isaac ROS packages in this channel are built from source against RoboStack. Some central
 NVIDIA components have no published source, so they are packaged from pinned vendor payloads
-instead. That binary foundation includes VPI, TensorRT, several GXF extensions, cuVSLAM,
-cuAprilTags, and cuMotion. A small third group fills gaps in the current RoboStack Jazzy
-channel.
+instead. That binary foundation includes VPI, TensorRT, cuVSLAM, cuAprilTags, and cuMotion.
+A small third group fills gaps in the current RoboStack Jazzy channel.
 
 Every vendor input is selected per architecture and checksum-verified. Git LFS objects are
-fetched from their upstream media endpoints rather than packaging the pointer files. See
-[`FINDINGS.md`](FINDINGS.md) for the dependency, ABI, source-availability, and licensing
+fetched from their upstream media endpoints rather than packaging the pointer files.
+
+On `linux-64`, the `tensorrt` compatibility package uses conda-forge's split TensorRT
+11.1 packages. conda-forge also publishes `libnvinfer` for `linux-aarch64`, but that build
+is SBSA (`arm-variant * sbsa`), not native Jetson. This repository therefore retains its
+TensorRT 10 recipe only for ARM64, including the native Orin payload.
+
+See [`FINDINGS.md`](FINDINGS.md) for the dependency, ABI, source-availability, and licensing
 work behind the recipes. Upstream problems and proposed fixes are collected in
 [`ISSUES.md`](ISSUES.md) and [`upstream/`](upstream/README.md).
 

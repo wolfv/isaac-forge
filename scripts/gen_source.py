@@ -29,107 +29,107 @@ ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 RECIPES = os.path.join(ROOT, "recipes")
 CACHE = os.path.join(ROOT, ".srccache")
 
-# Upstream tarballs. Everything NVIDIA is pinned to the v4.5-0 release tag; osrf's
+# Upstream tarballs. Everything NVIDIA is pinned to the v4.6-0 release tag; osrf's
 # negotiated has no tags at all, so it is pinned to a commit.
 REPOS = {
     "isaac_ros_nitros": dict(
-        url="https://github.com/NVIDIA-ISAAC-ROS/isaac_ros_nitros/archive/refs/tags/v4.5-0.tar.gz",
-        sha256="a8814fd02843a1098d00173671f03115b3b3575aabb078be371a7f977ad1e5c2"),
+        url="https://github.com/NVIDIA-ISAAC-ROS/isaac_ros_nitros/archive/refs/tags/v4.6-0.tar.gz",
+        sha256="187335ac33304180ef98c4d6de78428c7e5c36f1776b1cc80f68069678b996a4"),
     "isaac_ros_common": dict(
-        url="https://github.com/NVIDIA-ISAAC-ROS/isaac_ros_common/archive/refs/tags/v4.5-0.tar.gz",
-        sha256="b7a2bb09bad33c3654750a412c2c902064e8256088e1b1391ecd1dbcd803d0f7"),
+        url="https://github.com/NVIDIA-ISAAC-ROS/isaac_ros_common/archive/refs/tags/v4.6-0.tar.gz",
+        sha256="e116f465812c0376c3cd7afde9f92ff0f3a8e58067450b8d6ab240d42ec33c6f"),
     "isaac_ros_image_pipeline": dict(
-        url="https://github.com/NVIDIA-ISAAC-ROS/isaac_ros_image_pipeline/archive/refs/tags/v4.5-0.tar.gz",
-        sha256="66a0ea87a075c4eb428faa4b987768928ae0250e6ab801db4bcbeef8fa8924b1"),
+        url="https://github.com/NVIDIA-ISAAC-ROS/isaac_ros_image_pipeline/archive/refs/tags/v4.6-0.tar.gz",
+        sha256="1a162b940a8d934086a019101cfcaf1b3a3809447d4f490e4402cdc8f48c222b"),
     "isaac_ros_visual_slam": dict(
-        url="https://github.com/NVIDIA-ISAAC-ROS/isaac_ros_visual_slam/archive/refs/tags/v4.5-0.tar.gz",
-        sha256="8708fb6b016138483d24e785fa8549243839fe312d63786df2bba8840b5703f9"),
+        url="https://github.com/NVIDIA-ISAAC-ROS/isaac_ros_visual_slam/archive/refs/tags/v4.6-0.tar.gz",
+        sha256="870a77e135d1e4643b0cc598092e5eb25ed4757489bf23db73bc728306cc22f7"),
     "isaac_ros_benchmark": dict(
-        url="https://github.com/NVIDIA-ISAAC-ROS/isaac_ros_benchmark/archive/refs/tags/v4.5-0.tar.gz",
-        sha256="3f37f7d22571a43f58b9a701940e8ee12c001f753fd5637be1e6d78a4bee1721"),
+        url="https://github.com/NVIDIA-ISAAC-ROS/isaac_ros_benchmark/archive/refs/tags/v4.6-0.tar.gz",
+        sha256="d29daef7a9846a35e4f97990dd12797ec0043dd53f2c91e2dea9e944ef80a876"),
     "ros2_benchmark": dict(
-        url="https://github.com/NVIDIA-ISAAC-ROS/ros2_benchmark/archive/refs/tags/v4.5-0.tar.gz",
-        sha256="9077a56c57337a7d34a5da1068d06e9b2ed550180e8566012e93f6f6dd1d4d63"),
+        url="https://github.com/NVIDIA-ISAAC-ROS/ros2_benchmark/archive/refs/tags/v4.6-0.tar.gz",
+        sha256="945f37749653b376bc0ee7bcc23f1f7da5a98fc05db93f3a24a6b2f12507a5d3"),
     "isaac_ros_manipulation": dict(
-        url="https://github.com/NVIDIA-ISAAC-ROS/isaac_ros_manipulation/archive/refs/tags/v4.5-0.tar.gz",
-        sha256="00d45ee0c52efe40688d90958538092c713ad1eec0fe62befcdfe74a1c33225f"),
+        url="https://github.com/NVIDIA-ISAAC-ROS/isaac_ros_manipulation/archive/refs/tags/v4.6-0.tar.gz",
+        sha256="bbe162d1ae1349e554c9cedc730e4d78c34401437da836be2f70019d3e6008d7"),
     "isaac_ros_cumotion": dict(
-        url="https://github.com/NVIDIA-ISAAC-ROS/isaac_ros_cumotion/archive/refs/tags/v4.5-0.tar.gz",
-        sha256="3ef770f800665ad25569291f935ef8c47f752a301575aaca1c26df5199c2b520"),
+        url="https://github.com/NVIDIA-ISAAC-ROS/isaac_ros_cumotion/archive/refs/tags/v4.6-0.tar.gz",
+        sha256="c8d0476a8d74e3d9567a70c9d6565d266133a3a6b4e6d52c457a668dff4c292e"),
     "isaac_ros_image_segmentation": dict(
-        url="https://github.com/NVIDIA-ISAAC-ROS/isaac_ros_image_segmentation/archive/refs/tags/v4.5-0.tar.gz",
-        sha256="4ef02550da5192b6d31566e992e2cbf06b2c35b43d7605a53d1eba4a0f28bd1b"),
+        url="https://github.com/NVIDIA-ISAAC-ROS/isaac_ros_image_segmentation/archive/refs/tags/v4.6-0.tar.gz",
+        sha256="d7b6980eb9b81f785e0220406e176f6e8d2939798d92e70873644ae39a975360"),
     "isaac_ros_pose_estimation": dict(
-        url="https://github.com/NVIDIA-ISAAC-ROS/isaac_ros_pose_estimation/archive/refs/tags/v4.5-0.tar.gz",
-        sha256="7e6855053fbc1e9af5683c36e6e5642e2d5db9de8783753371ddeb4c565aee13"),
+        url="https://github.com/NVIDIA-ISAAC-ROS/isaac_ros_pose_estimation/archive/refs/tags/v4.6-0.tar.gz",
+        sha256="b02f23b032e1861d83797e344c736c966f749eb1ca78529aab842d56a0303107"),
     "isaac_ros_dnn_inference": dict(
-        url="https://github.com/NVIDIA-ISAAC-ROS/isaac_ros_dnn_inference/archive/refs/tags/v4.5-0.tar.gz",
-        sha256="e19397a4f685fffc66cd68d1a8489fc2939878ea6299c376d04ab5d19c09ce06"),
+        url="https://github.com/NVIDIA-ISAAC-ROS/isaac_ros_dnn_inference/archive/refs/tags/v4.6-0.tar.gz",
+        sha256="9089b46e573d9088a7e28a2c60d3f9561b79b2588a32811c0f4ae48f518875b3"),
     "isaac_ros_object_detection": dict(
-        url="https://github.com/NVIDIA-ISAAC-ROS/isaac_ros_object_detection/archive/refs/tags/v4.5-0.tar.gz",
-        sha256="349b78dcdbd22c019f982d343c65bd690d4affcdf8aca85183b1505943962098"),
+        url="https://github.com/NVIDIA-ISAAC-ROS/isaac_ros_object_detection/archive/refs/tags/v4.6-0.tar.gz",
+        sha256="e93d7c195e1d6a87e8e7d432cab681650693814eab2bcb124b45df2983ab2e03"),
     "isaac_ros_mapping_and_localization": dict(
-        url="https://github.com/NVIDIA-ISAAC-ROS/isaac_ros_mapping_and_localization/archive/refs/tags/v4.5-0.tar.gz",
-        sha256="547f434b9600583e30133822dddc4ddbdb7dc3b5428a49985428c90352dfdbdc"),
+        url="https://github.com/NVIDIA-ISAAC-ROS/isaac_ros_mapping_and_localization/archive/refs/tags/v4.6-0.tar.gz",
+        sha256="f12573ce2f2804e7808824994ee3cd968c20e9e1590f3f0362b2a42ef5ab05d1"),
     "negotiated": dict(
         url="https://github.com/osrf/negotiated/archive/"
             "eac198b55dcd052af5988f0f174902913c5f20e7.tar.gz",
         sha256="01aed43adef3e6ef3d9e1879d3a2910d6acdcf802e6ea2905ab4626e21d7af05",
         homepage="https://github.com/osrf/negotiated"),
     "isaac_ros_nvblox": dict(
-        url="https://github.com/NVIDIA-ISAAC-ROS/isaac_ros_nvblox/archive/refs/tags/v4.5-0.tar.gz",
-        sha256="4a668d140bec4df889f1b1a0a1059d841c19546ec8ac7e26de830a694fc855b8"),
-    # Eight repos added in one pass, all tagged v4.5-0 and all tiny -- the largest tarball
+        url="https://github.com/NVIDIA-ISAAC-ROS/isaac_ros_nvblox/archive/refs/tags/v4.6-0.tar.gz",
+        sha256="1572d2839296207fa004566e0a1edcaec7aea351944ea0cc22b1f8c6b6a8acaa"),
+    # Eight repos added in one pass, all tagged v4.6-0 and all tiny -- the largest tarball
     # here is 4.7 MB. isaac_ros_freespace_segmentation was meant to be a ninth and has no
     # v4.5-0 tag at all; its newest is v3.2-13, which is the same tagging gap as
     # ISSUES.md #23 and puts its two packages out of this pass.
     "isaac_ros_apriltag": dict(
-        url="https://github.com/NVIDIA-ISAAC-ROS/isaac_ros_apriltag/archive/refs/tags/v4.5-0.tar.gz",
-        sha256="cc34fc554f3739714e49d1bd2f28d47c29e0a485a4abc8245c0a561185639eae"),
+        url="https://github.com/NVIDIA-ISAAC-ROS/isaac_ros_apriltag/archive/refs/tags/v4.6-0.tar.gz",
+        sha256="887b92a4ec8f06c97dc1db21a852e6199f8b9856d3ae384178caa98ca8300c51"),
     "isaac_ros_compression": dict(
-        url="https://github.com/NVIDIA-ISAAC-ROS/isaac_ros_compression/archive/refs/tags/v4.5-0.tar.gz",
-        sha256="f02bc1dfe2f210fa2cc1655ec2ac8a529805033f573a6d4959739acee427e2d9"),
+        url="https://github.com/NVIDIA-ISAAC-ROS/isaac_ros_compression/archive/refs/tags/v4.6-0.tar.gz",
+        sha256="1580cae8881534aed272fcf9cb1062ad9f9a9da4964edbfa7728d811396acd6e"),
     "isaac_ros_teleop": dict(
-        url="https://github.com/NVIDIA-ISAAC-ROS/isaac_ros_teleop/archive/refs/tags/v4.5-0.tar.gz",
-        sha256="6aa862fa682ae2c0f8a5ae890315fadf0b7c801c4407b465b7dfaac107bfdb55"),
+        url="https://github.com/NVIDIA-ISAAC-ROS/isaac_ros_teleop/archive/refs/tags/v4.6-0.tar.gz",
+        sha256="1369052c159d3cf5f10356fb0cb49d8f593564fbb53a5ab4005574b92197d4f1"),
     "isaac_ros_dnn_stereo_depth": dict(
-        url="https://github.com/NVIDIA-ISAAC-ROS/isaac_ros_dnn_stereo_depth/archive/refs/tags/v4.5-0.tar.gz",
-        sha256="1c22709887bf48571c9e63ff705b9855d55e7bfb463d9a907570800c646fecd4"),
+        url="https://github.com/NVIDIA-ISAAC-ROS/isaac_ros_dnn_stereo_depth/archive/refs/tags/v4.6-0.tar.gz",
+        sha256="fb8c85a16778be7586955ab5c1686fb5e020b0f269cc778705146b480b68afc0"),
     "isaac_ros_cloud_control": dict(
-        url="https://github.com/NVIDIA-ISAAC-ROS/isaac_ros_cloud_control/archive/refs/tags/v4.5-0.tar.gz",
-        sha256="ae5206d9751eb75d758b6c41ebb00471088c8c31d784766ab057d1e99b9f8877"),
+        url="https://github.com/NVIDIA-ISAAC-ROS/isaac_ros_cloud_control/archive/refs/tags/v4.6-0.tar.gz",
+        sha256="33c4894eed43ccd0d20c02fdb1d8abee65935ff80f53d0a258e0e711c4ee4aa8"),
     "isaac_ros_data_tools": dict(
-        url="https://github.com/NVIDIA-ISAAC-ROS/isaac_ros_data_tools/archive/refs/tags/v4.5-0.tar.gz",
-        sha256="ea085cd6620b6b12c73adab98e9f7c9ce15dced81af5ddd23ddc95eda533cb34"),
+        url="https://github.com/NVIDIA-ISAAC-ROS/isaac_ros_data_tools/archive/refs/tags/v4.6-0.tar.gz",
+        sha256="427dcae558578f043e080ccba7f984cca74a475187180044f4f6d2d92f586064"),
     "isaac_ros_jetson": dict(
-        url="https://github.com/NVIDIA-ISAAC-ROS/isaac_ros_jetson/archive/refs/tags/v4.5-0.tar.gz",
-        sha256="82e00c61855562a2e71242d71772645add4902a4e88a5c88b9a3e4f49ecef4b6"),
+        url="https://github.com/NVIDIA-ISAAC-ROS/isaac_ros_jetson/archive/refs/tags/v4.6-0.tar.gz",
+        sha256="a97a05e435611e0e22204064604d919caafc45a8299b1a5a96184c3f2610e184"),
     "isaac_ros_examples": dict(
-        url="https://github.com/NVIDIA-ISAAC-ROS/isaac_ros_examples/archive/refs/tags/v4.5-0.tar.gz",
-        sha256="f6a14b7f3560a6d985d42dd53cdd8d40c11aa9a994fc8f65b168c505add7478e"),
+        url="https://github.com/NVIDIA-ISAAC-ROS/isaac_ros_examples/archive/refs/tags/v4.6-0.tar.gz",
+        sha256="aef4018373593afe51dfb22a1f665828d3f213c6e36e875178a8ce3d657ebc40"),
     # Five more. isaac_ros_nova, isaac_ros_depth_segmentation and isaac_ros_argus_camera
     # were checked at the same time and all three return 404 for v4.5-0 -- see ISSUES.md #23,
     # which now covers four repositories rather than two.
     "isaac_ros_deploy": dict(
-        url="https://github.com/NVIDIA-ISAAC-ROS/isaac_ros_deploy/archive/refs/tags/v4.5-0.tar.gz",
-        sha256="7ba9157dcd867dfd2048400aedb43db3e272f7533e52581c77ea467edfc50920"),
+        url="https://github.com/NVIDIA-ISAAC-ROS/isaac_ros_deploy/archive/refs/tags/v4.6-0.tar.gz",
+        sha256="f5b9a51e25dc4a6f7f2fd4dcba637501d057fea80e8a1d11d9021dcfe503f5de"),
     "isaac_ros_learned_policies": dict(
-        url="https://github.com/NVIDIA-ISAAC-ROS/isaac_ros_learned_policies/archive/refs/tags/v4.5-0.tar.gz",
-        sha256="a66b7a79ef7027d7732949a8c9c4292cc4754b9201b3855ef38154831160045d"),
+        url="https://github.com/NVIDIA-ISAAC-ROS/isaac_ros_learned_policies/archive/refs/tags/v4.6-0.tar.gz",
+        sha256="955aa66ea1c9caf291bc4067d1f4678b48a74a64833d6dc7f98e0dc4b601963e"),
     "isaac_ros_physical_ai": dict(
-        url="https://github.com/NVIDIA-ISAAC-ROS/isaac_ros_physical_ai/archive/refs/tags/v4.5-0.tar.gz",
-        sha256="df98820bde50321b736e5e476a891b9c17c9ef1b3662946e0201dfa66d12f5d1"),
+        url="https://github.com/NVIDIA-ISAAC-ROS/isaac_ros_physical_ai/archive/refs/tags/v4.6-0.tar.gz",
+        sha256="1432d6890399a5ad005ce0307fde134d2ba8db3c47f09ddc1aa8e28b4a5e4969"),
     "isaac_ros_robots": dict(
-        url="https://github.com/NVIDIA-ISAAC-ROS/isaac_ros_robots/archive/refs/tags/v4.5-0.tar.gz",
-        sha256="8d750654dbb8a5fe7d5fc6e46e421dfba126279918d37264f63eb77eb8a8986d"),
+        url="https://github.com/NVIDIA-ISAAC-ROS/isaac_ros_robots/archive/refs/tags/v4.6-0.tar.gz",
+        sha256="24bc833c0ce574367a82d4b1aa9ddebabd3b65f221fd55666a80f8c97b6fe7d1"),
     "isaac_ros_sipl_camera": dict(
-        url="https://github.com/NVIDIA-ISAAC-ROS/isaac_ros_sipl_camera/archive/refs/tags/v4.5-0.tar.gz",
-        sha256="539ecf9078080cd27690e0985ce91ad030bbcec9d177c23cd3f000ba301f3620"),
-    # Documented as part of Isaac ROS 4.5, but kept in its own repository rather than
+        url="https://github.com/NVIDIA-ISAAC-ROS/isaac_ros_sipl_camera/archive/refs/tags/v4.6-0.tar.gz",
+        sha256="cb15260c2dcaeb46801e9f7af3c2fe112d8f929348f4097398fd8fc3ea121114"),
+    # Documented as part of Isaac ROS 4.6, but kept in its own repository rather than
     # the original 35-repository source inventory. Pure URDF/mesh/launch data.
     "sensor_mounting_rig": dict(
-        url="https://github.com/NVIDIA-ISAAC-ROS/sensor_mounting_rig/archive/refs/tags/v4.5-0.tar.gz",
-        sha256="56f353f88bc519176ae09a0f73192182d5ce54c75939233a09ff8ac8c9f48b4d"),
+        url="https://github.com/NVIDIA-ISAAC-ROS/sensor_mounting_rig/archive/refs/tags/v4.6-0.tar.gz",
+        sha256="846f1e61812a65431ad2bc5072e3b4bc2a658543beb7d6340ff96f50dd4234e9"),
     # Public ROS interfaces used by unitree_g1_bridge. Pin the commit because upstream
     # publishes no releases and the master branch moves.
     "unitree_ros2": dict(
@@ -159,21 +159,13 @@ PACKAGES = [
     ("ros-jazzy-negotiated", "negotiated", "negotiated"),
     # small libraries
     ("ros-jazzy-isaac-common", "isaac_ros_common", "isaac_common"),
-    ("ros-jazzy-gxf-isaac-gems", "isaac_ros_nitros", "isaac_ros_gxf_extensions/gxf_isaac_gems"),
     # NITROS type adapters -- thin wrappers over the core
-    ("ros-jazzy-isaac-ros-nitros-std-msg-type", "isaac_ros_nitros", "isaac_ros_nitros_type/isaac_ros_nitros_std_msg_type"),
     ("ros-jazzy-isaac-ros-nitros-image-type", "isaac_ros_nitros", "isaac_ros_nitros_type/isaac_ros_nitros_image_type"),
-    ("ros-jazzy-isaac-ros-nitros-camera-info-type", "isaac_ros_nitros", "isaac_ros_nitros_type/isaac_ros_nitros_camera_info_type"),
     ("ros-jazzy-isaac-ros-nitros-tensor-list-type", "isaac_ros_nitros", "isaac_ros_nitros_type/isaac_ros_nitros_tensor_list_type"),
     ("ros-jazzy-isaac-ros-nitros-compressed-image-type", "isaac_ros_nitros", "isaac_ros_nitros_type/isaac_ros_nitros_compressed_image_type"),
     ("ros-jazzy-isaac-ros-nitros-disparity-image-type", "isaac_ros_nitros", "isaac_ros_nitros_type/isaac_ros_nitros_disparity_image_type"),
     ("ros-jazzy-isaac-ros-nitros-point-cloud-type", "isaac_ros_nitros", "isaac_ros_nitros_type/isaac_ros_nitros_point_cloud_type"),
-    ("ros-jazzy-isaac-ros-nitros-detection2-d-array-type", "isaac_ros_nitros", "isaac_ros_nitros_type/isaac_ros_nitros_detection2_d_array_type"),
-    ("ros-jazzy-isaac-ros-nitros-detection3-d-array-type", "isaac_ros_nitros", "isaac_ros_nitros_type/isaac_ros_nitros_detection3_d_array_type"),
     ("ros-jazzy-isaac-ros-nitros-flat-scan-type", "isaac_ros_nitros", "isaac_ros_nitros_type/isaac_ros_nitros_flat_scan_type"),
-    ("ros-jazzy-isaac-ros-nitros-imu-type", "isaac_ros_nitros", "isaac_ros_nitros_type/isaac_ros_nitros_imu_type"),
-    ("ros-jazzy-isaac-ros-nitros-occupancy-grid-type", "isaac_ros_nitros", "isaac_ros_nitros_type/isaac_ros_nitros_occupancy_grid_type"),
-    ("ros-jazzy-isaac-ros-nitros-pose-cov-stamped-type", "isaac_ros_nitros", "isaac_ros_nitros_type/isaac_ros_nitros_pose_cov_stamped_type"),
     ("ros-jazzy-isaac-ros-managed-nitros", "isaac_ros_nitros", "isaac_ros_managed_nitros"),
     # utility libraries over NITROS
     ("ros-jazzy-isaac-ros-vpi-utils", "isaac_ros_image_pipeline", "isaac_ros_vpi_utils"),
@@ -313,10 +305,9 @@ PACKAGES = [
     ("ros-jazzy-isaac-ros-grounding-dino", "isaac_ros_object_detection", "isaac_ros_grounding_dino"),
     # --- the TensorRT inference node -----------------------------------------------
     #
-    # The backend every DNN pipeline above actually defaults to, unblocked by
-    # recipes/tensorrt (10.13.3.9, repacked from NVIDIA's CUDA apt repo with their
-    # permission -- see that recipe for why 10.13/cuda13 rather than the 10.9/cuda12.8
-    # Isaac ships against).
+    # The backend every DNN pipeline above actually defaults to. linux-64 uses
+    # conda-forge TensorRT 11 through recipes/tensorrt-conda-forge; Jetson keeps the
+    # native NVIDIA payload in recipes/tensorrt.
     #
     # Its Triton sibling used to be blocked by a private-artifactory FetchContent URL;
     # recipes/triton-server plus the patch below replace that hidden input.
@@ -340,32 +331,9 @@ PACKAGES = [
     #
     # -- text being read as an object file. Compiling its sources cannot help when the blob
     # they link against is not published, so all nine go through gen_repack.py. This is the
-    # same LFS trap README.md documents for isaac_ros_nitros, which is solved there by
-    # filling the pointers from the deb; for these it is cheaper to repack outright.
-    # The one GXF extension that is genuinely source-buildable, and it took a second look to
-    # notice. The comment below says none of the nine unbuilt extensions is here and that
-    # gxf_isaac_utils is the instructive one -- it compiles its own sources *and* links a
-    # prebuilt lib/gxf_x86_64_cuda_13_0/libgxf_utils.so that ships as a 132-byte git-lfs
-    # pointer, so compiling cannot help. camera_utils is the case that does not have: it
-    # ament_auto_add_library(SHARED)s three .cpp files of its own and links nothing prebuilt
-    # at all -- only Eigen3::Eigen and yaml-cpp. FINDINGS.md said as much from the start
-    # ("only camera_utils, utils and gems really build"); gems was source-built long ago and
-    # this one was left in the repack pile by association.
-    #
-    # Its find_package(Eigen3 3.3 REQUIRED NO_MODULE) is the eigenfloor case, so the
-    # generator strips the version request as it does for the other 18.
-    ("ros-jazzy-gxf-isaac-camera-utils", "isaac_ros_nitros",
-     "isaac_ros_gxf_extensions/gxf_isaac_camera_utils"),
     ("ros-jazzy-isaac-ros-apriltag-interfaces", "isaac_ros_common", "isaac_ros_apriltag_interfaces"),
     ("ros-jazzy-isaac-ros-nova-interfaces", "isaac_ros_common", "isaac_ros_nova_interfaces"),
     ("ros-jazzy-isaac-ros-test-cmake", "isaac_ros_common", "isaac_ros_test_cmake"),
-    ("ros-jazzy-isaac-ros-nitros-odometry-type", "isaac_ros_nitros", "isaac_ros_nitros_type/isaac_ros_nitros_odometry_type"),
-    ("ros-jazzy-isaac-ros-nitros-pose-array-type", "isaac_ros_nitros", "isaac_ros_nitros_type/isaac_ros_nitros_pose_array_type"),
-    ("ros-jazzy-isaac-ros-nitros-twist-type", "isaac_ros_nitros", "isaac_ros_nitros_type/isaac_ros_nitros_twist_type"),
-    ("ros-jazzy-isaac-ros-nitros-compressed-video-type", "isaac_ros_nitros", "isaac_ros_nitros_type/isaac_ros_nitros_compressed_video_type"),
-    ("ros-jazzy-isaac-ros-nitros-battery-state-type", "isaac_ros_nitros", "isaac_ros_nitros_type/isaac_ros_nitros_battery_state_type"),
-    ("ros-jazzy-isaac-ros-nitros-correlated-timestamp-type", "isaac_ros_nitros", "isaac_ros_nitros_type/isaac_ros_nitros_correlated_timestamp_type"),
-    ("ros-jazzy-isaac-ros-nitros-encoder-ticks-type", "isaac_ros_nitros", "isaac_ros_nitros_type/isaac_ros_nitros_encoder_ticks_type"),
     ("ros-jazzy-isaac-ros-nitros-topic-tools", "isaac_ros_nitros", "isaac_ros_nitros_topic_tools"),
     ("ros-jazzy-isaac-ros-pynitros", "isaac_ros_nitros", "isaac_ros_pynitros"),
     ("ros-jazzy-isaac-ros-nitros-bridge-ros2", "isaac_ros_nitros", "isaac_ros_nitros_bridge/isaac_ros_nitros_bridge_ros2"),
@@ -546,7 +514,7 @@ PACKAGES = [
     # installs zero files. SIPL is NVIDIA DRIVE's ARM64-only camera SDK; publishing an
     # empty package here would falsely claim that the node exists.
     # The Thor/RealSense mounting rig is different: it is platform-independent URDF and
-    # mesh data from a separately documented, tagged Isaac ROS 4.5 repository.
+    # mesh data from a separately documented, tagged Isaac ROS 4.6 repository.
     ("ros-jazzy-thor-devkit-realsense-rig-description", "sensor_mounting_rig",
      "thor_devkit_realsense_rig_description"),
     # --- the benchmark suite: 25 of its 29 packages --------------------------------
@@ -675,11 +643,6 @@ TRAIT_DEPS = {
     # it fails at configure with "Could not find a package configuration file provided
     # by nvcv_types". Say the version, so an unindexed leftover cannot win.
     "cvcuda": ["libcvcuda >=0.16", "libcvcuda-dev >=0.16"],
-    # Compiled against directly, through isaac_ros_gxf's expected_macro.hpp. It also
-    # arrives transitively as a run dep of ros-jazzy-isaac-ros-gxf, but relying on that is
-    # what kept the include-path problem invisible -- declare it, and see the magicenum
-    # note in detect() for why the include directory has to be stated too.
-    "magicenum": ["magic_enum"],
     # No extra requirements -- these two rewrite a CMake call rather than adding a
     # dependency. Present because emit() indexes TRAIT_DEPS by every detected trait.
     "asset": [],
@@ -1151,22 +1114,6 @@ def detect(cml: str, pkgxml: str, path: str) -> set[str]:
     # declaration turns into a hard `missing: CUDA_CUDART` error.
     if re.search(r"isaac_ros_common", cml) or "isaac_ros_common" in pkgxml:
         traits.add("cuda")
-    # Anything that includes a NITROS type header ends up compiling
-    # isaac_ros_gxf's gxf/core/expected_macro.hpp, which does
-    #
-    #     #include "magic_enum.hpp"
-    #
-    # NVIDIA's ros-jazzy-magic-enum deb puts that header at the top of an include dir;
-    # conda-forge's magic_enum puts it in include/magic_enum/, and its CMake package
-    # exports only a target, no *_INCLUDE_DIRS variable. So the directory reaches a
-    # consumer only if the consumer links magic_enum::magic_enum through isaac_ros_gxf's
-    # imported target -- and a package that picks the gxf headers up through ament
-    # include dirs instead does not. isaac_ros_tensor_proc is that case, and it fails with
-    # `expected_macro.hpp:24: fatal error: magic_enum.hpp: No such file or directory`.
-    # ros-jazzy-isaac-ros-h264-decoder hit this first and fixes it by hand in its
-    # build.sh; this is the same two lines, decided from the manifest instead.
-    if re.search(r"isaac_ros_(gxf|nitros)", pkgxml):
-        traits.add("magicenum")
     # install_isaac_ros_asset() cannot run in a package build. It does two things: it
     # execute_process()es the asset script with --print-install-paths at *configure* time,
     # and every path in those scripts derives from $ISAAC_ROS_WS, so with that unset --
@@ -1240,8 +1187,8 @@ def asset_names(cml: str) -> list[str]:
 # system package is assumed to be a ROS package and gets the ros-jazzy- prefix.
 SYSTEM = {
     "cuda-toolkit": "cuda-version 13.*",
-    # recipes/tensorrt -- the conda package name matches gen_repack's MAP for libnvinfer10.
-    "tensorrt": "tensorrt",
+    # Compatibility package: conda-forge on x86, native NVIDIA payload on Jetson.
+    "tensorrt": '${{ "tensorrt >=11,<12" if target_platform == "linux-64" else "tensorrt >=10,<11" }}',
     "eigen": "eigen",
     "eigen3": "eigen",
     "yaml-cpp": "yaml-cpp",
@@ -1700,19 +1647,6 @@ def emit(name: str, repo: str, path: str) -> str | None:
         f"  - url: {u}\n    sha256: {h}\n    target_directory: {d}\n"
         for u, h, d in EXTRA_SOURCES.get(name, []))
 
-    # See the magicenum note in detect(): the host dep alone is not enough, because
-    # conda-forge's magic_enum nests the header one directory deeper than the
-    # `#include "magic_enum.hpp"` in isaac_ros_gxf expects to find it. That bare-name
-    # include is ISSUES.md #17; this is the consumer-side half of it.
-    magic_enum_include = (
-        '\n    - export CXXFLAGS="${CXXFLAGS:-} -I${PREFIX}/include/magic_enum"'
-        # CMake seeds CMAKE_CUDA_FLAGS from CUDAFLAGS the way it seeds CMAKE_CXX_FLAGS from
-        # CXXFLAGS, and nvcc does not otherwise see the C++ one. Needed wherever a .cu source
-        # includes a GXF header -- isaac_ros_depth_image_proc is the first such package here,
-        # and CXXFLAGS alone left it failing on magic_enum.hpp in depth_to_point_cloud_cuda.cu.
-        '\n    - export CUDAFLAGS="${CUDAFLAGS:-} -I${PREFIX}/include/magic_enum"'
-        if "magicenum" in traits else "")
-
     return f"""schema_version: 1
 
 # {name}, built FROM SOURCE against RoboStack.
@@ -1736,7 +1670,7 @@ build:
   number: {BUILD_NUMBERS.get(name, 0)}
   script:
     - export AMENT_PREFIX_PATH="${{PREFIX}}${{AMENT_PREFIX_PATH:+:${{AMENT_PREFIX_PATH}}}}"
-    - export CMAKE_PREFIX_PATH="${{PREFIX}}${{CMAKE_PREFIX_PATH:+:${{CMAKE_PREFIX_PATH}}}}"{magic_enum_include}
+    - export CMAKE_PREFIX_PATH="${{PREFIX}}${{CMAKE_PREFIX_PATH:+:${{CMAKE_PREFIX_PATH}}}}"
     - cd src/{path}{prep}
     # ${{CMAKE_ARGS}} carries the compiler activation's CMAKE_FIND_ROOT_PATH, which is
     # what points find_package(CUDAToolkit) at the prefix rather than /usr/local/cuda.
@@ -1745,7 +1679,7 @@ build:
       -DCMAKE_BUILD_TYPE=Release
       -DCMAKE_INSTALL_PREFIX="${{PREFIX}}"
       -DCMAKE_PREFIX_PATH="${{PREFIX}}"
-      -DCMAKE_CUDA_ARCHITECTURES="${CUDA_ARCHITECTURES:-$(case "${target_platform:-$(uname -m)}" in linux-aarch64|aarch64) echo "87;110;120";; *) echo "80;86;89;90";; esac)}"
+      -DCMAKE_CUDA_ARCHITECTURES="${{CUDA_ARCHITECTURES:-$(case "${{target_platform:-$(uname -m)}}" in linux-aarch64|aarch64) echo "87;110;120";; *) echo "80;86;89;90";; esac)}}"
       -DPYTHON_EXECUTABLE="${{PREFIX}}/bin/python"
       -DBUILD_TESTING=OFF{extra_cmake}
     - cmake --build build --parallel "${{CPU_COUNT:-2}}"

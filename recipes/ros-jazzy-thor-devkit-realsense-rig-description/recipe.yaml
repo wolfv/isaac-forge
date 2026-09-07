@@ -7,15 +7,15 @@ schema_version: 1
 # Detected build traits: ament_auto, cuda, python.
 
 context:
-  version: "4.5.0"
+  version: "4.6.0"
 
 package:
   name: ros-jazzy-thor-devkit-realsense-rig-description
   version: ${{ version }}
 
 source:
-  - url: https://github.com/NVIDIA-ISAAC-ROS/sensor_mounting_rig/archive/refs/tags/v4.5-0.tar.gz
-    sha256: 56f353f88bc519176ae09a0f73192182d5ce54c75939233a09ff8ac8c9f48b4d
+  - url: https://github.com/NVIDIA-ISAAC-ROS/sensor_mounting_rig/archive/refs/tags/v4.6-0.tar.gz
+    sha256: 846f1e61812a65431ad2bc5072e3b4bc2a658543beb7d6340ff96f50dd4234e9
     target_directory: src
 
 build:

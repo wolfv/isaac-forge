@@ -7,15 +7,15 @@ schema_version: 1
 # No special build traits detected.
 
 context:
-  version: "4.5.0"
+  version: "4.6.0"
 
 package:
   name: ros-jazzy-isaac-ros-unitree-g1-recorder
   version: ${{ version }}
 
 source:
-  - url: https://github.com/NVIDIA-ISAAC-ROS/isaac_ros_physical_ai/archive/refs/tags/v4.5-0.tar.gz
-    sha256: df98820bde50321b736e5e476a891b9c17c9ef1b3662946e0201dfa66d12f5d1
+  - url: https://github.com/NVIDIA-ISAAC-ROS/isaac_ros_physical_ai/archive/refs/tags/v4.6-0.tar.gz
+    sha256: 1432d6890399a5ad005ce0307fde134d2ba8db3c47f09ddc1aa8e28b4a5e4969
     target_directory: src
 
 build:

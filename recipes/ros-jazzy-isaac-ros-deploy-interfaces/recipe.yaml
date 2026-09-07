@@ -7,15 +7,15 @@ schema_version: 1
 # Detected build traits: rosidl.
 
 context:
-  version: "4.5.0"
+  version: "4.6.0"
 
 package:
   name: ros-jazzy-isaac-ros-deploy-interfaces
   version: ${{ version }}
 
 source:
-  - url: https://github.com/NVIDIA-ISAAC-ROS/isaac_ros_deploy/archive/refs/tags/v4.5-0.tar.gz
-    sha256: 7ba9157dcd867dfd2048400aedb43db3e272f7533e52581c77ea467edfc50920
+  - url: https://github.com/NVIDIA-ISAAC-ROS/isaac_ros_deploy/archive/refs/tags/v4.6-0.tar.gz
+    sha256: f5b9a51e25dc4a6f7f2fd4dcba637501d057fea80e8a1d11d9021dcfe503f5de
     target_directory: src
 
 build:

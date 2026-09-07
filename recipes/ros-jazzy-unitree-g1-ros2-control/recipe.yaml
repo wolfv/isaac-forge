@@ -7,15 +7,15 @@ schema_version: 1
 # No special build traits detected.
 
 context:
-  version: "4.5.0"
+  version: "4.6.0"
 
 package:
   name: ros-jazzy-unitree-g1-ros2-control
   version: ${{ version }}
 
 source:
-  - url: https://github.com/NVIDIA-ISAAC-ROS/isaac_ros_robots/archive/refs/tags/v4.5-0.tar.gz
-    sha256: 8d750654dbb8a5fe7d5fc6e46e421dfba126279918d37264f63eb77eb8a8986d
+  - url: https://github.com/NVIDIA-ISAAC-ROS/isaac_ros_robots/archive/refs/tags/v4.6-0.tar.gz
+    sha256: 24bc833c0ce574367a82d4b1aa9ddebabd3b65f221fd55666a80f8c97b6fe7d1
     target_directory: src
     patches:
       - patches/0001-use-vendored-static-sdk-library.patch

@@ -28,19 +28,6 @@ done
 
 cd src/isaac_ros_nitros
 
-# GXF's vendored headers include magic_enum by bare filename:
-#
-#   gxf/core/expected_macro.hpp:24:  #include "magic_enum.hpp"
-#
-# conda-forge's magic_enum moved its headers into include/magic_enum/ as of 0.9.7, so that
-# include stops resolving and every TU pulling in a GXF header fails. The header is
-# unmodifiable (it ships inside isaac_ros_gxf as a prebuilt blob) and the include is not
-# target-scoped, so the include directory has to be on CXXFLAGS globally rather than come
-# from magic_enum's CMake target.
-if [ -d "${PREFIX}/include/magic_enum" ]; then
-  export CXXFLAGS="${CXXFLAGS:-} -I${PREFIX}/include/magic_enum"
-fi
-
 export AMENT_PREFIX_PATH="${PREFIX}${AMENT_PREFIX_PATH:+:${AMENT_PREFIX_PATH}}"
 export CMAKE_PREFIX_PATH="${PREFIX}${CMAKE_PREFIX_PATH:+:${CMAKE_PREFIX_PATH}}"
 export CUDACXX="${BUILD_PREFIX}/bin/nvcc"

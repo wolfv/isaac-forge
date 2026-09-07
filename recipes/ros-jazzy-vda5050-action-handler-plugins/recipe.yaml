@@ -7,15 +7,15 @@ schema_version: 1
 # Detected build traits: ament_auto, cuda, yamlcpp.
 
 context:
-  version: "4.5.0"
+  version: "4.6.0"
 
 package:
   name: ros-jazzy-vda5050-action-handler-plugins
   version: ${{ version }}
 
 source:
-  - url: https://github.com/NVIDIA-ISAAC-ROS/isaac_ros_cloud_control/archive/refs/tags/v4.5-0.tar.gz
-    sha256: ae5206d9751eb75d758b6c41ebb00471088c8c31d784766ab057d1e99b9f8877
+  - url: https://github.com/NVIDIA-ISAAC-ROS/isaac_ros_cloud_control/archive/refs/tags/v4.6-0.tar.gz
+    sha256: 33c4894eed43ccd0d20c02fdb1d8abee65935ff80f53d0a258e0e711c4ee4aa8
     target_directory: src
 
 build:
@@ -87,17 +87,23 @@ requirements:
     - ros-jazzy-ament-cmake-auto
     - ros-jazzy-geometry-msgs
     - ros-jazzy-isaac-ros-apriltag-interfaces
+    - ros-jazzy-isaac-ros-cloud-control-interface
     - ros-jazzy-isaac-ros-common
     - ros-jazzy-isaac-ros-manipulation-interfaces
     - ros-jazzy-isaac-ros-scene-recorder-interface
     - ros-jazzy-isaac-ros-vda5050-client
+    - ros-jazzy-nav2-msgs
     - ros-jazzy-pluginlib
     - ros-jazzy-rcl-action
     - ros-jazzy-rclcpp
+    - ros-jazzy-rclcpp-action
+    - ros-jazzy-std-srvs
+    - ros-jazzy-tf2
     - ros-jazzy-tf2-geometry-msgs
     - ros-jazzy-tf2-ros
     - ros-jazzy-vda5050-action-handler
     - ros-jazzy-vda5050-msgs
+    - ros-jazzy-vision-msgs
     - cuda-version 13.*
     - cuda-cudart-dev
     - cuda-nvtx-dev
@@ -108,17 +114,23 @@ requirements:
     - nlohmann_json
     - ros-jazzy-geometry-msgs
     - ros-jazzy-isaac-ros-apriltag-interfaces
+    - ros-jazzy-isaac-ros-cloud-control-interface
     - ros-jazzy-isaac-ros-common
     - ros-jazzy-isaac-ros-manipulation-interfaces
     - ros-jazzy-isaac-ros-scene-recorder-interface
     - ros-jazzy-isaac-ros-vda5050-client
+    - ros-jazzy-nav2-msgs
     - ros-jazzy-pluginlib
     - ros-jazzy-rcl-action
     - ros-jazzy-rclcpp
+    - ros-jazzy-rclcpp-action
+    - ros-jazzy-std-srvs
+    - ros-jazzy-tf2
     - ros-jazzy-tf2-geometry-msgs
     - ros-jazzy-tf2-ros
     - ros-jazzy-vda5050-action-handler
     - ros-jazzy-vda5050-msgs
+    - ros-jazzy-vision-msgs
 
 tests:
   - package_contents:

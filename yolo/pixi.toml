@@ -27,10 +27,10 @@ ros-jazzy-vision-msgs = "*"
 # New isaac-forge packages used by the actual pipeline:
 # Image -> CUDA/NITROS tensor -> TensorRT -> YOLOv8 decoder -> Detection2DArray.
 # image_proc supplies the GPU resize/format conversion used by the Jetson launch path.
-ros-jazzy-isaac-ros-image-proc = "4.5.*"
-ros-jazzy-isaac-ros-dnn-image-encoder = "4.5.*"
-ros-jazzy-isaac-ros-tensor-rt = "4.5.*"
-ros-jazzy-isaac-ros-yolov8 = "4.5.*"
+ros-jazzy-isaac-ros-image-proc = "4.6.*"
+ros-jazzy-isaac-ros-dnn-image-encoder = "4.6.*"
+ros-jazzy-isaac-ros-tensor-rt = "4.6.*"
+ros-jazzy-isaac-ros-yolov8 = "4.6.*"
 
 [tasks.check]
 description = "Show that Pixi resolved the Isaac ROS packages from isaac-forge"

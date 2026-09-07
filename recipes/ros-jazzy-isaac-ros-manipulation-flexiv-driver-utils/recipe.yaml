@@ -7,15 +7,15 @@ schema_version: 1
 # Build type: ament_python (setuptools, installed with pip).
 
 context:
-  version: "4.5.0"
+  version: "4.6.0"
 
 package:
   name: ros-jazzy-isaac-ros-manipulation-flexiv-driver-utils
   version: ${{ version }}
 
 source:
-  - url: https://github.com/NVIDIA-ISAAC-ROS/isaac_ros_manipulation/archive/refs/tags/v4.5-0.tar.gz
-    sha256: 00d45ee0c52efe40688d90958538092c713ad1eec0fe62befcdfe74a1c33225f
+  - url: https://github.com/NVIDIA-ISAAC-ROS/isaac_ros_manipulation/archive/refs/tags/v4.6-0.tar.gz
+    sha256: bbe162d1ae1349e554c9cedc730e4d78c34401437da836be2f70019d3e6008d7
     target_directory: src
 
 build:

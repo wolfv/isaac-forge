@@ -7,15 +7,15 @@ schema_version: 1
 # Detected build traits: ament_auto, cuda, python.
 
 context:
-  version: "4.5.0"
+  version: "4.6.0"
 
 package:
   name: ros-jazzy-ros2-benchmark
   version: ${{ version }}
 
 source:
-  - url: https://github.com/NVIDIA-ISAAC-ROS/ros2_benchmark/archive/refs/tags/v4.5-0.tar.gz
-    sha256: 9077a56c57337a7d34a5da1068d06e9b2ed550180e8566012e93f6f6dd1d4d63
+  - url: https://github.com/NVIDIA-ISAAC-ROS/ros2_benchmark/archive/refs/tags/v4.6-0.tar.gz
+    sha256: 945f37749653b376bc0ee7bcc23f1f7da5a98fc05db93f3a24a6b2f12507a5d3
     target_directory: src
 
 build:

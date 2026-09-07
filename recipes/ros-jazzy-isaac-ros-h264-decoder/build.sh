@@ -5,15 +5,6 @@ set -euo pipefail
 # Build only the decoder; isaac_ros_h264_encoder is a separate package.
 cd src/isaac_ros_h264_decoder
 
-# conda-forge's magic_enum installs its headers into include/magic_enum/, and its CMake
-# package exports only a target -- no magic_enum_INCLUDE_DIRS variable. So the include
-# directory reaches consumers only if they link magic_enum::magic_enum through
-# isaac_ros_gxf's imported target, which this package does not do: it picks up the gxf
-# headers via ament include dirs instead. The result is
-# `expected_macro.hpp:24: fatal error: magic_enum.hpp: No such file or directory`.
-# State the directory rather than depending on that chain holding.
-export CXXFLAGS="${CXXFLAGS:-} -I${PREFIX}/include/magic_enum"
-
 # ament_auto_find_build_dependencies() and find_package(vpi) both read from the
 # host prefix.
 export AMENT_PREFIX_PATH="${PREFIX}${AMENT_PREFIX_PATH:+:${AMENT_PREFIX_PATH}}"

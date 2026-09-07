@@ -7,15 +7,15 @@ schema_version: 1
 # Detected build traits: ament_auto, asset, cuda, python.
 
 context:
-  version: "4.5.0"
+  version: "4.6.0"
 
 package:
   name: ros-jazzy-isaac-ros-foundationpose-models-install
   version: ${{ version }}
 
 source:
-  - url: https://github.com/NVIDIA-ISAAC-ROS/isaac_ros_pose_estimation/archive/refs/tags/v4.5-0.tar.gz
-    sha256: 7e6855053fbc1e9af5683c36e6e5642e2d5db9de8783753371ddeb4c565aee13
+  - url: https://github.com/NVIDIA-ISAAC-ROS/isaac_ros_pose_estimation/archive/refs/tags/v4.6-0.tar.gz
+    sha256: b02f23b032e1861d83797e344c736c966f749eb1ca78529aab842d56a0303107
     target_directory: src
 
 build:

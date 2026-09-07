@@ -7,15 +7,15 @@ schema_version: 1
 # Detected build traits: ament_auto, asset, cuda, python.
 
 context:
-  version: "4.5.0"
+  version: "4.6.0"
 
 package:
   name: ros-jazzy-isaac-ros-rtdetr-models-install
   version: ${{ version }}
 
 source:
-  - url: https://github.com/NVIDIA-ISAAC-ROS/isaac_ros_object_detection/archive/refs/tags/v4.5-0.tar.gz
-    sha256: 349b78dcdbd22c019f982d343c65bd690d4affcdf8aca85183b1505943962098
+  - url: https://github.com/NVIDIA-ISAAC-ROS/isaac_ros_object_detection/archive/refs/tags/v4.6-0.tar.gz
+    sha256: e93d7c195e1d6a87e8e7d432cab681650693814eab2bcb124b45df2983ab2e03
     target_directory: src
 
 build:

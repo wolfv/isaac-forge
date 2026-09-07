@@ -28,8 +28,8 @@ source:
 
 build:
   number: 0
-  # There is only one x86 payload; the second flavor is ARM-only.
-  skip: target_platform != "linux-aarch64" and tensorrt_flavor == "orin"
+  # conda-forge currently packages only the C++ API; keep these bindings Jetson-only.
+  skip: target_platform != "linux-aarch64"
   script: build.sh
   dynamic_linking:
     # build.sh installs one deliberate RPATH. Do not let the generic relocation pass

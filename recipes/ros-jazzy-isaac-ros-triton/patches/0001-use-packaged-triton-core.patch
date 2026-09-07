@@ -1,9 +1,9 @@
 --- a/isaac_ros_triton/CMakeLists.txt
-+++ b/isaac_ros_triton/CMakeLists.txt
-@@ -25,69 +25,10 @@
- find_package(ament_cmake_auto REQUIRED)
- ament_auto_find_build_dependencies()
- 
++++ a/isaac_ros_triton/CMakeLists.txt
+@@ -44,69 +44,7 @@
+   ${ISAAC_ROS_TENSOR_LIST_INTERFACES_TYPESUPPORT_CPP_LIBRARY}
+ )
+
 -# Triton Server integration - always enabled
 -include(FetchContent)
 -
@@ -67,17 +67,14 @@
 -else()
 -  message(FATAL_ERROR "Could not locate libtritonserver.so under ${tritonserver_SOURCE_DIR}")
 -endif()
-+# Triton Server integration - always enabled. Use the packaged core API instead of
-+# downloading an architecture-specific server tarball during configure. The exported
-+# stub has the same SONAME as the runtime library and supplies the public C API target.
 +find_package(TritonCore REQUIRED CONFIG)
- 
+
  # TritonNode
  ament_auto_add_library(triton_node SHARED src/triton_node.cpp)
-@@ -99,19 +40,12 @@
+@@ -118,24 +56,12 @@
    isaac_ros_nitros_tensor_list_type
  )
- 
+
 -# Add Triton dependencies if found
 -if(_HDR_COUNT GREATER 0)
 -  target_include_directories(triton_node PRIVATE ${_TRITON_INC_DIR})
@@ -89,10 +86,15 @@
 -    IMPORTED_LOCATION "${_TRITON_LIB_DIR}/libtritonserver.so"
 -    INTERFACE_INCLUDE_DIRECTORIES "${_TRITON_INC_DIR}"
 -  )
--  target_link_libraries(triton_node tritonserver::tritonserver dl pthread)
+-  target_link_libraries(triton_node
+-    ${TRITON_NITROS_LIBRARIES}
+-    tritonserver::tritonserver
+-    dl
+-    pthread
+-  )
 -endif()
-+target_link_libraries(
-+  triton_node
++target_link_libraries(triton_node
++  ${TRITON_NITROS_LIBRARIES}
 +  TritonCore::triton-core-serverstub
 +  dl
 +  pthread
@@ -100,12 +102,12 @@
  rclcpp_components_register_nodes(triton_node "nvidia::isaac_ros::dnn_inference::TritonNode")
  set(
    node_plugins
-@@ -140,7 +74,7 @@
-   # Gtest for triton node
-   ament_add_gtest(triton_node_test test/triton_node_test.cpp)
-   target_link_libraries(triton_node_test triton_node)
+@@ -168,7 +94,7 @@
+     triton_node
+     ${TRITON_NITROS_LIBRARIES}
+   )
 -  target_include_directories(triton_node_test PUBLIC include/ ${_TRITON_INC_DIR})
 +  target_include_directories(triton_node_test PUBLIC include/)
    ament_target_dependencies(triton_node_test rclcpp)
    ament_target_dependencies(triton_node_test isaac_ros_nitros)
- 
+   target_link_libraries(triton_node_test CUDA::cudart)

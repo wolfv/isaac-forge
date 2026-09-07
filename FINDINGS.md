@@ -1,8 +1,10 @@
 # isaac-forge — feasibility analysis
 
-Packaging **Isaac ROS 4.5.0** on top of the **RoboStack** conda ecosystem.
-All figures below were measured from the upstream sources, the NVIDIA apt repos and the
-conda channel repodata on 2026-07-27. Machine-readable inventory: `packages.json`.
+This analysis records the original **Isaac ROS 4.5.0** packaging baseline. All figures below
+were measured from upstream sources, NVIDIA apt repositories, and conda repodata on
+2026-07-27; `packages.json` is the current 4.6 inventory. Isaac ROS 4.6 removes the GXF
+implementation described below, so those sections are retained as upgrade history rather
+than statements about the current recipes.
 
 ## 1. Scope
 
@@ -299,13 +301,14 @@ application have "material additional functionality beyond the included portions
 (§1.2(i)) and that the distributable portions "**only be accessed by your application**" (§1.2(ii)).
 
 A standalone `vpi` conda package is not an application and is accessible to anything that installs
-it, so it satisfies neither condition. TensorRT's terms are structured the same way — which is
-presumably why TensorRT has never appeared on conda-forge.
+it, so it satisfies neither condition. TensorRT's terms are structured the same way. conda-forge
+began publishing TensorRT 11.1 in 2026 under NVIDIA's redistribution terms. Isaac ROS 4.6 uses those
+packages on x86 through a small compatibility metapackage. This repository retains TensorRT 10 on
+ARM64 because conda-forge's build is SBSA rather than a native Jetson payload.
 
-The practical consequence: **the recipes are the publishable artifact, not the packages they
-produce.** Each recipe fetches from NVIDIA's own servers at build time, so a user running
-`pixi run layer0` is exercising their own "install and use" grant and nothing is redistributed by
-us. Organisations can additionally host the built packages internally under §3 / §1.3.
+Absent separate redistribution permission, **the recipes are the publishable artifact, not the
+packages they produce.** This repository subsequently obtained NVIDIA's permission for its public
+TensorRT packages; other proprietary payloads still require their own case-by-case clearance.
 
 ## 7. Notes on the vendored blobs
 

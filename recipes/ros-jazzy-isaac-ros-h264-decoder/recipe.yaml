@@ -22,8 +22,8 @@ schema_version: 1
 # Apache-2.0 with public source, so nothing here is a licensing question.
 
 context:
-  version: "4.5.0"
-  tag: v4.5-0
+  version: "4.6.0"
+  tag: v4.6-0
 
 package:
   name: ros-jazzy-isaac-ros-h264-decoder
@@ -31,13 +31,12 @@ package:
 
 source:
   - url: https://github.com/NVIDIA-ISAAC-ROS/isaac_ros_compression/archive/refs/tags/${{ tag }}.tar.gz
-    sha256: f02bc1dfe2f210fa2cc1655ec2ac8a529805033f573a6d4959739acee427e2d9
+    sha256: 1580cae8881534aed272fcf9cb1062ad9f9a9da4964edbfa7728d811396acd6e
     target_directory: src
     patches:
       # Both are the commits prepared for upstream, so building this package
       # build-verifies the PR. See ../../upstream/README.md and ISSUES.md #2.
       - patches/0001-h264_decoder-link-the-nvbuf-libraries-by-name-so-DT_.patch
-      - patches/0002-h264_decoder-allow-NVBUF_LIB_DIR-to-be-overridden.patch
 
 build:
   number: 0
@@ -85,11 +84,6 @@ requirements:
     # Match RoboStack's cv_bridge pin, as isaac_ros_image_proc does -- two OpenCVs
     # sharing the cv:: namespace in one process is the hazard to avoid.
     - libopencv 4.13.*
-    # Compiled against directly: isaac_ros_gxf's gxf/core/expected_macro.hpp does
-    # #include "magic_enum.hpp". It also arrives transitively as a run dep of
-    # ros-jazzy-isaac-ros-gxf, but relying on that is what made this break invisible --
-    # declare it, and see build.sh for why the include dir needs stating too.
-    - magic_enum
     - cuda-version 13.*
     - cuda-cudart-dev
     - cuda-nvtx-dev

@@ -22,8 +22,8 @@ schema_version: 1
 # ../../upstream/README.md and ISSUES.md #12.
 
 context:
-  version: "4.5.0"
-  tag: v4.5-0
+  version: "4.6.0"
+  tag: v4.6-0
 
 package:
   name: ros-jazzy-isaac-ros-common
@@ -31,7 +31,7 @@ package:
 
 source:
   - url: https://github.com/NVIDIA-ISAAC-ROS/isaac_ros_common/archive/refs/tags/${{ tag }}.tar.gz
-    sha256: b7a2bb09bad33c3654750a412c2c902064e8256088e1b1391ecd1dbcd803d0f7
+    sha256: e116f465812c0376c3cd7afde9f92ff0f3a8e58067450b8d6ab240d42ec33c6f
     target_directory: src
     patches:
       # isaac_ros_common-extras.cmake calls find_package(CUDA) -- removed in CMake 4 --

@@ -21,22 +21,20 @@ schema_version: 1
 # libnvinfer_plugin. The Orin variant therefore uses that payload and verifies the
 # actual SASS inventory rather than inferring support from an aarch64 filename.
 #
-# conda-forge staged-recipes#29445 builds from
-# TensorRT-<v>.Linux.x86_64-gnu.cuda-<x>.tar.gz. That tarball is **6.18 GB** and
-# extracts to roughly 14 GB, because it carries the static archives --
-# libnvinfer_static.a alone is 3.6 GB, libnvinfer_lean_static.a another 1.1 GB -- plus
-# samples, data, docs and a 1 GB Windows builder resource. A GitHub runner has ~14 GB
-# free in total, so a source that size cannot be unpacked in CI at all.
+# Isaac ROS 4.6 can use conda-forge's split TensorRT 11.1 packages on linux-64;
+# recipes/tensorrt-conda-forge provides the rosdep-compatible `tensorrt` name there.
+# conda-forge's ARM64 build is explicitly SBSA (`arm-variant * sbsa`), however, not a
+# native Jetson/Orin payload. This recipe therefore remains only for ARM targets.
 #
-# The debs carry exactly the same shared objects, split, and total 1.45 GB. We need four
-# of the eighteen: the runtime library, the plugin library, the ONNX parser and the
-# headers. libnvinfer-dev is deliberately absent -- it is 2.5 GB of static archives and
-# nothing here links statically.
+# The NVIDIA debs carry the needed shared objects split across small inputs. We need
+# the runtime library, plugin library, ONNX parser and headers. libnvinfer-dev is
+# deliberately absent because it is mostly large static archives and nothing here
+# links statically.
 #
 # ---------------------------------------------------------------------------
 # Why CUDA 13 TensorRT, not the 10.9.0.34 + cuda12.8 that Isaac ships against
 # ---------------------------------------------------------------------------
-# NVIDIA's own libnvinfer10 deb for Isaac ROS 4.5 is 10.9.0.34-1+cuda12.8, and README.md
+# NVIDIA's libnvinfer10 deb used by Isaac ROS 4.5 was 10.9.0.34-1+cuda12.8, and README.md
 # notes the oddity: the rest of Isaac ROS 4.5 is CUDA 13 while its TensorRT is the CUDA
 # 12.8 build. Taking that at face value does not work here, and the reason is mechanical
 # rather than a matter of taste.
@@ -47,9 +45,9 @@ schema_version: 1
 # environment. So a cuda-12.8 TensorRT is not installable next to the rest of the stack;
 # it is not a compatibility judgement, the environment simply does not solve.
 #
-# TensorRT 10 keeps the libnvinfer.so.10 soname expected by Isaac's binaries while
-# NVIDIA publishes CUDA 13 builds for every target. Workstations and Thor use 10.13.3;
-# Orin uses the native r39.2 10.16.2 build because the generic ARM artifact lacks SM87
+# TensorRT 10 keeps the libnvinfer.so.10 soname expected by Jetson's binaries while
+# NVIDIA publishes CUDA 13 builds for every target. Thor uses 10.13.3; Orin uses the
+# native r39.2 10.16.2 build because the generic ARM artifact lacks SM87
 # SASS. Engine plans are not portable between these releases, so users must rebuild
 # rather than moving .plan files between this channel and NVIDIA's 10.9 installation.
 #
@@ -106,8 +104,8 @@ source:
 
 build:
   number: ${{ build_number }}
-  # There is only one x86 payload; the second flavor is ARM-only.
-  skip: target_platform != "linux-aarch64" and tensorrt_flavor == "orin"
+  # linux-64 uses conda-forge through recipes/tensorrt-conda-forge.
+  skip: target_platform != "linux-aarch64"
   script: build.sh
   dynamic_linking:
     # NVIDIA's binaries are installed untouched -- no RPATH rewriting, no relinking, so

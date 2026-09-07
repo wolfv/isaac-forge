@@ -7,15 +7,15 @@ schema_version: 1
 # Detected build traits: ament_auto, cuda, python.
 
 context:
-  version: "4.5.0"
+  version: "4.6.0"
 
 package:
   name: ros-jazzy-isaac-ros-vda5050-client-bringup
   version: ${{ version }}
 
 source:
-  - url: https://github.com/NVIDIA-ISAAC-ROS/isaac_ros_cloud_control/archive/refs/tags/v4.5-0.tar.gz
-    sha256: ae5206d9751eb75d758b6c41ebb00471088c8c31d784766ab057d1e99b9f8877
+  - url: https://github.com/NVIDIA-ISAAC-ROS/isaac_ros_cloud_control/archive/refs/tags/v4.6-0.tar.gz
+    sha256: 33c4894eed43ccd0d20c02fdb1d8abee65935ff80f53d0a258e0e711c4ee4aa8
     target_directory: src
 
 build:

@@ -7,15 +7,15 @@ schema_version: 1
 # No special build traits detected.
 
 context:
-  version: "4.5.0"
+  version: "4.6.0"
 
 package:
   name: ros-jazzy-isaac-ros-agile-unitree-g1
   version: ${{ version }}
 
 source:
-  - url: https://github.com/NVIDIA-ISAAC-ROS/isaac_ros_learned_policies/archive/refs/tags/v4.5-0.tar.gz
-    sha256: a66b7a79ef7027d7732949a8c9c4292cc4754b9201b3855ef38154831160045d
+  - url: https://github.com/NVIDIA-ISAAC-ROS/isaac_ros_learned_policies/archive/refs/tags/v4.6-0.tar.gz
+    sha256: 955aa66ea1c9caf291bc4067d1f4678b48a74a64833d6dc7f98e0dc4b601963e
     target_directory: src
 
 build:

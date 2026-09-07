@@ -1,0 +1,78 @@
+--- isaac_ros_visual_slam/CMakeLists.txt
++++ isaac_ros_visual_slam/CMakeLists.txt
+@@ -66,57 +66,22 @@
+   ${ISAAC_ROS_VISUAL_SLAM_INTERFACES_TYPESUPPORT_CPP_LIBRARY}
+ )
+
+-get_filename_component(CUVSLAM_SOURCE_DIR "${CMAKE_CURRENT_SOURCE_DIR}/../cuvslam" REALPATH)
+-if(NOT EXISTS "${CUVSLAM_SOURCE_DIR}/CMakeLists.txt")
+-  message(FATAL_ERROR
+-    "cuVSLAM source checkout missing at ${CUVSLAM_SOURCE_DIR}. "
+-    "Run `git submodule update --init --recursive "
+-    "ros_ws/src/isaac_ros_visual_slam/cuvslam`.")
+-endif()
+-
+-if(CMAKE_BUILD_TYPE)
+-  set(CUVSLAM_BUILD_TYPE "${CMAKE_BUILD_TYPE}")
+-else()
+-  set(CUVSLAM_BUILD_TYPE Release)
+-endif()
+-
+-set(CUVSLAM_BINARY_DIR "${CMAKE_CURRENT_BINARY_DIR}/cuvslam")
+-set(CUVSLAM_LIBRARY "${CUVSLAM_BINARY_DIR}/bin/libcuvslam.so")
+-set(CUVSLAM_API_LAUNCHER "${CUVSLAM_BINARY_DIR}/bin/cuvslam_api_launcher")
+-set(CUVSLAM_GIT_SAFE_DIR_ENV
+-  GIT_CONFIG_COUNT=1
+-  GIT_CONFIG_KEY_0=safe.directory
+-  GIT_CONFIG_VALUE_0=${CUVSLAM_SOURCE_DIR}
+-)
+-
+-externalproject_add(cuvslam_external
+-  SOURCE_DIR "${CUVSLAM_SOURCE_DIR}"
+-  BINARY_DIR "${CUVSLAM_BINARY_DIR}"
+-  CMAKE_ARGS
+-    -DCMAKE_BUILD_TYPE=${CUVSLAM_BUILD_TYPE}
+-    -DCMAKE_INSTALL_PREFIX=${CUVSLAM_BINARY_DIR}/install
+-    -DCUDAToolkit_ROOT=${CUVSLAM_CUDA_ROOT}
+-    -DCUVSLAM_BUILD_SHARED_LIB=ON
+-    -DUSE_CUDA=ON
+-    -DUSE_NVTX=${USE_NVTX}
+-    -DUSE_RERUN=OFF
+-    -DUSE_CERES=OFF
+-    -DUSE_CUNLS=OFF
+-  BUILD_COMMAND ${CMAKE_COMMAND} -E env
+-    ${CUVSLAM_GIT_SAFE_DIR_ENV}
+-    ${CMAKE_COMMAND} --build <BINARY_DIR> --target cuvslam_api_launcher
+-  INSTALL_COMMAND ""
+-  BUILD_BYPRODUCTS
+-    "${CUVSLAM_LIBRARY}"
+-    "${CUVSLAM_API_LAUNCHER}"
+-)
++ament_index_get_resource(CUVSLAM_RELATIVE_PATH cuvslam isaac_ros_nitros)
++ament_index_get_prefix_path(AMENT_INDEX_PREFIX_PATHS)
++foreach(PREFIX_PATH IN LISTS AMENT_INDEX_PREFIX_PATHS)
++  if(EXISTS "${PREFIX_PATH}/${CUVSLAM_RELATIVE_PATH}")
++    set(CUVSLAM "${PREFIX_PATH}/${CUVSLAM_RELATIVE_PATH}")
++    break()
++  endif()
++endforeach()
++set(CUVSLAM_LIBRARY "${CUVSLAM}/lib/libcuvslam.so")
++set(CUVSLAM_API_LAUNCHER "${CUVSLAM}/lib/cuvslam_api_launcher")
+
+ add_library(cuvslam SHARED IMPORTED GLOBAL)
+ set_target_properties(cuvslam PROPERTIES
+   IMPORTED_LOCATION "${CUVSLAM_LIBRARY}"
+-  INTERFACE_INCLUDE_DIRECTORIES "${CUVSLAM_SOURCE_DIR}/libs"
++  INTERFACE_INCLUDE_DIRECTORIES "${CUVSLAM}/include"
+ )
+-add_dependencies(cuvslam cuvslam_external)
+
+ # visual_slam_node
+ ament_auto_add_library(
+@@ -136,7 +101,6 @@
+   Boost::thread
+   Boost::chrono
+ )
+-add_dependencies(visual_slam_node cuvslam_external)
+ rclcpp_components_register_nodes(visual_slam_node "nvidia::isaac_ros::visual_slam::VisualSlamNode")
+ set(node_plugins "${node_plugins}nvidia::isaac_ros::visual_slam::VisualSlamNode;$<TARGET_FILE:visual_slam_node>\n")

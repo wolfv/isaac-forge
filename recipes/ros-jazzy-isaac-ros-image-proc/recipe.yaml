@@ -21,8 +21,8 @@ schema_version: 1
 # See FINDINGS.md sections 5 and 6.
 
 context:
-  version: "4.5.0"
-  tag: v4.5-0
+  version: "4.6.0"
+  tag: v4.6-0
 
 package:
   name: ros-jazzy-isaac-ros-image-proc
@@ -30,7 +30,7 @@ package:
 
 source:
   - url: https://github.com/NVIDIA-ISAAC-ROS/isaac_ros_image_pipeline/archive/refs/tags/${{ tag }}.tar.gz
-    sha256: 66a0ea87a075c4eb428faa4b987768928ae0250e6ab801db4bcbeef8fa8924b1
+    sha256: 1a162b940a8d934086a019101cfcaf1b3a3809447d4f490e4402cdc8f48c222b
     target_directory: src
 
 build:
@@ -48,10 +48,8 @@ requirements:
     - ninja
     - pkg-config
   host:
-    # Proprietary foundation, repacked from NVIDIA's debs.
     - ros-jazzy-isaac-ros-nitros
     - ros-jazzy-isaac-ros-nitros-image-type
-    - ros-jazzy-isaac-ros-nitros-camera-info-type
     - ros-jazzy-isaac-ros-nitros-tensor-list-type
     - ros-jazzy-isaac-ros-cvcuda-utils
     - ros-jazzy-isaac-ros-managed-nitros
@@ -78,17 +76,10 @@ requirements:
     - cuda-cudart-dev
     # isaac_ros_nitros/types/type_utility.hpp includes nvtx3/nvToolsExt.h.
     - cuda-nvtx-dev
-    # Compiled against directly, through isaac_ros_gxf's expected_macro.hpp, which every
-    # source including a NITROS header pulls in. It also arrives transitively as a run dep of
-    # ros-jazzy-isaac-ros-gxf, and relying on that is what kept ISSUES.md #17 invisible until
-    # conda-forge's magic_enum 0.9.7 nested its header one directory deeper. Declare it, and
-    # see build.sh for why the include directory has to be stated as well.
-    - magic_enum
   run:
     - __glibc >=2.38
     - ros-jazzy-isaac-ros-nitros
     - ros-jazzy-isaac-ros-nitros-image-type
-    - ros-jazzy-isaac-ros-nitros-camera-info-type
     - ros-jazzy-isaac-ros-nitros-tensor-list-type
     - ros-jazzy-isaac-ros-cvcuda-utils
     - ros-jazzy-isaac-ros-managed-nitros

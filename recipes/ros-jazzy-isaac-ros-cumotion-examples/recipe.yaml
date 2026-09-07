@@ -7,15 +7,15 @@ schema_version: 1
 # Build type: ament_python (setuptools, installed with pip).
 
 context:
-  version: "4.5.0"
+  version: "4.6.0"
 
 package:
   name: ros-jazzy-isaac-ros-cumotion-examples
   version: ${{ version }}
 
 source:
-  - url: https://github.com/NVIDIA-ISAAC-ROS/isaac_ros_cumotion/archive/refs/tags/v4.5-0.tar.gz
-    sha256: 3ef770f800665ad25569291f935ef8c47f752a301575aaca1c26df5199c2b520
+  - url: https://github.com/NVIDIA-ISAAC-ROS/isaac_ros_cumotion/archive/refs/tags/v4.6-0.tar.gz
+    sha256: c8d0476a8d74e3d9567a70c9d6565d266133a3a6b4e6d52c457a668dff4c292e
     target_directory: src
 
 build:
@@ -33,10 +33,13 @@ requirements:
   run:
     - python
     - ros-jazzy-isaac-ros-common
+    - ros-jazzy-isaac-ros-cumotion
     - ros-jazzy-isaac-ros-cumotion-moveit
+    - ros-jazzy-isaac-ros-cumotion-robot-description
     - ros-jazzy-moveit-resources-panda-description
     - ros-jazzy-moveit-resources-panda-moveit-config
     - ros-jazzy-moveit2-tutorials
+    - ros-jazzy-rclcpp-components
     - ros-jazzy-ros2launch
     - ros-jazzy-rviz2
     - ros-jazzy-ur-moveit-config

@@ -7,15 +7,15 @@ schema_version: 1
 # Detected build traits: ament_auto, cuda, python, rosidl.
 
 context:
-  version: "4.5.0"
+  version: "4.6.0"
 
 package:
   name: ros-jazzy-isaac-ros-jetson-stats-services
   version: ${{ version }}
 
 source:
-  - url: https://github.com/NVIDIA-ISAAC-ROS/isaac_ros_jetson/archive/refs/tags/v4.5-0.tar.gz
-    sha256: 82e00c61855562a2e71242d71772645add4902a4e88a5c88b9a3e4f49ecef4b6
+  - url: https://github.com/NVIDIA-ISAAC-ROS/isaac_ros_jetson/archive/refs/tags/v4.6-0.tar.gz
+    sha256: a97a05e435611e0e22204064604d919caafc45a8299b1a5a96184c3f2610e184
     target_directory: src
 
 build:

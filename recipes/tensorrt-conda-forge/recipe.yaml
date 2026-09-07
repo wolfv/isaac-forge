@@ -1,0 +1,34 @@
+schema_version: 1
+
+# Keep Isaac ROS's rosdep name while using conda-forge's split TensorRT packages on x86.
+# ARM64 is intentionally handled by recipes/tensorrt because conda-forge publishes only
+# an SBSA build, not the native Jetson payload needed by Orin.
+context:
+  version: "11.1.0.106"
+
+package:
+  name: tensorrt
+  version: ${{ version }}
+
+build:
+  number: 0
+  skip: target_platform != "linux-64"
+
+requirements:
+  run:
+    - libnvinfer-devel ==${{ version }}
+    - libnvinfer-plugin-devel ==${{ version }}
+    - libnvonnxparser-devel ==${{ version }}
+
+tests:
+  - script:
+      - test -f "${PREFIX}/include/NvInfer.h"
+      - python -c "import ctypes; ctypes.CDLL('libnvinfer.so.11'); ctypes.CDLL('libnvinfer_plugin.so.11'); ctypes.CDLL('libnvonnxparser.so.11')"
+    requirements:
+      run:
+        - python
+
+about:
+  homepage: https://github.com/conda-forge/tensorrt-feedstock
+  summary: Isaac ROS compatibility metapackage for conda-forge TensorRT
+  license: LicenseRef-NVIDIA-TensorRT-SDK

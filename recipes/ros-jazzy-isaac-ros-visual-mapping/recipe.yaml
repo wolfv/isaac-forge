@@ -1,6 +1,6 @@
 schema_version: 1
 
-# isaac_ros_visual_mapping 4.5.0, repacked from the official Isaac ROS debian package.
+# isaac_ros_visual_mapping 4.6.0, repacked from the official Isaac ROS debian package.
 #
 # This is cuVGL (visual global localization) and cuSFM (structure from motion) -- the
 # libraries under isaac_ros_visual_global_localization and isaac_mapping_ros, and the
@@ -74,8 +74,8 @@ schema_version: 1
 # that. That is the next decision, not a defect here. ISSUES.md #26.
 
 context:
-  version: "4.5.0"
-  deb_version: "4.5.0-0noble.20260706175938504"
+  version: "4.6.0"
+  deb_version: "4.6.0-0noble.20260818193553000"
   pool: https://isaac.download.nvidia.com/isaac-ros/release-4/pool/main/r
 
 recipe:
@@ -87,7 +87,7 @@ source:
   # bsdtar, the same way every other repack here does.
   - url: ${{ pool }}/ros-jazzy-isaac-ros-visual-mapping/ros-jazzy-isaac-ros-visual-mapping_${{ deb_version }}_amd64.deb
     file_name: visual_mapping.deb
-    sha256: ddb94dd4976c042a79e2c7a75c8a093a400ec420740d6f2690793b9776f8e7cd
+    sha256: 3d5aabe07c912394b91f47c90814b0e93a01165f3a2f94e8b27e33c12fb1ae92
 
 outputs:
   # -------------------------------------------------------------------------
@@ -127,7 +127,7 @@ outputs:
         - nlohmann_json
         - libcvcuda
         - libcvcuda-dev >=0.16
-        - tensorrt
+        - tensorrt >=11,<12
         - cuda-version 13.*
         - cuda-cudart
         # NOT ros-jazzy-isaac-common-py, though it is the deb's one <exec_depend>. It is
@@ -227,7 +227,7 @@ outputs:
         - ceres-solver
         - gflags
         - libcvcuda
-        - tensorrt
+        - tensorrt >=11,<12
         - cuda-version 13.*
         - cuda-cudart
         - libcublas

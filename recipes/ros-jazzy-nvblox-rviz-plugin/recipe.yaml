@@ -7,15 +7,15 @@ schema_version: 1
 # Detected build traits: cuda.
 
 context:
-  version: "4.5.0"
+  version: "4.6.0"
 
 package:
   name: ros-jazzy-nvblox-rviz-plugin
   version: ${{ version }}
 
 source:
-  - url: https://github.com/NVIDIA-ISAAC-ROS/isaac_ros_nvblox/archive/refs/tags/v4.5-0.tar.gz
-    sha256: 4a668d140bec4df889f1b1a0a1059d841c19546ec8ac7e26de830a694fc855b8
+  - url: https://github.com/NVIDIA-ISAAC-ROS/isaac_ros_nvblox/archive/refs/tags/v4.6-0.tar.gz
+    sha256: 1572d2839296207fa004566e0a1edcaec7aea351944ea0cc22b1f8c6b6a8acaa
     target_directory: src
 
 build:

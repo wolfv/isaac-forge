@@ -990,6 +990,8 @@ PATCHES = {
     # CV-CUDA's C++ ImageFormat conversion is explicit in 0.16.
     "ros-jazzy-isaac-ros-cvcuda-utils": [
         "patches/0001-cast-image-format-for-C-API.patch"],
+    "ros-jazzy-isaac-ros-teleop": [
+        "patches/0001-use-conda-forge-msgpack-cxx-target.patch"],
     # The encoder hard-codes Ubuntu multiarch paths for nvv4l2 libraries even though
     # CMake can resolve the declared package from any installation prefix.
     "ros-jazzy-isaac-ros-h264-encoder": [
@@ -1238,6 +1240,7 @@ SYSTEM = {
     # teleop node, not a build one.
     "python3-msgpack": "msgpack-python",
     "python3-msgpack-numpy": "msgpack-numpy",
+    "msgpack": "msgpack-cxx",
 }
 
 

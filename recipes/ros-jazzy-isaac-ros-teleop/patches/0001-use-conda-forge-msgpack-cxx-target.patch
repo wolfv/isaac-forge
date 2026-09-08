@@ -1,0 +1,20 @@
+--- a/isaac_ros_teleop/CMakeLists.txt
++++ b/isaac_ros_teleop/CMakeLists.txt
+@@ -6,7 +6,7 @@
+
+ find_package(ament_cmake REQUIRED)
+ find_package(ament_cmake_auto REQUIRED)
+-find_package(msgpack REQUIRED)
++find_package(msgpack-cxx CONFIG REQUIRED)
+ ament_auto_find_build_dependencies()
+
+ # Core logic lives in a library so both the node and the unit tests link it
+@@ -17,7 +17,7 @@
+   $<INSTALL_INTERFACE:include>
+ )
+ # msgpack is a plain CMake/rosdep dependency (not ament), so link it explicitly.
+-target_link_libraries(pose_reset_node_core Eigen3::Eigen msgpackc)
++target_link_libraries(pose_reset_node_core Eigen3::Eigen msgpack-cxx)
+
+ ament_auto_add_executable(pose_reset_node src/pose_reset_main.cpp)
+ target_link_libraries(pose_reset_node pose_reset_node_core)

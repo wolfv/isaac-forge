@@ -17,6 +17,8 @@ source:
   - url: https://github.com/NVIDIA-ISAAC-ROS/isaac_ros_teleop/archive/refs/tags/v4.6-0.tar.gz
     sha256: 1369052c159d3cf5f10356fb0cb49d8f593564fbb53a5ab4005574b92197d4f1
     target_directory: src
+    patches:
+      - patches/0001-use-conda-forge-msgpack-cxx-target.patch
 
 build:
   number: 0
@@ -83,12 +85,12 @@ requirements:
     - pkg-config
   host:
     - eigen
+    - msgpack-cxx
     - ros-jazzy-ament-cmake
     - ros-jazzy-ament-cmake-auto
     - ros-jazzy-geometry-msgs
     - ros-jazzy-isaac-ros-common
     - ros-jazzy-isaac-teleop-core
-    - ros-jazzy-msgpack
     - ros-jazzy-rclcpp
     - ros-jazzy-rclpy
     - ros-jazzy-ros2launch
@@ -104,10 +106,10 @@ requirements:
     - pyyaml
   run:
     - __glibc >=2.38
+    - msgpack-cxx
     - ros-jazzy-geometry-msgs
     - ros-jazzy-isaac-ros-common
     - ros-jazzy-isaac-teleop-core
-    - ros-jazzy-msgpack
     - ros-jazzy-rclcpp
     - ros-jazzy-rclpy
     - ros-jazzy-ros2launch

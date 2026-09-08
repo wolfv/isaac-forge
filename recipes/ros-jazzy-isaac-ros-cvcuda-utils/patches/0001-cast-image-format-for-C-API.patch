@@ -5,10 +5,10 @@
    if (it == data_type_map.end()) {
      RCLCPP_ERROR(rclcpp::get_logger("cvcuda_utilities"), "Unsupported image format: %s",
 -      nvcvImageFormatGetName(image_format));
-+      nvcvImageFormatGetName(static_cast<NVCVImageFormat>(image_format)));
++      nvcvImageFormatGetName(static_cast<::NVCVImageFormat>(image_format)));
      throw std::invalid_argument(std::string("Unsupported image format: ") +
 -      nvcvImageFormatGetName(image_format));
-+      nvcvImageFormatGetName(static_cast<NVCVImageFormat>(image_format)));
++      nvcvImageFormatGetName(static_cast<::NVCVImageFormat>(image_format)));
    }
    return it->second;
  }

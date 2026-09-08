@@ -1,0 +1,14 @@
+--- a/isaac_ros_cvcuda_utils/src/cvcuda_utilities.cpp
++++ b/isaac_ros_cvcuda_utils/src/cvcuda_utilities.cpp
+@@ -245,9 +245,9 @@
+   auto it = data_type_map.find(image_format);
+   if (it == data_type_map.end()) {
+     RCLCPP_ERROR(rclcpp::get_logger("cvcuda_utilities"), "Unsupported image format: %s",
+-      nvcvImageFormatGetName(image_format));
++      nvcvImageFormatGetName(static_cast<NVCVImageFormat>(image_format)));
+     throw std::invalid_argument(std::string("Unsupported image format: ") +
+-      nvcvImageFormatGetName(image_format));
++      nvcvImageFormatGetName(static_cast<NVCVImageFormat>(image_format)));
+   }
+   return it->second;
+ }

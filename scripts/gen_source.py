@@ -795,6 +795,11 @@ EXTRA_SOURCES = {
         "730723484d920379ba095f3e3e3fe380669573723cb119cc1b28df4131702da6",
         "src/isaac_teleop_core/IsaacTeleop",
     )],
+    "ros-jazzy-unitree-g1-ros2-control": [(
+        "https://github.com/unitreerobotics/unitree_sdk2/archive/refs/tags/2.0.2.tar.gz",
+        "8128514cccd840623fd47d655bdde29353ae5365d6940ec737f6fd61e8de366c",
+        "src/unitree_g1/unitree_g1_ros2_control/unitree_sdk2",
+    )],
     "ros-jazzy-nvblox-ros": [(
         "https://github.com/nvidia-isaac/nvblox/archive/"
         "24eee4948768682fa1ffb969b881efee4fca29c2.tar.gz",
@@ -982,6 +987,9 @@ PATCHES = {
     "ros-jazzy-isaac-deploy-core": ["use-packaged-triton.patch"],
     "ros-jazzy-isaac-ros-triton": ["patches/0001-use-packaged-triton-core.patch"],
     "ros-jazzy-unitree-g1-bridge": ["patches/0001-match-package-version.patch"],
+    # CV-CUDA's C++ ImageFormat conversion is explicit in 0.16.
+    "ros-jazzy-isaac-ros-cvcuda-utils": [
+        "patches/0001-cast-image-format-for-C-API.patch"],
     # The encoder hard-codes Ubuntu multiarch paths for nvv4l2 libraries even though
     # CMake can resolve the declared package from any installation prefix.
     "ros-jazzy-isaac-ros-h264-encoder": [
@@ -1566,7 +1574,7 @@ def emit(name: str, repo: str, path: str) -> str | None:
                   if traits else "\n# No special build traits detected.")
 
     pats = PATCHES.get(name, [])
-    patch_block = ("    patches:\n" + "\n".join(f"      - {x}" for x in pats)
+    patch_block = ("    patches:\n" + "\n".join(f"      - {x}" for x in pats) + "\n"
                    if pats else "")
 
     # See the asset note in detect(). The rewrite is a sed rather than a patch file

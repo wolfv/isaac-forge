@@ -19,6 +19,7 @@ source:
     target_directory: src
     patches:
       - patches/0001-derive-detection-count-from-output-shape.patch
+
 build:
   number: 1
   script:

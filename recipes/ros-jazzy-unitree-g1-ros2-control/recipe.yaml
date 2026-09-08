@@ -19,6 +19,10 @@ source:
     target_directory: src
     patches:
       - patches/0001-use-vendored-static-sdk-library.patch
+  - url: https://github.com/unitreerobotics/unitree_sdk2/archive/refs/tags/2.0.2.tar.gz
+    sha256: 8128514cccd840623fd47d655bdde29353ae5365d6940ec737f6fd61e8de366c
+    target_directory: src/unitree_g1/unitree_g1_ros2_control/unitree_sdk2
+
 build:
   number: 0
   script:

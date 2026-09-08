@@ -1,0 +1,22 @@
+--- a/isaac_ros_image_proc/src/image_format_converter_node.cpp
++++ b/isaac_ros_image_proc/src/image_format_converter_node.cpp
+@@ -311,7 +311,7 @@
+   const auto conversion_code = cvcuda_utils::GetNV12ConversionCode(encoding_desired_);
+   adv_cvt_color_op_(
+     *cuda_stream_, input_handle.get_tensor(), output_handle.get_tensor(),
+-    conversion_code, yuv_color_spec_);
++    conversion_code, nvcv::ColorSpec{yuv_color_spec_});
+
+   publishOutput(std::move(output_msg), *msg);
+ }
+--- a/isaac_ros_image_proc/src/rectify_node.cpp
++++ b/isaac_ros_image_proc/src/rectify_node.cpp
+@@ -128,7 +128,7 @@
+       kBatchSize, {static_cast<int32_t>(mat.cols),
+         static_cast<int32_t>(mat.rows)}, nvcv::FMT_2F32)};
+   nvcv::TensorDataStridedCuda tensor_data{
+-    nvcv::TensorShape{reqs.shape, reqs.rank, reqs.layout},
++    nvcv::TensorShape{reqs.shape, reqs.rank, nvcv::TensorLayout{reqs.layout}},
+     nvcv::DataType{reqs.dtype}, tensor_buffer};
+   return nvcv::TensorWrapData(tensor_data);
+ }

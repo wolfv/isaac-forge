@@ -40,7 +40,7 @@ The 16-package gap, and what each actually needs:
 | `topic_based_ros2_control` (2) | build — open source |
 | `sllidar_ros2`, `vision_msgs_rviz_plugins`, `robotiq_controllers`, `unitree_api`, `rosidl_generator_dds_idl` | build — open source |
 | `nova_carter_*`, `nova_developer_kit_description` | build — from `nova_carter` / `nova_developer_kit` repos |
-| `cvcuda0-dev` | **map** → conda-forge `libcvcuda` 0.16.0 |
+| `cvcuda0-dev` | **map** → conda-forge `libcvcuda` 0.16.0; source patches bridge the C++ API changes from upstream's 0.14 |
 | `isaac-ros-cli`, `isaac_ros_bi3d_interfaces` | Isaac-internal, come along with the build |
 | `ament_python` | rosdep alias, maps to existing tooling |
 
@@ -49,6 +49,9 @@ The CUDA-side stack is **already fully covered by conda-forge**:
 `onnx` 1.22, `onnxscript` 0.7.1, `cuda-python` 13.3.1, `cupy` 14.1, `transformers`, `trimesh`, `warp-lang`.
 PyTorch is pinned to conda-forge's CUDA 13 build 200: it shares the exact Abseil 20260107
 and protobuf 6.33 ABI used by Triton 2.60; PyTorch 2.13 moved both dependencies forward.
+Isaac ROS 4.6 targets NVIDIA's CV-CUDA 0.14. The conda-forge 0.16 libraries retain the
+required C ABI, while its C++ wrappers made `DataType`, `TensorLayout`, `ColorSpec`, and
+`ImageFormat` conversions explicit; the affected Isaac sources are patched accordingly.
 
 Upstream's `python3-*-pip-shim` debs are thin pip wrappers; each maps to a real conda-forge package.
 

@@ -1,0 +1,43 @@
+--- a/isaac_ros_cvcuda_utils/include/isaac_ros_cvcuda_utils/cvcuda_handle.hpp
++++ b/isaac_ros_cvcuda_utils/include/isaac_ros_cvcuda_utils/cvcuda_handle.hpp
+@@ -119,7 +119,7 @@
+         kBatchSize, {static_cast<int32_t>(msg.width), tensor_height}, format)};
+
+     nvcv::TensorDataStridedCuda tensor_data{
+-      nvcv::TensorShape{reqs.shape, reqs.rank, reqs.layout},
++      nvcv::TensorShape{reqs.shape, reqs.rank, nvcv::TensorLayout{reqs.layout}},
+       nvcv::DataType{reqs.dtype}, tensor_buffer};
+
+     nvcv::Tensor tensor{nvcv::TensorWrapData(tensor_data)};
+@@ -219,7 +219,7 @@
+ inline size_t GetBytesPerElement(const nvcv::DataType & dtype)
+ {
+   size_t element_size = 0;
+-  switch (dtype) {
++  switch (static_cast<NVCVDataType>(dtype)) {
+     case nvcv::TYPE_U8:
+       return 1;
+     case nvcv::TYPE_U16:
+@@ -244,7 +244,7 @@
+       return 16;
+     default:
+       throw std::invalid_argument("Unsupported data type: " +
+-        std::to_string(static_cast<int>(dtype)));
++        std::to_string(static_cast<int>(static_cast<NVCVDataType>(dtype))));
+   }
+   return element_size;
+ }
+--- a/isaac_ros_cvcuda_utils/src/cvcuda_utilities.cpp
++++ b/isaac_ros_cvcuda_utils/src/cvcuda_utilities.cpp
+@@ -245,9 +245,9 @@
+   auto it = data_type_map.find(image_format);
+   if (it == data_type_map.end()) {
+     RCLCPP_ERROR(rclcpp::get_logger("cvcuda_utilities"), "Unsupported image format: %s",
+-      nvcvImageFormatGetName(image_format));
++      nvcvImageFormatGetName(static_cast<::NVCVImageFormat>(image_format)));
+     throw std::invalid_argument(std::string("Unsupported image format: ") +
+-      nvcvImageFormatGetName(image_format));
++      nvcvImageFormatGetName(static_cast<::NVCVImageFormat>(image_format)));
+   }
+   return it->second;
+ }

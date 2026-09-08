@@ -18,10 +18,10 @@ source:
     sha256: 1a162b940a8d934086a019101cfcaf1b3a3809447d4f490e4402cdc8f48c222b
     target_directory: src
     patches:
-      - patches/0001-cast-image-format-for-C-API.patch
+      - patches/0001-adapt-to-cvcuda-0.16.patch
 
 build:
-  number: 0
+  number: 1
   script:
     - export AMENT_PREFIX_PATH="${PREFIX}${AMENT_PREFIX_PATH:+:${AMENT_PREFIX_PATH}}"
     - export CMAKE_PREFIX_PATH="${PREFIX}${CMAKE_PREFIX_PATH:+:${CMAKE_PREFIX_PATH}}"

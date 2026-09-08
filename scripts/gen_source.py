@@ -987,9 +987,11 @@ PATCHES = {
     "ros-jazzy-isaac-deploy-core": ["use-packaged-triton.patch"],
     "ros-jazzy-isaac-ros-triton": ["patches/0001-use-packaged-triton-core.patch"],
     "ros-jazzy-unitree-g1-bridge": ["patches/0001-match-package-version.patch"],
-    # CV-CUDA's C++ ImageFormat conversion is explicit in 0.16.
+    # Isaac ROS targets CV-CUDA 0.14; adapt its changed C++ wrappers to conda-forge 0.16.
     "ros-jazzy-isaac-ros-cvcuda-utils": [
-        "patches/0001-cast-image-format-for-C-API.patch"],
+        "patches/0001-adapt-to-cvcuda-0.16.patch"],
+    "ros-jazzy-isaac-ros-image-proc": [
+        "patches/0001-adapt-to-cvcuda-0.16.patch"],
     "ros-jazzy-isaac-ros-teleop": [
         "patches/0001-use-conda-forge-msgpack-c-target.patch"],
     # The encoder hard-codes Ubuntu multiarch paths for nvv4l2 libraries even though
@@ -1022,6 +1024,7 @@ PATCHES = {
 
 # Build-number bumps that must survive recipe regeneration.
 BUILD_NUMBERS = {
+    "ros-jazzy-isaac-ros-cvcuda-utils": 1,
     "ros-jazzy-isaac-ros-yolov8": 1,
 }
 

@@ -990,8 +990,6 @@ PATCHES = {
     # Isaac ROS targets CV-CUDA 0.14; adapt its changed C++ wrappers to conda-forge 0.16.
     "ros-jazzy-isaac-ros-cvcuda-utils": [
         "patches/0001-adapt-to-cvcuda-0.16.patch"],
-    "ros-jazzy-isaac-ros-image-proc": [
-        "patches/0001-adapt-to-cvcuda-0.16.patch"],
     "ros-jazzy-isaac-ros-teleop": [
         "patches/0001-use-conda-forge-msgpack-c-target.patch"],
     # The encoder hard-codes Ubuntu multiarch paths for nvv4l2 libraries even though

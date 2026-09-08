@@ -634,15 +634,16 @@ TRAIT_DEPS = {
     "python": ["python", "pyyaml"],
     "ament_auto": ["ros-jazzy-ament-cmake-auto"],
     "opencv": ["libopencv 4.13.*"],
-    # Pinned, and the floor is load-bearing rather than cosmetic. conda-forge's
-    # libcvcuda-dev 0.16 ships lib/cmake/{cvcuda,nvcv_types}/*-config.cmake; the 0.14
-    # deb repack this repo used before it (still sitting in some output/ trees) ships
+    # Pinned, and both bounds are load-bearing. conda-forge's libcvcuda-dev 0.16
+    # ships lib/cmake/{cvcuda,nvcv_types}/*-config.cmake; 0.17 makes DataType's
+    # native conversion explicit, while the adapted Isaac headers require 0.16.
+    # The 0.14 deb repack this repo used before it (still sitting in some output/ trees) ships
     # only headers and two .so symlinks. isaac_ros_foundationpose is the first package
     # here to call find_package(nvcv_types REQUIRED) rather than naming the libraries
     # directly, so with the older one in a local channel -- which outranks conda-forge --
     # it fails at configure with "Could not find a package configuration file provided
     # by nvcv_types". Say the version, so an unindexed leftover cannot win.
-    "cvcuda": ["libcvcuda >=0.16", "libcvcuda-dev >=0.16"],
+    "cvcuda": ["libcvcuda >=0.16,<0.17", "libcvcuda-dev >=0.16,<0.17"],
     # No extra requirements -- these two rewrite a CMake call rather than adding a
     # dependency. Present because emit() indexes TRAIT_DEPS by every detected trait.
     "asset": [],
@@ -1022,7 +1023,7 @@ PATCHES = {
 
 # Build-number bumps that must survive recipe regeneration.
 BUILD_NUMBERS = {
-    "ros-jazzy-isaac-ros-cvcuda-utils": 1,
+    "ros-jazzy-isaac-ros-cvcuda-utils": 2,
     "ros-jazzy-isaac-ros-yolov8": 1,
 }
 
@@ -1205,6 +1206,7 @@ SYSTEM = {
     "yaml-cpp": "yaml-cpp",
     "boost": "libboost-devel",
     "libopencv-dev": "libopencv 4.13.*",
+    "cvcuda0-dev": "libcvcuda-dev >=0.16,<0.17",
     "magic_enum": "magic_enum",
     "nlohmann_json": "nlohmann_json",
     "python3-numpy": "numpy",

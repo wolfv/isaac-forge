@@ -21,7 +21,7 @@ source:
       - patches/0001-adapt-to-cvcuda-0.16.patch
 
 build:
-  number: 1
+  number: 2
   script:
     - export AMENT_PREFIX_PATH="${PREFIX}${AMENT_PREFIX_PATH:+:${AMENT_PREFIX_PATH}}"
     - export CMAKE_PREFIX_PATH="${PREFIX}${CMAKE_PREFIX_PATH:+:${CMAKE_PREFIX_PATH}}"
@@ -84,7 +84,7 @@ requirements:
     - ninja
     - pkg-config
   host:
-    - libcvcuda-dev
+    - libcvcuda-dev >=0.16,<0.17
     - ros-jazzy-ament-cmake-auto
     - ros-jazzy-isaac-ros-common
     - ros-jazzy-isaac-ros-nitros
@@ -95,13 +95,12 @@ requirements:
     - cuda-version 13.*
     - cuda-cudart-dev
     - cuda-nvtx-dev
-    - libcvcuda >=0.16
-    - libcvcuda-dev >=0.16
+    - libcvcuda >=0.16,<0.17
     - python
     - pyyaml
   run:
     - __glibc >=2.38
-    - libcvcuda-dev
+    - libcvcuda-dev >=0.16,<0.17
     - ros-jazzy-isaac-ros-common
     - ros-jazzy-isaac-ros-nitros
     - ros-jazzy-isaac-ros-nitros-image-type

@@ -88,7 +88,7 @@ requirements:
     - pkg-config
   host:
     - eigen
-    - libcvcuda-dev
+    - libcvcuda-dev >=0.16,<0.17
     - ros-jazzy-ament-cmake-auto
     - ros-jazzy-isaac-ros-common
     - ros-jazzy-isaac-ros-cvcuda-utils
@@ -103,14 +103,13 @@ requirements:
     - cuda-version 13.*
     - cuda-cudart-dev
     - cuda-nvtx-dev
-    - libcvcuda >=0.16
-    - libcvcuda-dev >=0.16
+    - libcvcuda >=0.16,<0.17
     - libopencv 4.13.*
     - python
     - pyyaml
   run:
     - __glibc >=2.38
-    - libcvcuda-dev
+    - libcvcuda-dev >=0.16,<0.17
     - ros-jazzy-isaac-ros-common
     - ros-jazzy-isaac-ros-cvcuda-utils
     - ros-jazzy-isaac-ros-nitros-image-type

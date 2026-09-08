@@ -82,7 +82,7 @@ requirements:
     - ninja
     - pkg-config
   host:
-    - libcvcuda-dev
+    - libcvcuda-dev >=0.16,<0.17
     - ros-jazzy-ament-cmake-auto
     - ros-jazzy-ament-index-cpp
     - ros-jazzy-isaac-ros-common
@@ -100,13 +100,12 @@ requirements:
     - cuda-version 13.*
     - cuda-cudart-dev
     - cuda-nvtx-dev
-    - libcvcuda >=0.16
-    - libcvcuda-dev >=0.16
+    - libcvcuda >=0.16,<0.17
     - python
     - pyyaml
   run:
     - __glibc >=2.38
-    - libcvcuda-dev
+    - libcvcuda-dev >=0.16,<0.17
     - ros-jazzy-ament-index-cpp
     - ros-jazzy-isaac-ros-common
     - ros-jazzy-isaac-ros-cvcuda-utils

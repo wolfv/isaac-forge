@@ -95,8 +95,8 @@ requirements:
     - cuda-version 13.*
     - cuda-cudart-dev
     - cuda-nvtx-dev
-    - libcvcuda >=0.16
-    - libcvcuda-dev >=0.16
+    - libcvcuda >=0.16,<0.17
+    - libcvcuda-dev >=0.16,<0.17
     - python
     - pyyaml
   run:

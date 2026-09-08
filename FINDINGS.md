@@ -50,8 +50,9 @@ The CUDA-side stack is **already fully covered by conda-forge**:
 PyTorch is pinned to conda-forge's CUDA 13 build 200: it shares the exact Abseil 20260107
 and protobuf 6.33 ABI used by Triton 2.60; PyTorch 2.13 moved both dependencies forward.
 Isaac ROS 4.6 targets NVIDIA's CV-CUDA 0.14. The conda-forge 0.16 libraries retain the
-required C ABI, while its C++ wrappers made `DataType`, `TensorLayout`, `ColorSpec`, and
-`ImageFormat` conversions explicit; the affected Isaac sources are patched accordingly.
+required C ABI, while its C++ wrappers changed `TensorLayout`, `ColorSpec`, and `ImageFormat`
+conversions; the affected Isaac sources are patched accordingly. CV-CUDA is capped below
+0.17, which additionally makes `DataType`'s native conversion explicit.
 
 Upstream's `python3-*-pip-shim` debs are thin pip wrappers; each maps to a real conda-forge package.
 

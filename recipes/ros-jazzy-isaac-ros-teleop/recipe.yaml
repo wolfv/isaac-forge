@@ -18,7 +18,7 @@ source:
     sha256: 1369052c159d3cf5f10356fb0cb49d8f593564fbb53a5ab4005574b92197d4f1
     target_directory: src
     patches:
-      - patches/0001-use-conda-forge-msgpack-cxx-target.patch
+      - patches/0001-use-conda-forge-msgpack-c-target.patch
 
 build:
   number: 0
@@ -85,7 +85,7 @@ requirements:
     - pkg-config
   host:
     - eigen
-    - msgpack-cxx
+    - msgpack-c
     - ros-jazzy-ament-cmake
     - ros-jazzy-ament-cmake-auto
     - ros-jazzy-geometry-msgs
@@ -99,7 +99,6 @@ requirements:
     - ros-jazzy-std-srvs
     - ros-jazzy-tf2-eigen
     - ros-jazzy-tf2-ros
-    - libboost-devel ${{ libboost_devel_robostack }}
     - cuda-version 13.*
     - cuda-cudart-dev
     - cuda-nvtx-dev
@@ -107,7 +106,7 @@ requirements:
     - pyyaml
   run:
     - __glibc >=2.38
-    - msgpack-cxx
+    - msgpack-c
     - ros-jazzy-geometry-msgs
     - ros-jazzy-isaac-ros-common
     - ros-jazzy-isaac-teleop-core
@@ -119,7 +118,6 @@ requirements:
     - ros-jazzy-std-srvs
     - ros-jazzy-tf2-eigen
     - ros-jazzy-tf2-ros
-    - libboost-devel ${{ libboost_devel_robostack }}
 
 tests:
   - package_contents:

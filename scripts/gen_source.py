@@ -941,9 +941,6 @@ EXTRA_HOST = {
 EXTRA_HOST["ros-jazzy-isaac-deploy-core"] = [
     "cuda-toolkit", "triton-server ==2.60.0"]
 EXTRA_HOST["ros-jazzy-isaac-ros-triton"] = ["triton-server ==2.60.0"]
-# msgpack-cxx's CMake target has a public Boost::boost header dependency.
-EXTRA_HOST["ros-jazzy-isaac-ros-teleop"] = [
-    "libboost-devel ${{ libboost_devel_robostack }}"]
 # Unitree's CMakeLists invokes this generator but package.xml omits it.
 EXTRA_HOST["ros-jazzy-unitree-api"] = ["ros-jazzy-rosidl-generator-dds-idl"]
 
@@ -971,8 +968,6 @@ EXTRA_RUN = {
     # requires the development toolkit as part of its public interface.
     "ros-jazzy-isaac-deploy-core": ["cuda-toolkit", "triton-server ==2.60.0"],
     "ros-jazzy-isaac-ros-triton": ["triton-server ==2.60.0"],
-    "ros-jazzy-isaac-ros-teleop": [
-        "libboost-devel ${{ libboost_devel_robostack }}"],
     "ros-jazzy-isaac-ros-h264-encoder": ["nvv4l2"],
 }
 
@@ -996,7 +991,7 @@ PATCHES = {
     "ros-jazzy-isaac-ros-cvcuda-utils": [
         "patches/0001-cast-image-format-for-C-API.patch"],
     "ros-jazzy-isaac-ros-teleop": [
-        "patches/0001-use-conda-forge-msgpack-cxx-target.patch"],
+        "patches/0001-use-conda-forge-msgpack-c-target.patch"],
     # The encoder hard-codes Ubuntu multiarch paths for nvv4l2 libraries even though
     # CMake can resolve the declared package from any installation prefix.
     "ros-jazzy-isaac-ros-h264-encoder": [
@@ -1245,7 +1240,7 @@ SYSTEM = {
     # teleop node, not a build one.
     "python3-msgpack": "msgpack-python",
     "python3-msgpack-numpy": "msgpack-numpy",
-    "msgpack": "msgpack-cxx",
+    "msgpack": "msgpack-c",
 }
 
 

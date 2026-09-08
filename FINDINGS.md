@@ -6,6 +6,12 @@ were measured from upstream sources, NVIDIA apt repositories, and conda repodata
 implementation described below, so those sections are retained as upgrade history rather
 than statements about the current recipes.
 
+The 4.6 `isaac_ros_visual_mapping` deb is intentionally omitted. Unlike 4.5, its public
+libraries are shared objects requiring `libnvinfer.so.10`, `libopencv_*.so.406`, and
+`libprotobuf.so.32`. They cannot coexist with the source-built 4.6 ROS stack's conda-forge
+TensorRT 11 and OpenCV 4.13 closure, and NVIDIA publishes no source from which to rebuild
+them against that ABI.
+
 ## 1. Scope
 
 | | |
@@ -35,7 +41,7 @@ The 16-package gap, and what each actually needs:
 | `sllidar_ros2`, `vision_msgs_rviz_plugins`, `robotiq_controllers`, `unitree_api`, `rosidl_generator_dds_idl` | build — open source |
 | `nova_carter_*`, `nova_developer_kit_description` | build — from `nova_carter` / `nova_developer_kit` repos |
 | `cvcuda0-dev` | **map** → conda-forge `libcvcuda` 0.16.0 |
-| `isaac-ros-cli`, `isaac_ros_bi3d_interfaces`, `isaac_ros_visual_mapping` | Isaac-internal, come along with the build |
+| `isaac-ros-cli`, `isaac_ros_bi3d_interfaces` | Isaac-internal, come along with the build |
 | `ament_python` | rosdep alias, maps to existing tooling |
 
 The CUDA-side stack is **already fully covered by conda-forge**:

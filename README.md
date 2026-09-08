@@ -83,9 +83,9 @@ The channel contains:
 The `*-models-install` packages provide NVIDIA's asset download/install tooling. Model
 weights and GPU-specific TensorRT engine plans are not baked into the conda packages.
 
-Architecture-specific vendor payloads remain separate. In particular, visual mapping and
-`nvv4l2` are x86-only, while TensorRT uses conda-forge on x86 and NVIDIA's native payloads
-on Jetson. Source packages such as `isaac_ros_image_proc` build natively on ARM64 rather
+Architecture-specific vendor payloads remain separate. In particular, `nvv4l2` is x86-only,
+while TensorRT uses conda-forge on x86 and NVIDIA's native payloads on Jetson. Source
+packages such as `isaac_ros_image_proc` build natively on ARM64 rather
 than being cross-compiled or relabelled from x86_64.
 
 ## Building the packages

@@ -99,6 +99,7 @@ requirements:
     - ros-jazzy-std-srvs
     - ros-jazzy-tf2-eigen
     - ros-jazzy-tf2-ros
+    - libboost-devel ${{ libboost_devel_robostack }}
     - cuda-version 13.*
     - cuda-cudart-dev
     - cuda-nvtx-dev
@@ -118,6 +119,7 @@ requirements:
     - ros-jazzy-std-srvs
     - ros-jazzy-tf2-eigen
     - ros-jazzy-tf2-ros
+    - libboost-devel ${{ libboost_devel_robostack }}
 
 tests:
   - package_contents:

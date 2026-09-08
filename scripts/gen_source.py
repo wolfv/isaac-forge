@@ -941,6 +941,9 @@ EXTRA_HOST = {
 EXTRA_HOST["ros-jazzy-isaac-deploy-core"] = [
     "cuda-toolkit", "triton-server ==2.60.0"]
 EXTRA_HOST["ros-jazzy-isaac-ros-triton"] = ["triton-server ==2.60.0"]
+# msgpack-cxx's CMake target has a public Boost::boost header dependency.
+EXTRA_HOST["ros-jazzy-isaac-ros-teleop"] = [
+    "libboost-devel ${{ libboost_devel_robostack }}"]
 # Unitree's CMakeLists invokes this generator but package.xml omits it.
 EXTRA_HOST["ros-jazzy-unitree-api"] = ["ros-jazzy-rosidl-generator-dds-idl"]
 
@@ -968,6 +971,8 @@ EXTRA_RUN = {
     # requires the development toolkit as part of its public interface.
     "ros-jazzy-isaac-deploy-core": ["cuda-toolkit", "triton-server ==2.60.0"],
     "ros-jazzy-isaac-ros-triton": ["triton-server ==2.60.0"],
+    "ros-jazzy-isaac-ros-teleop": [
+        "libboost-devel ${{ libboost_devel_robostack }}"],
     "ros-jazzy-isaac-ros-h264-encoder": ["nvv4l2"],
 }
 

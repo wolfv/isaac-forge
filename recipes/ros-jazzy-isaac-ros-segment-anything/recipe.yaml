@@ -84,7 +84,7 @@ requirements:
   host:
     - cuda-version 13.*
     - py-opencv
-    - pytorch
+    - pytorch-gpu >=2.13,<2.14
     - ros-jazzy-ament-cmake
     - ros-jazzy-ament-index-cpp
     - ros-jazzy-geometry-msgs
@@ -112,7 +112,7 @@ requirements:
     - __glibc >=2.38
     - cuda-version 13.*
     - py-opencv
-    - pytorch
+    - pytorch-gpu >=2.13,<2.14
     - ros-jazzy-ament-index-cpp
     - ros-jazzy-geometry-msgs
     - ros-jazzy-isaac-ros-common

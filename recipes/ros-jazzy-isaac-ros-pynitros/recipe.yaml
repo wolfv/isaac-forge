@@ -33,7 +33,7 @@ requirements:
   run:
     - python
     - posix_ipc
-    - pytorch
+    - pytorch-gpu >=2.13,<2.14
     - ros-jazzy-isaac-ros-common
     - ros-jazzy-isaac-ros-nitros-bridge-interfaces
     - ros-jazzy-isaac-ros-tensor-list-interfaces

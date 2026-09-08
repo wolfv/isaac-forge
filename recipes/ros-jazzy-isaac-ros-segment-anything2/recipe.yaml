@@ -83,7 +83,7 @@ requirements:
     - pkg-config
   host:
     - py-opencv
-    - pytorch
+    - pytorch-gpu >=2.13,<2.14
     - ros-jazzy-ament-cmake
     - ros-jazzy-isaac-ros-common
     - ros-jazzy-isaac-ros-dnn-image-encoder
@@ -108,7 +108,7 @@ requirements:
   run:
     - __glibc >=2.38
     - py-opencv
-    - pytorch
+    - pytorch-gpu >=2.13,<2.14
     - ros-jazzy-isaac-ros-common
     - ros-jazzy-isaac-ros-dnn-image-encoder
     - ros-jazzy-isaac-ros-nitros

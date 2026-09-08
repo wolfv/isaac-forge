@@ -85,7 +85,7 @@ requirements:
   host:
     - eigen
     - libopencv 4.13.*
-    - pytorch
+    - pytorch-gpu >=2.13,<2.14
     - ros-jazzy-ament-cmake
     - ros-jazzy-cv-bridge
     - ros-jazzy-isaac-ros-common
@@ -107,7 +107,7 @@ requirements:
   run:
     - __glibc >=2.38
     - libopencv 4.13.*
-    - pytorch
+    - pytorch-gpu >=2.13,<2.14
     - ros-jazzy-cv-bridge
     - ros-jazzy-isaac-ros-common
     - ros-jazzy-isaac-ros-dnn-image-encoder

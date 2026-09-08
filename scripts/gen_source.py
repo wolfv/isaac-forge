@@ -1205,7 +1205,7 @@ SYSTEM = {
     # NVIDIA's ROS shim means "install the Python torch distribution". This package
     # also supplies LibTorch headers, libraries, and TorchConfig.cmake, all of which
     # isaac_deploy_core uses directly during its C++ build.
-    "python3-torch-pip-shim": "pytorch",
+    "python3-torch-pip-shim": "pytorch-gpu >=2.13,<2.14",
     "libgflags-dev": "gflags",
     "libgoogle-glog-dev": "glog",
     "assimp": "assimp",
@@ -1300,7 +1300,7 @@ PY_IMPORTS = {
     "matplotlib": "matplotlib-base",
     "cv2": "py-opencv",
     "PIL": "pillow",
-    "torch": "pytorch",
+    "torch": "pytorch-gpu >=2.13,<2.14",
     "psutil": "psutil",
     # isaac_ros_cloud_control's python packages. Each of these would otherwise be guessed
     # as a ROS package -- ros-jazzy-boto3, ros-jazzy-paho, ros-jazzy-opentelemetry -- none

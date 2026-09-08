@@ -26,6 +26,11 @@ permissions:
   # with prefix.dev itself, so there is no API key anywhere in this repo.
   id-token: write
 
+env:
+  # Hosted runners have no GPU. Let rattler-build solve conda-forge's CUDA PyTorch
+  # packages; their import tests do not require a driver.
+  CONDA_OVERRIDE_CUDA: "13.3"
+
 # Never run two release workflows at once, and never cancel one midway through uploading.
 # The two architecture jobs in one workflow may upload concurrently; their conda subdirs
 # are disjoint (`linux-64` and `linux-aarch64`).

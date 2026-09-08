@@ -38,7 +38,7 @@ requirements:
   run:
     - python
     - matplotlib-base
-    - pytorch
+    - pytorch-gpu >=2.13,<2.14
     - ros-jazzy-control-msgs
     - ros-jazzy-controller-manager-msgs
     - ros-jazzy-geometry-msgs

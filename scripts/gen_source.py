@@ -791,8 +791,8 @@ EXTRA_SOURCES = {
     # Pinned by commit rather than by the branch, which moves.
     "ros-jazzy-isaac-teleop-core": [(
         "https://github.com/NVIDIA/IsaacTeleop/archive/"
-        "187e8ac684df2bd3bbfe79a522ea06bc3d22b59e.tar.gz",
-        "bc82ccda813ea13d64149a0f049f76a9767bd3d5b831e9c688b0c2370a2d7bdb",
+        "465ce637120ac35404f5f741a9f25f3f1a1a25ea.tar.gz",
+        "730723484d920379ba095f3e3e3fe380669573723cb119cc1b28df4131702da6",
         "src/isaac_teleop_core/IsaacTeleop",
     )],
     "ros-jazzy-nvblox-ros": [(

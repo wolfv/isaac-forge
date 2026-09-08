@@ -33,7 +33,7 @@ requirements:
   run:
     - python
     - posix_ipc
-    - pytorch-gpu ==2.12.0 cuda130_generic_*_200
+    - pytorch-gpu ==2.13.0 cuda130_generic_*_202
     - ros-jazzy-isaac-ros-common
     - ros-jazzy-isaac-ros-nitros-bridge-interfaces
     - ros-jazzy-isaac-ros-tensor-list-interfaces

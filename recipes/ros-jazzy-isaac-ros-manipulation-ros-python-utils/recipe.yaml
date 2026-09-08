@@ -38,7 +38,7 @@ requirements:
   run:
     - python
     - matplotlib-base
-    - pytorch-gpu ==2.12.0 cuda130_generic_*_200
+    - pytorch-gpu ==2.13.0 cuda130_generic_*_202
     - ros-jazzy-control-msgs
     - ros-jazzy-controller-manager-msgs
     - ros-jazzy-geometry-msgs

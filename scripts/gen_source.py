@@ -1024,7 +1024,13 @@ PATCHES = {
 # Build-number bumps that must survive recipe regeneration.
 BUILD_NUMBERS = {
     "ros-jazzy-isaac-ros-cvcuda-utils": 2,
+    "ros-jazzy-nvblox-ros": 1,
     "ros-jazzy-isaac-ros-yolov8": 1,
+}
+
+# Build-only libraries whose run exports must not leak into package metadata.
+IGNORE_RUN_EXPORTS = {
+    "ros-jazzy-nvblox-ros": ["gtest"],
 }
 
 # Files a package must ship beyond share/<pkg>/package.xml, checked declaratively at the
@@ -1218,7 +1224,7 @@ SYSTEM = {
     # NVIDIA's ROS shim means "install the Python torch distribution". This package
     # also supplies LibTorch headers, libraries, and TorchConfig.cmake, all of which
     # isaac_deploy_core uses directly during its C++ build.
-    "python3-torch-pip-shim": "pytorch-gpu ==2.12.0 cuda130_generic_*_200",
+    "python3-torch-pip-shim": "pytorch-gpu ==2.13.0 cuda130_generic_*_202",
     "libgflags-dev": "gflags",
     "libgoogle-glog-dev": "glog",
     "assimp": "assimp",
@@ -1314,7 +1320,7 @@ PY_IMPORTS = {
     "matplotlib": "matplotlib-base",
     "cv2": "py-opencv",
     "PIL": "pillow",
-    "torch": "pytorch-gpu ==2.12.0 cuda130_generic_*_200",
+    "torch": "pytorch-gpu ==2.13.0 cuda130_generic_*_202",
     "psutil": "psutil",
     # isaac_ros_cloud_control's python packages. Each of these would otherwise be guessed
     # as a ROS package -- ros-jazzy-boto3, ros-jazzy-paho, ros-jazzy-opentelemetry -- none
@@ -1582,6 +1588,10 @@ def emit(name: str, repo: str, path: str) -> str | None:
     pats = PATCHES.get(name, [])
     patch_block = ("    patches:\n" + "\n".join(f"      - {x}" for x in pats) + "\n"
                    if pats else "")
+    ignored = IGNORE_RUN_EXPORTS.get(name, [])
+    ignore_block = ("  ignore_run_exports:\n    by_name:\n" +
+                    "\n".join(f"      - {x}" for x in ignored) + "\n"
+                    if ignored else "")
 
     # See the asset note in detect(). The rewrite is a sed rather than a patch file
     # because five packages need the identical change; the grep in front of it is the
@@ -1743,7 +1753,7 @@ requirements:
   run:
     - __glibc >=2.38
 {block(run)}
-
+{ignore_block}
 tests:
   - package_contents:
       files:

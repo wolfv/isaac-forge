@@ -86,7 +86,7 @@ requirements:
   host:
     - eigen
     - libopencv 4.13.*
-    - pytorch-gpu ==2.12.0 cuda130_generic_*_200
+    - pytorch-gpu ==2.13.0 cuda130_generic_*_202
     - ros-jazzy-ament-cmake
     - ros-jazzy-cv-bridge
     - ros-jazzy-isaac-ros-common
@@ -108,7 +108,7 @@ requirements:
   run:
     - __glibc >=2.38
     - libopencv 4.13.*
-    - pytorch-gpu ==2.12.0 cuda130_generic_*_200
+    - pytorch-gpu ==2.13.0 cuda130_generic_*_202
     - ros-jazzy-cv-bridge
     - ros-jazzy-isaac-ros-common
     - ros-jazzy-isaac-ros-dnn-image-encoder

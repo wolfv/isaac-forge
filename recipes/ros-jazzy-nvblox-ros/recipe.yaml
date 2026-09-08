@@ -28,7 +28,7 @@ source:
     target_directory: src/sqlite3
 
 build:
-  number: 0
+  number: 1
   script:
     - export AMENT_PREFIX_PATH="${PREFIX}${AMENT_PREFIX_PATH:+:${AMENT_PREFIX_PATH}}"
     - export CMAKE_PREFIX_PATH="${PREFIX}${CMAKE_PREFIX_PATH:+:${CMAKE_PREFIX_PATH}}"
@@ -162,6 +162,9 @@ requirements:
     - ros-jazzy-tf2-eigen
     - ros-jazzy-tf2-ros
     - ros-jazzy-visualization-msgs
+  ignore_run_exports:
+    by_name:
+      - gtest
 
 tests:
   - package_contents:

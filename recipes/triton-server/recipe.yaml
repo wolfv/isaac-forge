@@ -15,7 +15,7 @@ source:
     - conda-build.patch
 
 build:
-  number: 4
+  number: 5
   script: build.sh
   dynamic_linking:
     missing_dso_allowlist:

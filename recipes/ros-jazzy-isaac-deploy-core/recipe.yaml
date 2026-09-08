@@ -86,7 +86,7 @@ requirements:
   host:
     - cuda-version 13.*
     - nlohmann_json
-    - pytorch-gpu >=2.13,<2.14
+    - pytorch-gpu ==2.12.0 cuda130_generic_*_200
     - ros-jazzy-ament-cmake
     - ros-jazzy-rclcpp
     - ros-jazzy-tl-expected
@@ -99,7 +99,7 @@ requirements:
     - __glibc >=2.38
     - cuda-version 13.*
     - nlohmann_json
-    - pytorch-gpu >=2.13,<2.14
+    - pytorch-gpu ==2.12.0 cuda130_generic_*_200
     - ros-jazzy-rclcpp
     - ros-jazzy-tl-expected
     - yaml-cpp

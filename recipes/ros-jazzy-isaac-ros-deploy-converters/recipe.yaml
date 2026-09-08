@@ -83,7 +83,7 @@ requirements:
     - pkg-config
   host:
     - cuda-version 13.*
-    - pytorch-gpu >=2.13,<2.14
+    - pytorch-gpu ==2.12.0 cuda130_generic_*_200
     - ros-jazzy-ament-cmake
     - ros-jazzy-ament-cmake-python
     - ros-jazzy-geometry-msgs
@@ -101,7 +101,7 @@ requirements:
   run:
     - __glibc >=2.38
     - cuda-version 13.*
-    - pytorch-gpu >=2.13,<2.14
+    - pytorch-gpu ==2.12.0 cuda130_generic_*_200
     - ros-jazzy-geometry-msgs
     - ros-jazzy-isaac-deploy-core
     - ros-jazzy-isaac-ros-deploy-interfaces

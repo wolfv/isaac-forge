@@ -45,8 +45,10 @@ The 16-package gap, and what each actually needs:
 | `ament_python` | rosdep alias, maps to existing tooling |
 
 The CUDA-side stack is **already fully covered by conda-forge**:
-`cuda-toolkit` 13.3.1, `cuda-version` 13.3, `cudnn` 9.25, `libcvcuda` 0.16.0, `pytorch` 2.13,
+`cuda-toolkit` 13.3.1, `cuda-version` 13.3, `cudnn` 9.25, `libcvcuda` 0.16.0, `pytorch` 2.12,
 `onnx` 1.22, `onnxscript` 0.7.1, `cuda-python` 13.3.1, `cupy` 14.1, `transformers`, `trimesh`, `warp-lang`.
+PyTorch is pinned to conda-forge's CUDA 13 build 200: it shares the exact Abseil 20260107
+and protobuf 6.33 ABI used by Triton 2.60; PyTorch 2.13 moved both dependencies forward.
 
 Upstream's `python3-*-pip-shim` debs are thin pip wrappers; each maps to a real conda-forge package.
 

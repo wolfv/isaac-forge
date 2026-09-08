@@ -35,7 +35,7 @@ requirements:
     - ros-jazzy-isaac-ros-common
   run:
     - python
-    - pytorch-gpu >=2.13,<2.14
+    - pytorch-gpu ==2.12.0 cuda130_generic_*_200
     - ros-jazzy-cv-bridge
     - ros-jazzy-isaac-ros-common
     - scipy

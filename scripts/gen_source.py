@@ -1067,6 +1067,8 @@ PATCHES = {
     # Replace NVIDIA's private-artifactory FetchContent fallback with the packaged
     # Triton C API. This makes the dependency reproducible and visible to the solver.
     "ros-jazzy-isaac-deploy-core": ["use-packaged-triton.patch"],
+    "ros-jazzy-isaac-ros-deploy-converters": [
+        "patches/0001-support-vector-backed-tensor-messages.patch"],
     "ros-jazzy-isaac-ros-triton": ["patches/0001-use-packaged-triton-core.patch"],
     "ros-jazzy-unitree-g1-bridge": ["patches/0001-match-package-version.patch"],
     # Isaac ROS targets CV-CUDA 0.14; adapt its changed C++ wrappers to conda-forge 0.16.

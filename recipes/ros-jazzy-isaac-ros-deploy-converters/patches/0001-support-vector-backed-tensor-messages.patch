@@ -1,0 +1,52 @@
+From: Isaac Forge <noreply@example.com>
+Subject: [PATCH] Support Jazzy vector-backed tensor messages
+
+Jazzy generates ExperimentalTensor.data as std::vector, so copy its host
+storage directly into the CPU torch tensor.
+---
+--- a/isaac_deploy/isaac_ros_deploy_converters/src/utils/tensor_list_utils.cpp
++++ b/isaac_deploy/isaac_ros_deploy_converters/src/utils/tensor_list_utils.cpp
+@@ -16,13 +16,10 @@
+ 
+ #include "isaac_ros_deploy_converters/utils/tensor_list_utils.hpp"
+ 
+-#include <cuda_runtime_api.h>
+-
+ #include <cstring>
+ #include <limits>
+ #include <stdexcept>
+ 
+-#include "cuda_buffer/cuda_buffer_api.hpp"
+ #include "isaac_ros_tensor_msgs/tensor_utils.hpp"
+ 
+ namespace isaac_ros_deploy_converters
+@@ -65,14 +62,6 @@
+   }
+ }
+ 
+-void check_cuda(cudaError_t result, const char * operation)
+-{
+-  if (result != cudaSuccess) {
+-    throw std::runtime_error(
+-            std::string(operation) + " failed: " + cudaGetErrorString(result));
+-  }
+-}
+-
+ }  // namespace
+ 
+ torch::Tensor tensor_msg_to_torch(const tensor_msgs::msg::ExperimentalTensor & msg)
+@@ -109,13 +98,7 @@
+   auto options = torch::TensorOptions().dtype(dtype);
+   torch::Tensor tensor = torch::empty(msg.shape, options);
+   if (byte_count != 0) {
+-    auto read_handle = cuda_buffer_backend::from_input_buffer(msg.data, cudaStreamPerThread);
+-    check_cuda(
+-      cudaMemcpyAsync(
+-        tensor.data_ptr(), read_handle.get_ptr() + msg.byte_offset, byte_count,
+-        cudaMemcpyDeviceToHost, cudaStreamPerThread),
+-      "cudaMemcpyAsync");
+-    check_cuda(cudaStreamSynchronize(cudaStreamPerThread), "cudaStreamSynchronize");
++    std::memcpy(tensor.data_ptr(), msg.data.data() + msg.byte_offset, byte_count);
+   }
+   return tensor;
+ }

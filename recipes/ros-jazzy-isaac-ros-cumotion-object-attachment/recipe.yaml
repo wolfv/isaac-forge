@@ -7,15 +7,15 @@ schema_version: 1
 # Detected build traits: ament_auto, cuda, python.
 
 context:
-  version: "4.6.0"
+  version: "5.0.0"
 
 package:
   name: ros-jazzy-isaac-ros-cumotion-object-attachment
   version: ${{ version }}
 
 source:
-  - url: https://github.com/NVIDIA-ISAAC-ROS/isaac_ros_cumotion/archive/refs/tags/v4.6-0.tar.gz
-    sha256: c8d0476a8d74e3d9567a70c9d6565d266133a3a6b4e6d52c457a668dff4c292e
+  - url: https://github.com/NVIDIA-ISAAC-ROS/isaac_ros_cumotion/archive/refs/tags/v5.0-0.tar.gz
+    sha256: 8a5d685a0227bf545c8e07dcf248f19855ec163d82d6c92612859ef510d65d1e
     target_directory: src
 
 build:
@@ -85,10 +85,10 @@ requirements:
     - assimp
     - eigen
     - ros-jazzy-ament-cmake-auto
+    - ros-jazzy-cumotion-vendor
     - ros-jazzy-geometry-msgs
     - ros-jazzy-isaac-ros-common
     - ros-jazzy-isaac-ros-cumotion-interfaces
-    - ros-jazzy-isaac-ros-nitros
     - ros-jazzy-nvblox-msgs
     - ros-jazzy-rclcpp
     - ros-jazzy-rclcpp-action
@@ -107,10 +107,10 @@ requirements:
   run:
     - __glibc >=2.38
     - assimp
+    - ros-jazzy-cumotion-vendor
     - ros-jazzy-geometry-msgs
     - ros-jazzy-isaac-ros-common
     - ros-jazzy-isaac-ros-cumotion-interfaces
-    - ros-jazzy-isaac-ros-nitros
     - ros-jazzy-nvblox-msgs
     - ros-jazzy-rclcpp
     - ros-jazzy-rclcpp-action

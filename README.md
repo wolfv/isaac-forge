@@ -1,6 +1,6 @@
 # isaac-forge
 
-`isaac-forge` packages Isaac ROS 4.6.0 for ROS 2 Jazzy as conda packages. The
+`isaac-forge` packages Isaac ROS 5.0.0 for ROS 2 Jazzy as conda packages. The
 packages work alongside [RoboStack](https://robostack.github.io/) and can be installed with
 [Pixi](https://pixi.sh/) on x86_64 Linux and Jetson/ARM64.
 
@@ -33,10 +33,10 @@ platforms = [
 [dependencies]
 python = "3.12.*"
 ros-jazzy-ros-base = "*"
-ros-jazzy-isaac-ros-image-proc = "4.6.*"
-ros-jazzy-isaac-ros-dnn-image-encoder = "4.6.*"
-ros-jazzy-isaac-ros-tensor-rt = "4.6.*"
-ros-jazzy-isaac-ros-yolov8 = "4.6.*"
+ros-jazzy-isaac-ros-image-proc = "5.0.*"
+ros-jazzy-isaac-ros-dnn-image-encoder = "5.0.*"
+ros-jazzy-isaac-ros-tensor-rt = "5.0.*"
+ros-jazzy-isaac-ros-yolov8 = "5.0.*"
 ```
 
 Install it and run ROS commands through Pixi:
@@ -67,7 +67,7 @@ https://github.com/user-attachments/assets/3fdf53d4-5ca1-434b-a05b-74456d565907
 
 The channel contains:
 
-- the NITROS foundation and ROS type adapters;
+- CUDA buffer backends and GPU conversion libraries;
 - VPI, TensorRT, Triton Server, cuVSLAM, cuAprilTags, and cuMotion;
 - image, stereo, depth, tensor, and point-cloud processing;
 - visual SLAM, nvblox, occupancy-grid localization, and AprilTag detection;

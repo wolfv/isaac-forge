@@ -14,8 +14,8 @@ package:
   version: ${{ version }}
 
 source:
-  - url: https://github.com/NVIDIA-ISAAC-ROS/isaac_ros_manipulation/archive/refs/tags/v4.6-0.tar.gz
-    sha256: bbe162d1ae1349e554c9cedc730e4d78c34401437da836be2f70019d3e6008d7
+  - url: https://github.com/NVIDIA-ISAAC-ROS/isaac_ros_manipulation/archive/f5c47880e42ec10aa2e94c856d9992bc6b936fb3.tar.gz
+    sha256: 7746da33bc0700ad0dd9067e0ad0fbc2da986185a1233d52d7c7fccbeb186de8
     target_directory: src
 
 build:

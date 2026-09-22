@@ -7,15 +7,15 @@ schema_version: 1
 # No special build traits detected.
 
 context:
-  version: "4.6.0"
+  version: "5.0.0"
 
 package:
   name: ros-jazzy-isaac-teleop-core
   version: ${{ version }}
 
 source:
-  - url: https://github.com/NVIDIA-ISAAC-ROS/isaac_ros_teleop/archive/refs/tags/v4.6-0.tar.gz
-    sha256: 1369052c159d3cf5f10356fb0cb49d8f593564fbb53a5ab4005574b92197d4f1
+  - url: https://github.com/NVIDIA-ISAAC-ROS/isaac_ros_teleop/archive/refs/tags/v5.0-0.tar.gz
+    sha256: 78a4eb21e9e554455294bcdb2ee2de00e624ea9412d892be125ccc1b3506a863
     target_directory: src
   - url: https://github.com/NVIDIA/IsaacTeleop/archive/465ce637120ac35404f5f741a9f25f3f1a1a25ea.tar.gz
     sha256: 730723484d920379ba095f3e3e3fe380669573723cb119cc1b28df4131702da6
@@ -86,23 +86,49 @@ requirements:
   host:
     - msgpack-numpy
     - msgpack-python
+    - numpy
+    - pytorch-gpu ==2.13.0 cuda130_generic_*_202
+    - pyyaml
+    - ros-jazzy-adb
     - ros-jazzy-ament-cmake
     - ros-jazzy-ament-cmake-python
+    - ros-jazzy-coturn
     - ros-jazzy-geometry-msgs
+    - ros-jazzy-libbsd0
+    - ros-jazzy-libegl1
+    - ros-jazzy-libgl1
+    - ros-jazzy-libglx0
+    - ros-jazzy-libvulkan1
+    - ros-jazzy-libxext6
+    - ros-jazzy-patchelf
     - ros-jazzy-rcl-interfaces
     - ros-jazzy-rclpy
     - ros-jazzy-sensor-msgs
     - ros-jazzy-std-msgs
+    - ros-jazzy-teleop-ros2-interfaces
     - ros-jazzy-tf2-ros
   run:
     - __glibc >=2.38
     - msgpack-numpy
     - msgpack-python
+    - numpy
+    - pytorch-gpu ==2.13.0 cuda130_generic_*_202
+    - pyyaml
+    - ros-jazzy-adb
+    - ros-jazzy-coturn
     - ros-jazzy-geometry-msgs
+    - ros-jazzy-libbsd0
+    - ros-jazzy-libegl1
+    - ros-jazzy-libgl1
+    - ros-jazzy-libglx0
+    - ros-jazzy-libvulkan1
+    - ros-jazzy-libxext6
+    - ros-jazzy-patchelf
     - ros-jazzy-rcl-interfaces
     - ros-jazzy-rclpy
     - ros-jazzy-sensor-msgs
     - ros-jazzy-std-msgs
+    - ros-jazzy-teleop-ros2-interfaces
     - ros-jazzy-tf2-ros
 
 tests:

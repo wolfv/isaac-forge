@@ -7,15 +7,15 @@ schema_version: 1
 # Detected build traits: ament_auto, cuda, eigen, eigenfloor, python.
 
 context:
-  version: "4.6.0"
+  version: "5.0.0"
 
 package:
   name: ros-jazzy-isaac-ros-apriltag
   version: ${{ version }}
 
 source:
-  - url: https://github.com/NVIDIA-ISAAC-ROS/isaac_ros_apriltag/archive/refs/tags/v4.6-0.tar.gz
-    sha256: 887b92a4ec8f06c97dc1db21a852e6199f8b9856d3ae384178caa98ca8300c51
+  - url: https://github.com/NVIDIA-ISAAC-ROS/isaac_ros_apriltag/archive/refs/tags/v5.0-0.tar.gz
+    sha256: 83fe79ca7202cc8214cc77350e1bdd5427703a27736d9f8bf94cc1112b35cac9
     target_directory: src
 
 build:
@@ -88,11 +88,11 @@ requirements:
     - pkg-config
   host:
     - ros-jazzy-ament-cmake-auto
+    - ros-jazzy-cuapriltags-vendor
+    - ros-jazzy-cuda-buffer
     - ros-jazzy-isaac-ros-apriltag-interfaces
     - ros-jazzy-isaac-ros-common
     - ros-jazzy-isaac-ros-image-proc
-    - ros-jazzy-isaac-ros-nitros
-    - ros-jazzy-isaac-ros-nitros-image-type
     - ros-jazzy-isaac-ros-vpi-utils
     - ros-jazzy-message-filters
     - ros-jazzy-rclcpp
@@ -108,11 +108,11 @@ requirements:
     - pyyaml
   run:
     - __glibc >=2.38
+    - ros-jazzy-cuapriltags-vendor
+    - ros-jazzy-cuda-buffer
     - ros-jazzy-isaac-ros-apriltag-interfaces
     - ros-jazzy-isaac-ros-common
     - ros-jazzy-isaac-ros-image-proc
-    - ros-jazzy-isaac-ros-nitros
-    - ros-jazzy-isaac-ros-nitros-image-type
     - ros-jazzy-isaac-ros-vpi-utils
     - ros-jazzy-message-filters
     - ros-jazzy-rclcpp

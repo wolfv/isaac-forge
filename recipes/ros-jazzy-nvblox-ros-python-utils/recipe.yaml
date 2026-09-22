@@ -7,15 +7,15 @@ schema_version: 1
 # Build type: ament_python (setuptools, installed with pip).
 
 context:
-  version: "4.6.0"
+  version: "5.0.0"
 
 package:
   name: ros-jazzy-nvblox-ros-python-utils
   version: ${{ version }}
 
 source:
-  - url: https://github.com/NVIDIA-ISAAC-ROS/isaac_ros_nvblox/archive/refs/tags/v4.6-0.tar.gz
-    sha256: 1572d2839296207fa004566e0a1edcaec7aea351944ea0cc22b1f8c6b6a8acaa
+  - url: https://github.com/NVIDIA-ISAAC-ROS/isaac_ros_nvblox/archive/refs/tags/v5.0-0.tar.gz
+    sha256: 487bb927e1e6118908c7ab54b5d2be449f98d30481f118d231bb51069acd6f7a
     target_directory: src
 
 build:

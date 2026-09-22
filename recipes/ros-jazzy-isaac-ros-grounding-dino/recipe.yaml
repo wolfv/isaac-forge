@@ -7,15 +7,15 @@ schema_version: 1
 # Detected build traits: ament_auto, cuda, eigen, eigenfloor, python.
 
 context:
-  version: "4.6.0"
+  version: "5.0.0"
 
 package:
   name: ros-jazzy-isaac-ros-grounding-dino
   version: ${{ version }}
 
 source:
-  - url: https://github.com/NVIDIA-ISAAC-ROS/isaac_ros_object_detection/archive/refs/tags/v4.6-0.tar.gz
-    sha256: e93d7c195e1d6a87e8e7d432cab681650693814eab2bcb124b45df2983ab2e03
+  - url: https://github.com/NVIDIA-ISAAC-ROS/isaac_ros_object_detection/archive/refs/tags/v5.0-0.tar.gz
+    sha256: 464feaafa73022b434664756499951a608d04b9b6c2825c74f87a1e0aaabce21
     target_directory: src
 
 build:
@@ -88,19 +88,20 @@ requirements:
     - pkg-config
   host:
     - eigen
+    - py-opencv
     - ros-jazzy-ament-cmake-auto
+    - ros-jazzy-cuda-buffer
     - ros-jazzy-cv-bridge
     - ros-jazzy-isaac-ros-common
     - ros-jazzy-isaac-ros-dnn-image-encoder
     - ros-jazzy-isaac-ros-grounding-dino-interfaces
     - ros-jazzy-isaac-ros-grounding-dino-models-install
     - ros-jazzy-isaac-ros-image-proc
-    - ros-jazzy-isaac-ros-nitros-bridge-interfaces
-    - ros-jazzy-isaac-ros-nitros-tensor-list-type
-    - ros-jazzy-isaac-ros-tensor-list-interfaces
+    - ros-jazzy-isaac-ros-tensor-msgs
     - ros-jazzy-message-filters
     - ros-jazzy-rclcpp
     - ros-jazzy-rclcpp-components
+    - ros-jazzy-tensor-msgs
     - ros-jazzy-vision-msgs
     - cuda-version 13.*
     - cuda-cudart-dev
@@ -109,18 +110,19 @@ requirements:
     - pyyaml
   run:
     - __glibc >=2.38
+    - py-opencv
+    - ros-jazzy-cuda-buffer
     - ros-jazzy-cv-bridge
     - ros-jazzy-isaac-ros-common
     - ros-jazzy-isaac-ros-dnn-image-encoder
     - ros-jazzy-isaac-ros-grounding-dino-interfaces
     - ros-jazzy-isaac-ros-grounding-dino-models-install
     - ros-jazzy-isaac-ros-image-proc
-    - ros-jazzy-isaac-ros-nitros-bridge-interfaces
-    - ros-jazzy-isaac-ros-nitros-tensor-list-type
-    - ros-jazzy-isaac-ros-tensor-list-interfaces
+    - ros-jazzy-isaac-ros-tensor-msgs
     - ros-jazzy-message-filters
     - ros-jazzy-rclcpp
     - ros-jazzy-rclcpp-components
+    - ros-jazzy-tensor-msgs
     - ros-jazzy-vision-msgs
 
 tests:

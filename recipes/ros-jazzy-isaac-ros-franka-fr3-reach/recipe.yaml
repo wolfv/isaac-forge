@@ -7,15 +7,15 @@ schema_version: 1
 # No special build traits detected.
 
 context:
-  version: "4.6.0"
+  version: "5.0.0"
 
 package:
   name: ros-jazzy-isaac-ros-franka-fr3-reach
   version: ${{ version }}
 
 source:
-  - url: https://github.com/NVIDIA-ISAAC-ROS/isaac_ros_learned_policies/archive/refs/tags/v4.6-0.tar.gz
-    sha256: 955aa66ea1c9caf291bc4067d1f4678b48a74a64833d6dc7f98e0dc4b601963e
+  - url: https://github.com/NVIDIA-ISAAC-ROS/isaac_ros_learned_policies/archive/refs/tags/v5.0-0.tar.gz
+    sha256: 674bc98cffb8bc01b30cc97cab0a2bcfa492a96fa2eb5556e3edce7748811922
     target_directory: src
 
 build:

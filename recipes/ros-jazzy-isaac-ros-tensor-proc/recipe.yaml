@@ -7,15 +7,15 @@ schema_version: 1
 # Detected build traits: ament_auto, cuda, cvcuda, python.
 
 context:
-  version: "4.6.0"
+  version: "5.0.0"
 
 package:
   name: ros-jazzy-isaac-ros-tensor-proc
   version: ${{ version }}
 
 source:
-  - url: https://github.com/NVIDIA-ISAAC-ROS/isaac_ros_dnn_inference/archive/refs/tags/v4.6-0.tar.gz
-    sha256: 9089b46e573d9088a7e28a2c60d3f9561b79b2588a32811c0f4ae48f518875b3
+  - url: https://github.com/NVIDIA-ISAAC-ROS/isaac_ros_dnn_inference/archive/c16ac2c8669051ae1f3c6d77684f91fb25756f21.tar.gz
+    sha256: 0d72343a522e699ca4fcece08e5cb1af0d4cb3797d68a59e1de579c41c71ed8a
     target_directory: src
 
 build:
@@ -83,20 +83,18 @@ requirements:
     - pkg-config
   host:
     - libcvcuda-dev >=0.16,<0.17
-    - ros-jazzy-ament-cmake-auto
     - ros-jazzy-ament-index-cpp
+    - ros-jazzy-cuda-buffer
+    - ros-jazzy-cvcuda-conversions
     - ros-jazzy-isaac-ros-common
     - ros-jazzy-isaac-ros-cvcuda-utils
-    - ros-jazzy-isaac-ros-image-proc
-    - ros-jazzy-isaac-ros-managed-nitros
-    - ros-jazzy-isaac-ros-nitros
-    - ros-jazzy-isaac-ros-nitros-image-type
-    - ros-jazzy-isaac-ros-nitros-tensor-list-type
-    - ros-jazzy-isaac-ros-tensor-list-interfaces
+    - ros-jazzy-isaac-ros-tensor-msgs
     - ros-jazzy-message-filters
     - ros-jazzy-rclcpp
     - ros-jazzy-rclcpp-components
     - ros-jazzy-sensor-msgs
+    - ros-jazzy-tensor-msgs
+    - ros-jazzy-ament-cmake-auto
     - cuda-version 13.*
     - cuda-cudart-dev
     - cuda-nvtx-dev
@@ -107,18 +105,16 @@ requirements:
     - __glibc >=2.38
     - libcvcuda-dev >=0.16,<0.17
     - ros-jazzy-ament-index-cpp
+    - ros-jazzy-cuda-buffer
+    - ros-jazzy-cvcuda-conversions
     - ros-jazzy-isaac-ros-common
     - ros-jazzy-isaac-ros-cvcuda-utils
-    - ros-jazzy-isaac-ros-image-proc
-    - ros-jazzy-isaac-ros-managed-nitros
-    - ros-jazzy-isaac-ros-nitros
-    - ros-jazzy-isaac-ros-nitros-image-type
-    - ros-jazzy-isaac-ros-nitros-tensor-list-type
-    - ros-jazzy-isaac-ros-tensor-list-interfaces
+    - ros-jazzy-isaac-ros-tensor-msgs
     - ros-jazzy-message-filters
     - ros-jazzy-rclcpp
     - ros-jazzy-rclcpp-components
     - ros-jazzy-sensor-msgs
+    - ros-jazzy-tensor-msgs
 
 tests:
   - package_contents:

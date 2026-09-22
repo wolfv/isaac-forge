@@ -7,15 +7,15 @@ schema_version: 1
 # Detected build traits: ament_auto, asset, cuda, python.
 
 context:
-  version: "4.6.0"
+  version: "5.0.0"
 
 package:
   name: ros-jazzy-isaac-ros-peoplesemseg-models-install
   version: ${{ version }}
 
 source:
-  - url: https://github.com/NVIDIA-ISAAC-ROS/isaac_ros_image_segmentation/archive/refs/tags/v4.6-0.tar.gz
-    sha256: d7b6980eb9b81f785e0220406e176f6e8d2939798d92e70873644ae39a975360
+  - url: https://github.com/NVIDIA-ISAAC-ROS/isaac_ros_image_segmentation/archive/refs/tags/v5.0-0.tar.gz
+    sha256: 21185fae90c38dfa42fe501a4921dd0b9c6c014c9225136dd8326e38d2e4638d
     target_directory: src
 
 build:

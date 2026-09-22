@@ -7,15 +7,15 @@ schema_version: 1
 # Detected build traits: ament_auto, cuda, python.
 
 context:
-  version: "4.6.0"
+  version: "5.0.0"
 
 package:
   name: ros-jazzy-isaac-ros-pointcloud-utils
   version: ${{ version }}
 
 source:
-  - url: https://github.com/NVIDIA-ISAAC-ROS/isaac_ros_mapping_and_localization/archive/refs/tags/v4.6-0.tar.gz
-    sha256: f12573ce2f2804e7808824994ee3cd968c20e9e1590f3f0362b2a42ef5ab05d1
+  - url: https://github.com/NVIDIA-ISAAC-ROS/isaac_ros_mapping_and_localization/archive/refs/tags/v5.0-0.tar.gz
+    sha256: b4be0a658aa6a5cd02ef3bdfc0d600c2f0dccb8ed46844a08d61b9f8888752b0
     target_directory: src
 
 build:
@@ -83,9 +83,8 @@ requirements:
     - pkg-config
   host:
     - ros-jazzy-ament-cmake-auto
+    - ros-jazzy-cuda-buffer
     - ros-jazzy-isaac-ros-common
-    - ros-jazzy-isaac-ros-nitros-flat-scan-type
-    - ros-jazzy-isaac-ros-nitros-point-cloud-type
     - ros-jazzy-isaac-ros-pointcloud-interfaces
     - ros-jazzy-rclcpp
     - ros-jazzy-rclcpp-components
@@ -97,9 +96,8 @@ requirements:
     - pyyaml
   run:
     - __glibc >=2.38
+    - ros-jazzy-cuda-buffer
     - ros-jazzy-isaac-ros-common
-    - ros-jazzy-isaac-ros-nitros-flat-scan-type
-    - ros-jazzy-isaac-ros-nitros-point-cloud-type
     - ros-jazzy-isaac-ros-pointcloud-interfaces
     - ros-jazzy-rclcpp
     - ros-jazzy-rclcpp-components

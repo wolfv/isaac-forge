@@ -7,15 +7,15 @@ schema_version: 1
 # Detected build traits: eigen.
 
 context:
-  version: "4.6.0"
+  version: "5.0.0"
 
 package:
   name: ros-jazzy-isaac-ros-inverse-dynamics
   version: ${{ version }}
 
 source:
-  - url: https://github.com/NVIDIA-ISAAC-ROS/isaac_ros_deploy/archive/refs/tags/v4.6-0.tar.gz
-    sha256: f5b9a51e25dc4a6f7f2fd4dcba637501d057fea80e8a1d11d9021dcfe503f5de
+  - url: https://github.com/NVIDIA-ISAAC-ROS/isaac_ros_deploy/archive/4cee440f70ce8d6ddd1ba9c542fe8c3900f00003.tar.gz
+    sha256: df7d2b06e1786eed46d6ca38425352e11c5c349c26b6ef70c8ceb6fedb895860
     target_directory: src
 
 build:

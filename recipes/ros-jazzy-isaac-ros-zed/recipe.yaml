@@ -7,15 +7,15 @@ schema_version: 1
 # Build type: ament_python (setuptools, installed with pip).
 
 context:
-  version: "4.6.0"
+  version: "5.0.0"
 
 package:
   name: ros-jazzy-isaac-ros-zed
   version: ${{ version }}
 
 source:
-  - url: https://github.com/NVIDIA-ISAAC-ROS/isaac_ros_examples/archive/refs/tags/v4.6-0.tar.gz
-    sha256: aef4018373593afe51dfb22a1f665828d3f213c6e36e875178a8ce3d657ebc40
+  - url: https://github.com/NVIDIA-ISAAC-ROS/isaac_ros_examples/archive/refs/tags/v5.0-0.tar.gz
+    sha256: 69220ac65fe2bf6060e14799c129c802d8787e52460179dab60dfbc1c713f7c2
     target_directory: src
 
 build:

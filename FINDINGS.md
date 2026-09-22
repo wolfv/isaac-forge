@@ -2,7 +2,7 @@
 
 This analysis records the original **Isaac ROS 4.5.0** packaging baseline. All figures below
 were measured from upstream sources, NVIDIA apt repositories, and conda repodata on
-2026-07-27; `packages.json` is the current 4.6 inventory. Isaac ROS 4.6 removes the GXF
+2026-07-27; `packages.json` is the current 5.0 inventory. Isaac ROS 4.6 removed the GXF
 implementation described below, so those sections are retained as upgrade history rather
 than statements about the current recipes.
 

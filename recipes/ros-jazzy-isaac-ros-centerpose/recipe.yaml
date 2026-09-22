@@ -7,18 +7,16 @@ schema_version: 1
 # Detected build traits: ament_auto, cuda, opencv, python.
 
 context:
-  version: "4.6.0"
+  version: "5.0.0"
 
 package:
   name: ros-jazzy-isaac-ros-centerpose
   version: ${{ version }}
 
 source:
-  - url: https://github.com/NVIDIA-ISAAC-ROS/isaac_ros_pose_estimation/archive/refs/tags/v4.6-0.tar.gz
-    sha256: b02f23b032e1861d83797e344c736c966f749eb1ca78529aab842d56a0303107
+  - url: https://github.com/NVIDIA-ISAAC-ROS/isaac_ros_pose_estimation/archive/refs/tags/v5.0-0.tar.gz
+    sha256: 5e5138211051336013a9800b8dbd296e254e154b523da5305cf5f2d29a082fca
     target_directory: src
-    patches:
-      - patches/0001-tensor-rt-and-triton-are-runtime-dependencies.patch
 
 build:
   number: 0
@@ -87,15 +85,15 @@ requirements:
     - eigen
     - libopencv 4.13.*
     - ros-jazzy-ament-cmake
+    - ros-jazzy-cuda-buffer
     - ros-jazzy-cv-bridge
     - ros-jazzy-isaac-ros-common
     - ros-jazzy-isaac-ros-dnn-image-encoder
-    - ros-jazzy-isaac-ros-nitros-image-type
-    - ros-jazzy-isaac-ros-nitros-tensor-list-type
-    - ros-jazzy-isaac-ros-tensor-list-interfaces
+    - ros-jazzy-isaac-ros-tensor-msgs
     - ros-jazzy-message-filters
     - ros-jazzy-rclcpp
     - ros-jazzy-sensor-msgs
+    - ros-jazzy-tensor-msgs
     - ros-jazzy-tf2-eigen
     - ros-jazzy-vision-msgs
     - ros-jazzy-ament-cmake-auto
@@ -107,15 +105,15 @@ requirements:
   run:
     - __glibc >=2.38
     - libopencv 4.13.*
+    - ros-jazzy-cuda-buffer
     - ros-jazzy-cv-bridge
     - ros-jazzy-isaac-ros-common
     - ros-jazzy-isaac-ros-dnn-image-encoder
-    - ros-jazzy-isaac-ros-nitros-image-type
-    - ros-jazzy-isaac-ros-nitros-tensor-list-type
-    - ros-jazzy-isaac-ros-tensor-list-interfaces
+    - ros-jazzy-isaac-ros-tensor-msgs
     - ros-jazzy-message-filters
     - ros-jazzy-rclcpp
     - ros-jazzy-sensor-msgs
+    - ros-jazzy-tensor-msgs
     - ros-jazzy-tf2-eigen
     - ros-jazzy-vision-msgs
 

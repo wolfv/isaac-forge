@@ -1,0 +1,18 @@
+--- a/rosidl_buffer/CMakeLists.txt
++++ b/rosidl_buffer/CMakeLists.txt
+@@ -7,14 +7,13 @@
+
+ # Find dependencies
+ find_package(ament_cmake REQUIRED)
+-find_package(ament_cmake_ros_core REQUIRED)
+
+ add_library(${PROJECT_NAME} SHARED
+   src/c_helpers.cpp
+ )
+
+ # Use the ROS default C++ standard (C++20)
+-target_link_libraries(${PROJECT_NAME} PRIVATE ament_cmake_ros_core::ament_ros_cxx_standard)
++target_compile_features(${PROJECT_NAME} PRIVATE cxx_std_20)
+
+ target_include_directories(${PROJECT_NAME} PUBLIC
+   $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>

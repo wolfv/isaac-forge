@@ -7,15 +7,15 @@ schema_version: 1
 # Detected build traits: ament_auto, cuda, python.
 
 context:
-  version: "4.6.0"
+  version: "5.0.0"
 
 package:
   name: ros-jazzy-isaac-ros-centerpose-benchmark
   version: ${{ version }}
 
 source:
-  - url: https://github.com/NVIDIA-ISAAC-ROS/isaac_ros_benchmark/archive/refs/tags/v4.6-0.tar.gz
-    sha256: d29daef7a9846a35e4f97990dd12797ec0043dd53f2c91e2dea9e944ef80a876
+  - url: https://github.com/NVIDIA-ISAAC-ROS/isaac_ros_benchmark/archive/refs/tags/v5.0-0.tar.gz
+    sha256: 0e5e14c01996ca6c05826889f085ca8bf4cb41490e953b541fb5b34daf8dff35
     target_directory: src
 
 build:

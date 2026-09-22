@@ -7,15 +7,15 @@ schema_version: 1
 # Detected build traits: ament_auto, cuda, python.
 
 context:
-  version: "4.6.0"
+  version: "5.0.0"
 
 package:
   name: ros-jazzy-isaac-ros-dnn-stereo-decoder
   version: ${{ version }}
 
 source:
-  - url: https://github.com/NVIDIA-ISAAC-ROS/isaac_ros_dnn_stereo_depth/archive/refs/tags/v4.6-0.tar.gz
-    sha256: fb8c85a16778be7586955ab5c1686fb5e020b0f269cc778705146b480b68afc0
+  - url: https://github.com/NVIDIA-ISAAC-ROS/isaac_ros_dnn_stereo_depth/archive/refs/tags/v5.0-0.tar.gz
+    sha256: 2f5f9723c51275c37ab9be8f8846a7a4bdbbc5fef1a75bffa1febda734af7279
     target_directory: src
 
 build:
@@ -82,20 +82,21 @@ requirements:
     - ninja
     - pkg-config
   host:
+    - py-opencv
     - ros-jazzy-ament-cmake-auto
+    - ros-jazzy-cuda-buffer
     - ros-jazzy-isaac-ros-common
     - ros-jazzy-isaac-ros-dnn-image-encoder
     - ros-jazzy-isaac-ros-image-proc
-    - ros-jazzy-isaac-ros-nitros-disparity-image-type
-    - ros-jazzy-isaac-ros-nitros-image-type
-    - ros-jazzy-isaac-ros-nitros-tensor-list-type
     - ros-jazzy-isaac-ros-stereo-image-proc
-    - ros-jazzy-isaac-ros-tensor-list-interfaces
+    - ros-jazzy-isaac-ros-tensor-msgs
     - ros-jazzy-isaac-ros-tensor-rt
     - ros-jazzy-message-filters
     - ros-jazzy-rclcpp
     - ros-jazzy-rclcpp-components
     - ros-jazzy-sensor-msgs
+    - ros-jazzy-stereo-msgs
+    - ros-jazzy-tensor-msgs
     - cuda-version 13.*
     - cuda-cudart-dev
     - cuda-nvtx-dev
@@ -103,19 +104,20 @@ requirements:
     - pyyaml
   run:
     - __glibc >=2.38
+    - py-opencv
+    - ros-jazzy-cuda-buffer
     - ros-jazzy-isaac-ros-common
     - ros-jazzy-isaac-ros-dnn-image-encoder
     - ros-jazzy-isaac-ros-image-proc
-    - ros-jazzy-isaac-ros-nitros-disparity-image-type
-    - ros-jazzy-isaac-ros-nitros-image-type
-    - ros-jazzy-isaac-ros-nitros-tensor-list-type
     - ros-jazzy-isaac-ros-stereo-image-proc
-    - ros-jazzy-isaac-ros-tensor-list-interfaces
+    - ros-jazzy-isaac-ros-tensor-msgs
     - ros-jazzy-isaac-ros-tensor-rt
     - ros-jazzy-message-filters
     - ros-jazzy-rclcpp
     - ros-jazzy-rclcpp-components
     - ros-jazzy-sensor-msgs
+    - ros-jazzy-stereo-msgs
+    - ros-jazzy-tensor-msgs
 
 tests:
   - package_contents:

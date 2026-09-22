@@ -7,15 +7,15 @@ schema_version: 1
 # Detected build traits: cuda.
 
 context:
-  version: "4.6.0"
+  version: "5.0.0"
 
 package:
   name: ros-jazzy-isaac-ros-image-pipeline
   version: ${{ version }}
 
 source:
-  - url: https://github.com/NVIDIA-ISAAC-ROS/isaac_ros_image_pipeline/archive/refs/tags/v4.6-0.tar.gz
-    sha256: 1a162b940a8d934086a019101cfcaf1b3a3809447d4f490e4402cdc8f48c222b
+  - url: https://github.com/NVIDIA-ISAAC-ROS/isaac_ros_image_pipeline/archive/refs/tags/v5.0-0.tar.gz
+    sha256: 26f2e85b6e86f1414f7dafb362ec70c13a3e93802a56fe9b75f59a5cbac0b42b
     target_directory: src
 
 build:

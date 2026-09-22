@@ -7,15 +7,15 @@ schema_version: 1
 # Detected build traits: ament_auto, cuda, python, rosidl.
 
 context:
-  version: "4.6.0"
+  version: "5.0.0"
 
 package:
   name: ros-jazzy-isaac-ros-visual-slam-interfaces
   version: ${{ version }}
 
 source:
-  - url: https://github.com/NVIDIA-ISAAC-ROS/isaac_ros_visual_slam/archive/refs/tags/v4.6-0.tar.gz
-    sha256: 870a77e135d1e4643b0cc598092e5eb25ed4757489bf23db73bc728306cc22f7
+  - url: https://github.com/NVIDIA-ISAAC-ROS/isaac_ros_visual_slam/archive/refs/tags/v5.0-0.tar.gz
+    sha256: 94c9b4c71ea11105d5bfa6c949895db24d19ae088ef722bea98c3cdbc15c25b2
     target_directory: src
 
 build:

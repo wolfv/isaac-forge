@@ -7,15 +7,15 @@ schema_version: 1
 # Detected build traits: ament_auto, cuda, python.
 
 context:
-  version: "4.6.0"
+  version: "5.0.0"
 
 package:
   name: ros-jazzy-isaac-ros-unet
   version: ${{ version }}
 
 source:
-  - url: https://github.com/NVIDIA-ISAAC-ROS/isaac_ros_image_segmentation/archive/refs/tags/v4.6-0.tar.gz
-    sha256: d7b6980eb9b81f785e0220406e176f6e8d2939798d92e70873644ae39a975360
+  - url: https://github.com/NVIDIA-ISAAC-ROS/isaac_ros_image_segmentation/archive/refs/tags/v5.0-0.tar.gz
+    sha256: 21185fae90c38dfa42fe501a4921dd0b9c6c014c9225136dd8326e38d2e4638d
     target_directory: src
 
 build:
@@ -83,15 +83,16 @@ requirements:
     - pkg-config
   host:
     - ros-jazzy-ament-cmake
+    - ros-jazzy-cuda-buffer
     - ros-jazzy-isaac-ros-common
     - ros-jazzy-isaac-ros-dnn-image-encoder
-    - ros-jazzy-isaac-ros-nitros
-    - ros-jazzy-isaac-ros-nitros-image-type
-    - ros-jazzy-isaac-ros-nitros-tensor-list-type
+    - ros-jazzy-isaac-ros-tensor-msgs
     - ros-jazzy-isaac-ros-tensor-rt
     - ros-jazzy-isaac-ros-unet-kernels
     - ros-jazzy-rclcpp
     - ros-jazzy-rclcpp-components
+    - ros-jazzy-sensor-msgs
+    - ros-jazzy-tensor-msgs
     - ros-jazzy-ament-cmake-auto
     - cuda-version 13.*
     - cuda-cudart-dev
@@ -100,15 +101,16 @@ requirements:
     - pyyaml
   run:
     - __glibc >=2.38
+    - ros-jazzy-cuda-buffer
     - ros-jazzy-isaac-ros-common
     - ros-jazzy-isaac-ros-dnn-image-encoder
-    - ros-jazzy-isaac-ros-nitros
-    - ros-jazzy-isaac-ros-nitros-image-type
-    - ros-jazzy-isaac-ros-nitros-tensor-list-type
+    - ros-jazzy-isaac-ros-tensor-msgs
     - ros-jazzy-isaac-ros-tensor-rt
     - ros-jazzy-isaac-ros-unet-kernels
     - ros-jazzy-rclcpp
     - ros-jazzy-rclcpp-components
+    - ros-jazzy-sensor-msgs
+    - ros-jazzy-tensor-msgs
 
 tests:
   - package_contents:

@@ -7,15 +7,15 @@ schema_version: 1
 # No special build traits detected.
 
 context:
-  version: "4.6.0"
+  version: "5.0.0"
 
 package:
   name: ros-jazzy-unitree-g1-description
   version: ${{ version }}
 
 source:
-  - url: https://github.com/NVIDIA-ISAAC-ROS/isaac_ros_robots/archive/refs/tags/v4.6-0.tar.gz
-    sha256: 24bc833c0ce574367a82d4b1aa9ddebabd3b65f221fd55666a80f8c97b6fe7d1
+  - url: https://github.com/NVIDIA-ISAAC-ROS/isaac_ros_robots/archive/refs/tags/v5.0-0.tar.gz
+    sha256: e7fe907bcfccb32a2c0c253c3b76cf01b81c2c5885e4369bc37c4df0b646843c
     target_directory: src
 
 build:

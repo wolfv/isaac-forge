@@ -7,15 +7,15 @@ schema_version: 1
 # Build type: ament_python (setuptools, installed with pip).
 
 context:
-  version: "4.6.0"
+  version: "5.0.0"
 
 package:
   name: ros-jazzy-isaac-ros-tensor-inspector
   version: ${{ version }}
 
 source:
-  - url: https://github.com/NVIDIA-ISAAC-ROS/isaac_ros_data_tools/archive/refs/tags/v4.6-0.tar.gz
-    sha256: 427dcae558578f043e080ccba7f984cca74a475187180044f4f6d2d92f586064
+  - url: https://github.com/NVIDIA-ISAAC-ROS/isaac_ros_data_tools/archive/refs/tags/v5.0-0.tar.gz
+    sha256: f248aa65a6dbf3ca1dec74c5da908f59f2519a2e0e17a341fc2f32ca9c1da708
     target_directory: src
 
 build:
@@ -36,7 +36,8 @@ requirements:
   run:
     - python
     - ros-jazzy-isaac-ros-common
-    - ros-jazzy-isaac-ros-tensor-list-interfaces
+    - ros-jazzy-isaac-ros-tensor-msgs
+    - ros-jazzy-tensor-msgs
     - numpy
     - ros-jazzy-rclpy
 

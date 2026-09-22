@@ -7,15 +7,15 @@ schema_version: 1
 # Detected build traits: ament_auto, cuda, python.
 
 context:
-  version: "4.6.0"
+  version: "5.0.0"
 
 package:
   name: ros-jazzy-ros2-benchmark
   version: ${{ version }}
 
 source:
-  - url: https://github.com/NVIDIA-ISAAC-ROS/ros2_benchmark/archive/refs/tags/v4.6-0.tar.gz
-    sha256: 945f37749653b376bc0ee7bcc23f1f7da5a98fc05db93f3a24a6b2f12507a5d3
+  - url: https://github.com/NVIDIA-ISAAC-ROS/ros2_benchmark/archive/refs/tags/v5.0-0.tar.gz
+    sha256: eb4e719905eb9a91045e48fb7bba93c8f05904ee5d92e0f69cb0c76443046cbc
     target_directory: src
 
 build:
@@ -82,11 +82,15 @@ requirements:
     - ninja
     - pkg-config
   host:
+    - numpy
+    - psutil
+    - pyyaml
     - ros-jazzy-ament-cmake-auto
     - ros-jazzy-isaac-ros-common
     - ros-jazzy-rclcpp
     - ros-jazzy-rclcpp-action
     - ros-jazzy-rclcpp-components
+    - ros-jazzy-rclpy
     - ros-jazzy-ros2-benchmark-interfaces
     - ros-jazzy-rosbag2-compression-zstd
     - ros-jazzy-rosbag2-cpp
@@ -97,13 +101,16 @@ requirements:
     - cuda-cudart-dev
     - cuda-nvtx-dev
     - python
-    - pyyaml
   run:
     - __glibc >=2.38
+    - numpy
+    - psutil
+    - pyyaml
     - ros-jazzy-isaac-ros-common
     - ros-jazzy-rclcpp
     - ros-jazzy-rclcpp-action
     - ros-jazzy-rclcpp-components
+    - ros-jazzy-rclpy
     - ros-jazzy-ros2-benchmark-interfaces
     - ros-jazzy-rosbag2-compression-zstd
     - ros-jazzy-rosbag2-cpp

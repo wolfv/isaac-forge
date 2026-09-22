@@ -7,15 +7,15 @@ schema_version: 1
 # Build type: ament_python (setuptools, installed with pip).
 
 context:
-  version: "4.6.0"
+  version: "5.0.0"
 
 package:
   name: ros-jazzy-isaac-ros-scene-recorder
   version: ${{ version }}
 
 source:
-  - url: https://github.com/NVIDIA-ISAAC-ROS/isaac_ros_cloud_control/archive/refs/tags/v4.6-0.tar.gz
-    sha256: 33c4894eed43ccd0d20c02fdb1d8abee65935ff80f53d0a258e0e711c4ee4aa8
+  - url: https://github.com/NVIDIA-ISAAC-ROS/isaac_ros_cloud_control/archive/refs/tags/v5.0-0.tar.gz
+    sha256: f45fe5425833424a5ee7b3a8ec027d17c397d9ee339ce43ba7fc58e48aa59176
     target_directory: src
 
 build:

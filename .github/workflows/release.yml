@@ -123,16 +123,16 @@ jobs:
 
           if [ -z "${SELECTED_RECIPES//[[:space:],]/}" ]; then
             echo "No recipe subset selected; building all recipes for ${{ matrix.platform }}."
-            if [ "${{ matrix.platform }}" = linux-aarch64 ]; then
-              # ARM64 is being bootstrapped: amd64-only blob recipes are deliberately
-              # skipped, so continue building independent/source-only packages when a
-              # dependent package cannot solve yet. Any artifact still has to pass its
-              # own package test below before it can be uploaded.
-              pixi run rattler-build build --recipe-dir recipes \
-                --continue-on-failure "${common_args[@]}" || \
-                echo "::warning::Some ARM64 recipes remain blocked; testing the artifacts that did build."
-            else
-              pixi run rattler-build build --recipe-dir recipes "${common_args[@]}"
+            # Keep independent packages when one recipe fails. Tested artifacts are
+            # published below, so the channel itself is the cache for the next run and
+            # --skip-existing avoids rebuilding them.
+            if ! pixi run rattler-build build --recipe-dir recipes \
+                 --continue-on-failure "${common_args[@]}"; then
+              echo "::warning::Some recipes failed; testing and publishing the artifacts that did build."
+              if [ "${{ matrix.platform }}" = linux-64 ]; then
+                mkdir -p failed-packages
+                touch failed-packages/build-failed
+              fi
             fi
           else
             # Build in the caller's order so a small dependency chain can be bootstrapped
@@ -200,7 +200,7 @@ jobs:
             else
               echo "::error::${#failed[@]} package(s) failed their tests:"
               printf '  %s\n' "${failed[@]}"
-              exit 1
+              touch failed-packages/test-failed
             fi
           else
             echo "all ${#pkgs[@]} packages passed their tests"
@@ -224,6 +224,17 @@ jobs:
           echo "Publishing ${#pkgs[@]} package(s):"
           printf '  %s\n' "${pkgs[@]}"
           pixi run rattler-build upload prefix -c isaac-forge "${pkgs[@]}"
+
+      # Publish valid independent packages before reporting the original failure. This
+      # makes retries incremental without spending the Actions cache quota on multi-GB
+      # package directories.
+      - name: Report build or test failures
+        if: always() && matrix.platform == 'linux-64'
+        run: |
+          if [ -e failed-packages/build-failed ] || [ -e failed-packages/test-failed ]; then
+            echo "::error::One or more recipes failed; successful packages were still published."
+            exit 1
+          fi
 
       - name: Upload build diagnostics
         if: always()

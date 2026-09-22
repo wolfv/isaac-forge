@@ -17,6 +17,24 @@ source:
   - url: https://github.com/NVIDIA-ISAAC-ROS/isaac_ros_nitros/archive/refs/tags/v5.0-0.tar.gz
     sha256: dfba350fcaecf100b9d01d174c3acc8c5757d44ef4726d4bccbef721c117c4e9
     target_directory: src
+  - url: https://media.githubusercontent.com/media/NVIDIA-ISAAC-ROS/isaac_ros_nitros/260cee67e8344db363f7584256ae161d03abfd01/cumotion_vendor/aarch64_jetpack70/lib/libcumotion.so.1.1.0
+    sha256: 6977efcb757839a3d992c368d8bb9ef12c4ee728469b567ae3baa26d89717c76
+    target_directory: src/cumotion_vendor/aarch64_jetpack70/lib
+  - url: https://media.githubusercontent.com/media/NVIDIA-ISAAC-ROS/isaac_ros_nitros/260cee67e8344db363f7584256ae161d03abfd01/cumotion_vendor/aarch64_jetpack70/python_wheels/cumotion-1.1.0-cp312-cp312-linux_aarch64.whl
+    sha256: 60f6aa4703e201ab9c1b5dd4f78d85c1aa5b1c1dfc83b785f85f66309f766359
+    target_directory: src/cumotion_vendor/aarch64_jetpack70/python_wheels
+  - url: https://media.githubusercontent.com/media/NVIDIA-ISAAC-ROS/isaac_ros_nitros/260cee67e8344db363f7584256ae161d03abfd01/cumotion_vendor/aarch64_jetpack70/python_wheels/cumotion_vis-1.1.0-py3-none-any.whl
+    sha256: 0dce7c072d865d71fbb2ed44381d812d2601e836d82276341af7d2c39eaf24f2
+    target_directory: src/cumotion_vendor/aarch64_jetpack70/python_wheels
+  - url: https://media.githubusercontent.com/media/NVIDIA-ISAAC-ROS/isaac_ros_nitros/260cee67e8344db363f7584256ae161d03abfd01/cumotion_vendor/x86_64_cuda_13_0/lib/libcumotion.so.1.1.0
+    sha256: fe13f8b2c1b6d908a72f087041a2385a1b4c2157323623bdf3e905f2852c9a2c
+    target_directory: src/cumotion_vendor/x86_64_cuda_13_0/lib
+  - url: https://media.githubusercontent.com/media/NVIDIA-ISAAC-ROS/isaac_ros_nitros/260cee67e8344db363f7584256ae161d03abfd01/cumotion_vendor/x86_64_cuda_13_0/python_wheels/cumotion-1.1.0-cp312-cp312-linux_x86_64.whl
+    sha256: b3f3eb0699686f4c3b1ba218513040fe6cdcdf0e474f78d5a8fe06371819fec5
+    target_directory: src/cumotion_vendor/x86_64_cuda_13_0/python_wheels
+  - url: https://media.githubusercontent.com/media/NVIDIA-ISAAC-ROS/isaac_ros_nitros/260cee67e8344db363f7584256ae161d03abfd01/cumotion_vendor/x86_64_cuda_13_0/python_wheels/cumotion_vis-1.1.0-py3-none-any.whl
+    sha256: ffebfff502ff599aa917503e2648255def6b815bf1092405bf732bb9bd056f3a
+    target_directory: src/cumotion_vendor/x86_64_cuda_13_0/python_wheels
 
 build:
   number: 0

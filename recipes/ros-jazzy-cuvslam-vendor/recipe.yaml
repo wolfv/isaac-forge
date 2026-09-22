@@ -17,6 +17,18 @@ source:
   - url: https://github.com/NVIDIA-ISAAC-ROS/isaac_ros_nitros/archive/refs/tags/v5.0-0.tar.gz
     sha256: dfba350fcaecf100b9d01d174c3acc8c5757d44ef4726d4bccbef721c117c4e9
     target_directory: src
+  - url: https://media.githubusercontent.com/media/NVIDIA-ISAAC-ROS/isaac_ros_nitros/260cee67e8344db363f7584256ae161d03abfd01/cuvslam_vendor/lib_aarch64_jetpack70/cuvslam_api_launcher
+    sha256: c8b7bcb74c3da5adc69fdadf511b1096ccb1828e5fc5c78e308f977be837a630
+    target_directory: src/cuvslam_vendor/lib_aarch64_jetpack70
+  - url: https://media.githubusercontent.com/media/NVIDIA-ISAAC-ROS/isaac_ros_nitros/260cee67e8344db363f7584256ae161d03abfd01/cuvslam_vendor/lib_aarch64_jetpack70/libcuvslam.so
+    sha256: d451faa3b0ebb606c02bb82586876d865fa03fbd34d1b7e11e06eff32f3f7424
+    target_directory: src/cuvslam_vendor/lib_aarch64_jetpack70
+  - url: https://media.githubusercontent.com/media/NVIDIA-ISAAC-ROS/isaac_ros_nitros/260cee67e8344db363f7584256ae161d03abfd01/cuvslam_vendor/lib_x86_64_cuda_13_0/cuvslam_api_launcher
+    sha256: 809717836ad7281cf5682f17c813c6418cc944a638072d43baad0f50d8bd7ecb
+    target_directory: src/cuvslam_vendor/lib_x86_64_cuda_13_0
+  - url: https://media.githubusercontent.com/media/NVIDIA-ISAAC-ROS/isaac_ros_nitros/260cee67e8344db363f7584256ae161d03abfd01/cuvslam_vendor/lib_x86_64_cuda_13_0/libcuvslam.so
+    sha256: d870759dc6d78b9fe55dbb842cac3b6cd6d804bde04dd8b546b5f2c466834f5e
+    target_directory: src/cuvslam_vendor/lib_x86_64_cuda_13_0
 
 build:
   number: 0

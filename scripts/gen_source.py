@@ -785,7 +785,50 @@ DROP_DEPS = {
 # tag resolves in nvidia-isaac/nvblox, so fetching that exact commit reproduces what a
 # recursive clone would have given. Pinned by commit rather than branch on purpose: the
 # submodule tracks `public`, which moves.
+_NITROS_LFS_ROOT = (
+    "https://media.githubusercontent.com/media/NVIDIA-ISAAC-ROS/isaac_ros_nitros/"
+    "260cee67e8344db363f7584256ae161d03abfd01/"
+)
+
+
+def nitros_lfs(path: str, sha256: str) -> tuple[str, str, str]:
+    """A checksum-pinned Git LFS object omitted from GitHub's source archive."""
+    return _NITROS_LFS_ROOT + path, sha256, "src/" + os.path.dirname(path)
+
+
 EXTRA_SOURCES = {
+    # GitHub archives contain pointers rather than Git LFS objects. Include only the
+    # binaries selected by each vendor package for the two supported architectures.
+    "ros-jazzy-cuapriltags-vendor": [
+        nitros_lfs("cuapriltags_vendor/lib_aarch64_jetpack61/libcuapriltags.a",
+                   "e67298e8ee52d6253cd702f4c55b3727bea177f57236aa23797bde50d74dfc24"),
+        nitros_lfs("cuapriltags_vendor/lib_x86_64_cuda_12_6/libcuapriltags.a",
+                   "a7f32f58782de61dd23e507fe6ce5a907379498deec505669fe339ecd4facba7"),
+    ],
+    "ros-jazzy-cumotion-vendor": [
+        nitros_lfs("cumotion_vendor/aarch64_jetpack70/lib/libcumotion.so.1.1.0",
+                   "6977efcb757839a3d992c368d8bb9ef12c4ee728469b567ae3baa26d89717c76"),
+        nitros_lfs("cumotion_vendor/aarch64_jetpack70/python_wheels/cumotion-1.1.0-cp312-cp312-linux_aarch64.whl",
+                   "60f6aa4703e201ab9c1b5dd4f78d85c1aa5b1c1dfc83b785f85f66309f766359"),
+        nitros_lfs("cumotion_vendor/aarch64_jetpack70/python_wheels/cumotion_vis-1.1.0-py3-none-any.whl",
+                   "0dce7c072d865d71fbb2ed44381d812d2601e836d82276341af7d2c39eaf24f2"),
+        nitros_lfs("cumotion_vendor/x86_64_cuda_13_0/lib/libcumotion.so.1.1.0",
+                   "fe13f8b2c1b6d908a72f087041a2385a1b4c2157323623bdf3e905f2852c9a2c"),
+        nitros_lfs("cumotion_vendor/x86_64_cuda_13_0/python_wheels/cumotion-1.1.0-cp312-cp312-linux_x86_64.whl",
+                   "b3f3eb0699686f4c3b1ba218513040fe6cdcdf0e474f78d5a8fe06371819fec5"),
+        nitros_lfs("cumotion_vendor/x86_64_cuda_13_0/python_wheels/cumotion_vis-1.1.0-py3-none-any.whl",
+                   "ffebfff502ff599aa917503e2648255def6b815bf1092405bf732bb9bd056f3a"),
+    ],
+    "ros-jazzy-cuvslam-vendor": [
+        nitros_lfs("cuvslam_vendor/lib_aarch64_jetpack70/cuvslam_api_launcher",
+                   "c8b7bcb74c3da5adc69fdadf511b1096ccb1828e5fc5c78e308f977be837a630"),
+        nitros_lfs("cuvslam_vendor/lib_aarch64_jetpack70/libcuvslam.so",
+                   "d451faa3b0ebb606c02bb82586876d865fa03fbd34d1b7e11e06eff32f3f7424"),
+        nitros_lfs("cuvslam_vendor/lib_x86_64_cuda_13_0/cuvslam_api_launcher",
+                   "809717836ad7281cf5682f17c813c6418cc944a638072d43baad0f50d8bd7ecb"),
+        nitros_lfs("cuvslam_vendor/lib_x86_64_cuda_13_0/libcuvslam.so",
+                   "d870759dc6d78b9fe55dbb842cac3b6cd6d804bde04dd8b546b5f2c466834f5e"),
+    ],
     # IsaacTeleop, which isaac_teleop_core needs and which the release tarball omits --
     # third instance of this shape here, after the nvblox core below and the git-lfs
     # pointers in isaac_ros_nitros. The directory is a git submodule, so the tarball

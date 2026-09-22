@@ -19,6 +19,12 @@ source:
     target_directory: src
     patches:
       - patches/0001-do-not-install-missing-version-file.patch
+  - url: https://media.githubusercontent.com/media/NVIDIA-ISAAC-ROS/isaac_ros_nitros/260cee67e8344db363f7584256ae161d03abfd01/cuapriltags_vendor/lib_aarch64_jetpack61/libcuapriltags.a
+    sha256: e67298e8ee52d6253cd702f4c55b3727bea177f57236aa23797bde50d74dfc24
+    target_directory: src/cuapriltags_vendor/lib_aarch64_jetpack61
+  - url: https://media.githubusercontent.com/media/NVIDIA-ISAAC-ROS/isaac_ros_nitros/260cee67e8344db363f7584256ae161d03abfd01/cuapriltags_vendor/lib_x86_64_cuda_12_6/libcuapriltags.a
+    sha256: a7f32f58782de61dd23e507fe6ce5a907379498deec505669fe339ecd4facba7
+    target_directory: src/cuapriltags_vendor/lib_x86_64_cuda_12_6
 
 build:
   number: 0

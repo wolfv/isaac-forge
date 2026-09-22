@@ -1,0 +1,22 @@
+From: Isaac Forge <noreply@example.com>
+Subject: [PATCH] Use the Jazzy urdf header
+
+---
+ isaac_deploy/isaac_ros_deploy_ros2_control/src/controllers/joint_parameter_controller.cpp | 6 +++++-
+ 1 file changed, 5 insertions(+), 1 deletion(-)
+
+diff --git a/isaac_deploy/isaac_ros_deploy_ros2_control/src/controllers/joint_parameter_controller.cpp b/isaac_deploy/isaac_ros_deploy_ros2_control/src/controllers/joint_parameter_controller.cpp
+--- a/isaac_deploy/isaac_ros_deploy_ros2_control/src/controllers/joint_parameter_controller.cpp
++++ b/isaac_deploy/isaac_ros_deploy_ros2_control/src/controllers/joint_parameter_controller.cpp
+@@ -25,7 +25,11 @@
+ 
+ #include <rcl_interfaces/msg/floating_point_range.hpp>
+ #include <rcl_interfaces/msg/parameter_descriptor.hpp>
+-#include <urdf/model.hpp>
++#pragma GCC diagnostic push
++#pragma GCC diagnostic ignored "-Wcpp"
++#include <urdf/model.h>
++#pragma GCC diagnostic pop
+ 
+ #include "isaac_ros_deploy_ros2_control/utils/gain_utils.hpp"
+ #include "isaac_ros_deploy_ros2_control/utils/tensor_interface_utils.hpp"

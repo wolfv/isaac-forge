@@ -1069,6 +1069,8 @@ PATCHES = {
     "ros-jazzy-isaac-deploy-core": ["use-packaged-triton.patch"],
     "ros-jazzy-isaac-ros-deploy-converters": [
         "patches/0001-support-vector-backed-tensor-messages.patch"],
+    "ros-jazzy-isaac-ros-deploy-ros2-control": [
+        "patches/0001-use-jazzy-urdf-header.patch"],
     "ros-jazzy-isaac-ros-triton": ["patches/0001-use-packaged-triton-core.patch"],
     "ros-jazzy-unitree-g1-bridge": ["patches/0001-match-package-version.patch"],
     # Isaac ROS targets CV-CUDA 0.14; adapt its changed C++ wrappers to conda-forge 0.16.

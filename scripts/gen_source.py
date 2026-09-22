@@ -1077,6 +1077,8 @@ PATCHES = {
         "patches/0001-h264_decoder-link-the-nvbuf-libraries-by-name-so-DT_.patch"],
     "ros-jazzy-isaac-ros-cumotion-robot-segmenter": [
         "patches/0001-support-vector-backed-image-messages.patch"],
+    "ros-jazzy-isaac-ros-pointcloud-utils": [
+        "patches/0001-support-vector-backed-point-clouds.patch"],
     "ros-jazzy-isaac-ros-teleop": [
         "patches/0001-use-conda-forge-msgpack-c-target.patch"],
     # The encoder hard-codes Ubuntu multiarch paths for nvv4l2 libraries even though

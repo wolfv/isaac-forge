@@ -1,0 +1,68 @@
+From: Isaac Forge <noreply@example.com>
+Subject: [PATCH] Support Jazzy vector-backed point clouds
+
+RoboStack Jazzy PointCloud2.data is a std::vector and rclcpp lacks the
+Rolling buffer-backend option. Upload the host vector before launching the
+existing CUDA kernel.
+---
+--- a/isaac_ros_pointcloud_utils/src/pointcloud_to_flatscan_node.cpp
++++ b/isaac_ros_pointcloud_utils/src/pointcloud_to_flatscan_node.cpp
+@@ -26,7 +26,6 @@
+ #include "rcl_interfaces/msg/parameter_descriptor.hpp"
+ #include "rclcpp_components/register_node_macro.hpp"
+ 
+-#include "cuda_buffer/cuda_buffer_api.hpp"
+ #include "isaac_ros_common/qos.hpp"
+ #include "isaac_ros_pointcloud_utils/pointcloud_to_flatscan_cuda.cu.hpp"
+ 
+@@ -125,8 +124,6 @@
+ 
+     rclcpp::SubscriptionOptions sub_options;
+     sub_options.use_intra_process_comm = rclcpp::IntraProcessSetting::Enable;
+-    // Accept GPU-backed point cloud buffers; from_input_buffer promotes CPU buffers as needed.
+-    sub_options.acceptable_buffer_backends = "any";
+     pc_sub_ = create_subscription<sensor_msgs::msg::PointCloud2>(
+       "pointcloud", input_qos,
+       std::bind(&PointCloudToFlatScanNode::PointCloudCallback, this, std::placeholders::_1),
+@@ -190,9 +187,6 @@
+     return;
+   }
+ 
+-  auto read_handle = cuda_buffer_backend::from_input_buffer(point_cloud->data, cuda_stream_);
+-  const float * input_points = reinterpret_cast<const float *>(read_handle.get_ptr());
+-
+   float * scratch_angles = reinterpret_cast<float *>(scratch_device_);
+   float * scratch_ranges = scratch_angles + static_cast<size_t>(max_points_);
+ 
+@@ -202,6 +196,23 @@
+     return;
+   }
+ 
++  uint8_t * input_device = nullptr;
++  err = cudaMallocAsync(
++    reinterpret_cast<void **>(&input_device), required_bytes, cuda_stream_);
++  if (err != cudaSuccess) {
++    RCLCPP_ERROR(get_logger(), "cudaMallocAsync(input) failed: %s", cudaGetErrorString(err));
++    return;
++  }
++  err = cudaMemcpyAsync(
++    input_device, point_cloud->data.data(), required_bytes,
++    cudaMemcpyHostToDevice, cuda_stream_);
++  if (err != cudaSuccess) {
++    RCLCPP_ERROR(get_logger(), "cudaMemcpyAsync(input) failed: %s", cudaGetErrorString(err));
++    cudaFreeAsync(input_device, cuda_stream_);
++    return;
++  }
++  const float * input_points = reinterpret_cast<const float *>(input_device);
++
+   const ThresholdParams params{
+     threshold_x_axis_,
+     threshold_y_axis_,
+@@ -215,6 +226,7 @@
+   LaunchPointCloudToFlatscan(
+     input_points, num_points, point_step_floats,
+     scratch_angles, scratch_ranges, max_output, counter_device_, params, cuda_stream_);
++  cudaFreeAsync(input_device, cuda_stream_);
+ 
+   uint32_t count = 0;
+   err = cudaMemcpyAsync(

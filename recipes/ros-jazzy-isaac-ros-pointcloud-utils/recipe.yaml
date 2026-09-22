@@ -17,6 +17,8 @@ source:
   - url: https://github.com/NVIDIA-ISAAC-ROS/isaac_ros_mapping_and_localization/archive/refs/tags/v5.0-0.tar.gz
     sha256: b4be0a658aa6a5cd02ef3bdfc0d600c2f0dccb8ed46844a08d61b9f8888752b0
     target_directory: src
+    patches:
+      - patches/0001-support-vector-backed-point-clouds.patch
 
 build:
   number: 0

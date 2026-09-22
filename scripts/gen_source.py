@@ -944,6 +944,12 @@ EXTRA_PREP["ros-jazzy-isaac-teleop-core"] = [
     "git -C IsaacTeleop add VERSION",
     "git -C IsaacTeleop -c user.name=builder -c user.email=builder@localhost commit -qm source",
 ]
+# cuMotion's config incorrectly makes Eigen 3.3 a same-major requirement. Its API uses
+# ABI-compatible fixed-size Eigen types and all consumers compile successfully with Eigen 5.
+EXTRA_PREP["ros-jazzy-cumotion-vendor"] = [
+    "test \"$(grep -rl 'find_dependency(Eigen3 3.3)' -- */lib/cmake/cumotion/cumotionConfig.cmake | wc -l)\" -eq 2",
+    "sed -i 's/find_dependency(Eigen3 3.3)/find_dependency(Eigen3)/' */lib/cmake/cumotion/cumotionConfig.cmake",
+]
 
 # Extra -D flags for cmake, keyed by conda package name.
 EXTRA_CMAKE_ARGS = {
@@ -1069,6 +1075,8 @@ PATCHES = {
         "patches/0002-do-not-export-global-CCCL-target.patch"],
     "ros-jazzy-isaac-ros-h264-decoder": [
         "patches/0001-h264_decoder-link-the-nvbuf-libraries-by-name-so-DT_.patch"],
+    "ros-jazzy-isaac-ros-cumotion-robot-segmenter": [
+        "patches/0001-support-vector-backed-image-messages.patch"],
     "ros-jazzy-isaac-ros-teleop": [
         "patches/0001-use-conda-forge-msgpack-c-target.patch"],
     # The encoder hard-codes Ubuntu multiarch paths for nvv4l2 libraries even though

@@ -17,6 +17,8 @@ source:
   - url: https://github.com/NVIDIA-ISAAC-ROS/isaac_ros_cumotion/archive/refs/tags/v5.0-0.tar.gz
     sha256: 8a5d685a0227bf545c8e07dcf248f19855ec163d82d6c92612859ef510d65d1e
     target_directory: src
+    patches:
+      - patches/0001-support-vector-backed-image-messages.patch
 
 build:
   number: 0

@@ -42,6 +42,8 @@ build:
     - export AMENT_PREFIX_PATH="${PREFIX}${AMENT_PREFIX_PATH:+:${AMENT_PREFIX_PATH}}"
     - export CMAKE_PREFIX_PATH="${PREFIX}${CMAKE_PREFIX_PATH:+:${CMAKE_PREFIX_PATH}}"
     - cd src/cumotion_vendor
+    - test "$(grep -rl 'find_dependency(Eigen3 3.3)' -- */lib/cmake/cumotion/cumotionConfig.cmake | wc -l)" -eq 2
+    - sed -i 's/find_dependency(Eigen3 3.3)/find_dependency(Eigen3)/' */lib/cmake/cumotion/cumotionConfig.cmake
     # ${CMAKE_ARGS} carries the compiler activation's CMAKE_FIND_ROOT_PATH, which is
     # what points find_package(CUDAToolkit) at the prefix rather than /usr/local/cuda.
     - >

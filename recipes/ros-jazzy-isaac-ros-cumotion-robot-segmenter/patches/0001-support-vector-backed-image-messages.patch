@@ -1,0 +1,96 @@
+From: Isaac Forge <noreply@example.com>
+Subject: [PATCH] Support Jazzy vector-backed image messages
+
+RoboStack Jazzy sensor_msgs uses std::vector for Image.data and does not
+carry Rolling buffer-backend options. The segmenter already performs its
+algorithm on CPU buffers, so copy directly between those vectors.
+---
+--- a/isaac_ros_cumotion_robot_segmenter/src/robot_segmenter.cpp
++++ b/isaac_ros_cumotion_robot_segmenter/src/robot_segmenter.cpp
+@@ -19,6 +19,7 @@
+ 
+ #include <cmath>
+ #include <chrono>
++#include <cstring>
+ #include <fstream>
+ #include <limits>
+ #include <sstream>
+@@ -90,7 +91,6 @@
+ 
+   rclcpp::SubscriptionOptions sub_options;
+   sub_options.use_intra_process_comm = rclcpp::IntraProcessSetting::Enable;
+-  sub_options.acceptable_buffer_backends = "any";
+   depth_sub_ = create_subscription<sensor_msgs::msg::Image>(
+     "depth_image", input_qos_,
+     std::bind(&RobotSegmenter::DepthCallback, this, std::placeholders::_1), sub_options);
+@@ -267,21 +267,12 @@
+   // Generic lambda to handle both uint16_t and float types
+   // This avoids code duplication - compiler instantiates two versions
+   auto process_depth = [&](auto * input_buf, auto * output_buf, auto * mask_buf) {
+-      // Copy input data from GPU to CPU buffer
++      // Copy input data to the CPU buffer
+       RCLCPP_DEBUG(
+-        get_logger(), "Copying depth image from GPU to CPU, buffer size: %zu bytes",
++        get_logger(), "Copying depth image to CPU buffer, size: %zu bytes",
+         buffer_size);
+ 
+-      auto depth_read_handle = cuda_buffer_backend::from_input_buffer(
+-        depth_msg.data, *cuda_stream_);
+-      CHECK_CUDA_ERROR(
+-        cudaMemcpyAsync(
+-          input_buf, depth_read_handle.get_ptr(),
+-          buffer_size, cudaMemcpyDeviceToHost, *cuda_stream_),
+-        "Failed to copy depth image from GPU to CPU");
+-      CHECK_CUDA_ERROR(
+-        cudaStreamSynchronize(*cuda_stream_),
+-        "Failed to synchronize CUDA stream after copying depth image");
++      std::memcpy(input_buf, depth_msg.data.data(), buffer_size);
+ 
+       auto depth_output_image = std::make_unique<sensor_msgs::msg::Image>();
+       depth_output_image->header = depth_msg.header;
+@@ -290,7 +281,7 @@
+       depth_output_image->encoding = encoding;
+       depth_output_image->is_bigendian = 0;
+       depth_output_image->step = static_cast<uint32_t>(row_size);
+-      depth_output_image->data = cuda_buffer_backend::allocate_buffer(buffer_size);
++      depth_output_image->data.resize(buffer_size);
+ 
+       auto mask_output_image = std::make_unique<sensor_msgs::msg::Image>();
+       mask_output_image->header = depth_msg.header;
+@@ -299,7 +290,7 @@
+       mask_output_image->encoding = encoding;
+       mask_output_image->is_bigendian = 0;
+       mask_output_image->step = static_cast<uint32_t>(row_size);
+-      mask_output_image->data = cuda_buffer_backend::allocate_buffer(buffer_size);
++      mask_output_image->data.resize(buffer_size);
+ 
+       // Create CPU DepthImage views with HOST residency
+       const auto input_depth_image = cumotion::CreateDepthImageView(
+@@ -318,25 +309,8 @@
+         &output_mask
+       );
+ 
+-      {
+-        auto depth_write_handle = cuda_buffer_backend::from_output_buffer(
+-          depth_output_image->data, *cuda_stream_);
+-        auto mask_write_handle = cuda_buffer_backend::from_output_buffer(
+-          mask_output_image->data, *cuda_stream_);
+-        CHECK_CUDA_ERROR(
+-          cudaMemcpyAsync(
+-            mask_write_handle.get_ptr(), mask_buf, buffer_size,
+-            cudaMemcpyHostToDevice, *cuda_stream_),
+-          "Failed to copy segmented mask from CPU to GPU");
+-        CHECK_CUDA_ERROR(
+-          cudaMemcpyAsync(
+-            depth_write_handle.get_ptr(), output_buf, buffer_size,
+-            cudaMemcpyHostToDevice, *cuda_stream_),
+-          "Failed to copy segmented depth from CPU to GPU");
+-        CHECK_CUDA_ERROR(
+-          cudaStreamSynchronize(*cuda_stream_),
+-          "Failed to synchronize CUDA stream after copying segmented outputs");
+-      }
++      std::memcpy(mask_output_image->data.data(), mask_buf, buffer_size);
++      std::memcpy(depth_output_image->data.data(), output_buf, buffer_size);
+ 
+       // Note that for uint16_t 0 = robot, max uint16_t value = background.
+       // For float32 0 = robot, 1 = background.

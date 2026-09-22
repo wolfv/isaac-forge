@@ -17,6 +17,8 @@ source:
   - url: https://github.com/NVIDIA-ISAAC-ROS/isaac_ros_nitros/archive/refs/tags/v5.0-0.tar.gz
     sha256: dfba350fcaecf100b9d01d174c3acc8c5757d44ef4726d4bccbef721c117c4e9
     target_directory: src
+    patches:
+      - patches/0001-do-not-install-missing-version-file.patch
 
 build:
   number: 0

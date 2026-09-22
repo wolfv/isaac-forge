@@ -987,6 +987,8 @@ EXTRA_RUN = {
 # its own commit message, and the reason it cannot go upstream is that the code that needs
 # fixing is under NVIDIA's proprietary header.
 PATCHES = {
+    # v5.0-0 installs a VERSION file that is not present in the release archive.
+    "ros-jazzy-cuapriltags-vendor": ["patches/0001-do-not-install-missing-version-file.patch"],
     "ros-jazzy-rosidl-buffer": ["patches/0001-use-cxx-20-directly.patch"],
     "ros-jazzy-rosidl-buffer-backend-registry": [
         "patches/0001-use-cxx-20-directly.patch"],

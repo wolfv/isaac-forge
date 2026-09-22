@@ -656,6 +656,9 @@ TRAIT_DEPS = {
 # the CMakeLists by pattern -- they come from ament_target_dependencies() naming a
 # package that ament_auto_find_build_dependencies() was never told to find.
 EXTRA_DEPS = {
+    # This dependency is conditional on ROS_DISTRO != lyrical. The generic parser skips
+    # conditional manifest entries; Isaac Forge targets Jazzy, whose CMake requires it.
+    "ros-jazzy-isaac-deploy-core": ["ros-jazzy-tl-expected"],
     # Upstream's manifest omits rosidl_buffer although CMake requires it directly.
     "ros-jazzy-rosidl-buffer-backend-registry": ["ros-jazzy-rosidl-buffer"],
     # reshape_node calls

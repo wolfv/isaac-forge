@@ -88,6 +88,7 @@ requirements:
     - pytorch-gpu ==2.13.0 cuda130_generic_*_202
     - ros-jazzy-ament-cmake
     - ros-jazzy-rclcpp
+    - ros-jazzy-tl-expected
     - yaml-cpp
     - cuda-toolkit
     - triton-server ==2.60.0
@@ -99,6 +100,7 @@ requirements:
     - nlohmann_json
     - pytorch-gpu ==2.13.0 cuda130_generic_*_202
     - ros-jazzy-rclcpp
+    - ros-jazzy-tl-expected
     - yaml-cpp
     - cuda-toolkit
     - triton-server ==2.60.0

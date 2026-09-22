@@ -929,6 +929,18 @@ EXTRA_PREP = {
     ]
     for _p in _NVBLOX_CORE_USERS
 }
+# The 5.0 ROS wrapper still lists teleop_profiles.py, removed from its pinned
+# IsaacTeleop release/1.3.x source. Nothing imports it; omit the stale install entry.
+# Its version logic also mistakes the enclosing isaac-forge checkout for IsaacTeleop's
+# repository. Give the stripped archive a minimal nested checkout so versioning and the
+# source's later pinned Git fetches can both use Git.
+EXTRA_PREP["ros-jazzy-isaac-teleop-core"] = [
+    "grep -q 'teleop_profiles.py' CMakeLists.txt",
+    "sed -i 's|.*teleop_profiles.py.*|)|' CMakeLists.txt",
+    "git -C IsaacTeleop init -q -b release/1.3.x",
+    "git -C IsaacTeleop add VERSION",
+    "git -C IsaacTeleop -c user.name=builder -c user.email=builder@localhost commit -qm source",
+]
 
 # Extra -D flags for cmake, keyed by conda package name.
 EXTRA_CMAKE_ARGS = {
@@ -993,6 +1005,8 @@ EXTRA_HOST = {
 EXTRA_HOST["ros-jazzy-isaac-deploy-core"] = [
     "cuda-toolkit", "triton-server ==2.60.0"]
 EXTRA_HOST["ros-jazzy-isaac-ros-triton"] = ["triton-server ==2.60.0"]
+# xorg-libx11 contains Xlib.h but X.h and the other protocol headers are separate.
+EXTRA_HOST["ros-jazzy-isaac-teleop-core"] = ["vulkan-headers", "xorg-xorgproto"]
 # Unitree's CMakeLists invokes this generator but package.xml omits it.
 EXTRA_HOST["ros-jazzy-unitree-api"] = ["ros-jazzy-rosidl-generator-dds-idl"]
 
@@ -1148,6 +1162,10 @@ def detect(cml: str, pkgxml: str, path: str) -> set[str]:
     # compiler activation even though its own CMakeLists has no CUDA command.
     if "cuda-toolkit" in pkgxml:
         traits.add("cuda")
+    # This wrapper configures the separately fetched IsaacTeleop CMake project, which
+    # calls find_package(CUDAToolkit); that nested CMakeLists is not in `cml` above.
+    if path == "isaac_teleop_core":
+        traits.add("cuda")
     if re.search(r"find_package\(\s*Eigen3", cml):
         traits.add("eigen")
     if re.search(r"find_package\(\s*vpi", cml):
@@ -1296,11 +1314,31 @@ SYSTEM = {
     # paho without the first, and vda5050_action_handler_plugins links libcurl.
     "python3-paho-mqtt-pip-shim": "paho-mqtt",
     "libcurl-dev": "libcurl",
-    # isaac_teleop_core. Both are in conda-forge, under names that do not match the rosdep
-    # keys. python3-isaacteleop-pip-shim is deliberately not mapped: that is NVIDIA's own
-    # isaacteleop wheel, which is in no channel, and its CMakeLists says the package is
-    # "provided by the pip shim dependency at runtime" -- so it is a runtime gap for the
-    # teleop node, not a build one.
+    # isaac_teleop_core. These rosdep/Debian names differ from their conda-forge names.
+    "libjsoncpp-dev": "jsoncpp",
+    "libwayland-dev": "wayland",
+    "libx11-dev": "xorg-libx11",
+    "patchelf": "patchelf",
+    "python3-pip": "pip",
+    "python3-uv-pip-shim": "uv",
+    "libatomic1": "libgcc",
+    "libegl1": "libglvnd",
+    "libgl1": "libglvnd",
+    "libglx0": "libglvnd",
+    "libvulkan1": "libvulkan-loader",
+    "libx11-6": "xorg-libx11",
+    "libxext6": "xorg-libxext",
+    "python3-dex-retargeting-pip-shim": "dex-retargeting",
+    "python3-nlopt": "nlopt",
+    "python3-scipy-pip-shim": "scipy",
+    "python3-websockets-pip-shim": "websockets",
+    # adb, coturn and libbsd have no matching cross-architecture conda package. They are
+    # optional external tools/libraries, not referenced by the package's source build.
+    "adb": None,
+    "coturn": None,
+    "libbsd0": None,
+    # python3-isaacteleop-pip-shim is deliberately not mapped: this recipe builds that
+    # NVIDIA wheel itself from the pinned IsaacTeleop source.
     "python3-msgpack": "msgpack-python",
     "python3-msgpack-numpy": "msgpack-numpy",
     "msgpack": "msgpack-c",
@@ -1601,6 +1639,8 @@ def emit(name: str, repo: str, path: str) -> str | None:
 
     build_tools = ["${{ compiler('c') }}", "${{ compiler('cxx') }}", "cmake", "ninja",
                    "pkg-config"]
+    if path == "isaac_teleop_core":
+        build_tools.append("git")
     if "cuda" in traits:
         # Most of these packages have no .cu sources, so nothing is compiled by nvcc.
         # The compiler is here for its activation script: it puts

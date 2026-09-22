@@ -19,11 +19,13 @@ source:
     target_directory: src
 
 build:
-  number: 0
+  number: 1
   script:
     - export AMENT_PREFIX_PATH="${PREFIX}${AMENT_PREFIX_PATH:+:${AMENT_PREFIX_PATH}}"
     - cd src/isaac_ros_json_info_generator
     - ${{ PYTHON }} -m pip install . --no-deps --no-build-isolation -vv
+    - mkdir -p "${PREFIX}/lib/isaac_ros_json_info_generator"
+    - ln -sf "../../bin/json_info_generator_node" "${PREFIX}/lib/isaac_ros_json_info_generator/json_info_generator_node"
 
 requirements:
   host:
@@ -45,6 +47,7 @@ tests:
       files:
         - share/isaac_ros_json_info_generator/package.xml
         - share/ament_index/resource_index/packages/isaac_ros_json_info_generator
+        - lib/isaac_ros_json_info_generator/json_info_generator_node
   - python:
       imports:
         - isaac_ros_json_info_generator

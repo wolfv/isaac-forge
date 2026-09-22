@@ -19,11 +19,13 @@ source:
     target_directory: src
 
 build:
-  number: 0
+  number: 1
   script:
     - export AMENT_PREFIX_PATH="${PREFIX}${AMENT_PREFIX_PATH:+:${AMENT_PREFIX_PATH}}"
     - cd src/isaac_ros_mega_controller
     - ${{ PYTHON }} -m pip install . --no-deps --no-build-isolation -vv
+    - mkdir -p "${PREFIX}/lib/isaac_ros_mega_controller"
+    - ln -sf "../../bin/isaac_ros_mega_controller" "${PREFIX}/lib/isaac_ros_mega_controller/isaac_ros_mega_controller"
 
 requirements:
   host:
@@ -45,6 +47,7 @@ tests:
       files:
         - share/isaac_ros_mega_controller/package.xml
         - share/ament_index/resource_index/packages/isaac_ros_mega_controller
+        - lib/isaac_ros_mega_controller/isaac_ros_mega_controller
   - python:
       imports:
         - isaac_ros_mega_controller

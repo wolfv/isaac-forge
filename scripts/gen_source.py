@@ -1106,6 +1106,14 @@ BUILD_NUMBERS = {
     "ros-jazzy-isaac-ros-cvcuda-utils": 2,
     "ros-jazzy-nvblox-ros": 1,
     "ros-jazzy-isaac-ros-yolov8": 1,
+    # pip wheels install console scripts in bin/; build 1 also exposes them to ros2 run.
+    "ros-jazzy-isaac-ros-tensor-inspector": 1,
+    "ros-jazzy-isaac-ros-json-info-generator": 1,
+    "ros-jazzy-isaac-ros-mega-controller": 1,
+    "ros-jazzy-isaac-ros-mega-node-monitor": 1,
+    "ros-jazzy-isaac-ros-mqtt-bridge": 1,
+    "ros-jazzy-isaac-ros-scene-recorder": 1,
+    "ros-jazzy-isaac-ros-humanoid-task-server": 1,
 }
 
 # Build-only libraries whose run exports must not leak into package metadata.
@@ -1525,12 +1533,9 @@ def emit_python(name: str, repo: str, path: str, base: str, pkgxml: str,
     index marker, package.xml, and the launch/config/urdf trees. `pip install` places
     all of that correctly under $PREFIX, so no cmake or ament tooling is involved.
 
-    Console scripts land in $PREFIX/bin rather than $PREFIX/lib/<pkg>/, which is where
-    a rosdistro puts them. That is deliberate: it is what RoboStack's own ament_python
-    packages do (checked against ros-jazzy-py-trees-ros), and matching the ecosystem we
-    resolve against matters more than matching the upstream layout. The setup.cfg
-    [install] install_scripts entry that would redirect them is a `setup.py install`
-    setting and has no effect on a wheel build.
+    A wheel puts console scripts in $PREFIX/bin and ignores setup.cfg's legacy
+    install_scripts setting. Keep those normal shell entry points and add the ROS layout
+    under $PREFIX/lib/<pkg>/ too: `ros2 run` does not search PATH and only checks there.
     """
     deps = deps_of(pkgxml, name)
     ros_dir = name.replace("ros-jazzy-", "").replace("-", "_")
@@ -1551,6 +1556,19 @@ def emit_python(name: str, repo: str, path: str, base: str, pkgxml: str,
         for d in deps_of(pkgxml, name, kinds={"build_depend", "buildtool_depend"}):
             if d not in host:
                 host.append(d)
+
+    console_block = re.search(
+        r"['\"]console_scripts['\"]\s*:\s*\[(.*?)\]", setup_src, re.S)
+    console_scripts = (re.findall(r"['\"]([^'\"= ]+)\s*=", console_block.group(1))
+                       if console_block else [])
+    if any(not re.fullmatch(r"[A-Za-z0-9_.-]+", script) for script in console_scripts):
+        raise ValueError(f"unsafe console script name in {name}: {console_scripts}")
+    ros_script_install = ""
+    if console_scripts:
+        ros_script_install = f'\n    - mkdir -p "${{PREFIX}}/lib/{ros_dir}"'
+        ros_script_install += "".join(
+            f'\n    - ln -sf "../../bin/{script}" "${{PREFIX}}/lib/{ros_dir}/{script}"'
+            for script in console_scripts)
 
     run = list(deps)
     if has_module:
@@ -1597,7 +1615,7 @@ build:
   script:
     - export AMENT_PREFIX_PATH="${{PREFIX}}${{AMENT_PREFIX_PATH:+:${{AMENT_PREFIX_PATH}}}}"
     - cd src/{path}
-    - ${{{{ PYTHON }}}} -m pip install . --no-deps --no-build-isolation -vv
+    - ${{{{ PYTHON }}}} -m pip install . --no-deps --no-build-isolation -vv{ros_script_install}
 
 requirements:
   host:
@@ -1610,7 +1628,7 @@ tests:
   - package_contents:
       files:
         - share/{ros_dir}/package.xml
-        - share/ament_index/resource_index/packages/{ros_dir}{import_test}
+        - share/ament_index/resource_index/packages/{ros_dir}{''.join(f'\n        - lib/{ros_dir}/{script}' for script in console_scripts)}{import_test}
 
 about:
   homepage: {homepage_of(repo)}

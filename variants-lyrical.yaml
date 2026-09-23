@@ -4,4 +4,4 @@ channel_sources:
   - ./output-lyrical,https://prefix.dev/robostack-lyrical,conda-forge
 # RoboStack Lyrical's ROS Python packages (including rclcpp's ABI closure) use 3.14.
 python:
-  - "3.14.* *_cpython"
+  - "3.14.*"

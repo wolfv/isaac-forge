@@ -88,6 +88,30 @@ while TensorRT uses conda-forge on x86 and NVIDIA's native payloads on Jetson. S
 packages such as `isaac_ros_image_proc` build natively on ARM64 rather
 than being cross-compiled or relabelled from x86_64.
 
+## ROS 2 Lyrical bootstrap (not yet a full release)
+
+Isaac ROS 5 targets ROS 2 Lyrical upstream. The published `ros-jazzy-*` packages
+are **not** Lyrical binaries; in particular, Jazzy `.deb` payloads cannot be
+renamed into a Lyrical release. To stage the source-build recipes without
+changing the Jazzy release:
+
+```bash
+python scripts/gen_lyrical.py ros-lyrical-isaac-ros-common vpi
+rattler-build build --recipe recipes-lyrical/vpi/recipe.yaml \
+  --output-dir output-lyrical -m variants.yaml -m variants-lyrical.yaml
+rattler-build build --recipe recipes-lyrical/ros-lyrical-isaac-ros-common/recipe.yaml \
+  --output-dir output-lyrical -m variants.yaml -m variants-lyrical.yaml
+```
+
+`channel_sources` in `variants-lyrical.yaml` selects **only** the local Lyrical
+artifacts, `robostack-lyrical`, and conda-forge; do not pass `-c` as well.
+It also participates in the build variant hash, so Lyrical artifacts get a
+different variant hash from Jazzy artifacts even when the CUDA/Python pins
+match. Run `python scripts/gen_lyrical.py` to stage all source recipes. The
+Lyrical packages are **not published yet**: binary-only NVIDIA components still
+need a Lyrical-compatible foundation and the full graph has not been built or
+tested. Do not publish staged packages as a complete release.
+
 ## Building the packages
 
 You only need this repository if you want to build or change the packages. The recipes are

@@ -1,0 +1,4 @@
+# Pass together with variants.yaml, without -c flags: channel_sources both selects
+# the Lyrical channel and participates in the rattler-build variant hash.
+channel_sources:
+  - ./output-lyrical,https://prefix.dev/robostack-lyrical,conda-forge

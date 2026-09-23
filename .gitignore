@@ -1,5 +1,7 @@
 src/
 output/
+output-lyrical/
+recipes-lyrical/
 .pixi/
 .buildtmp/
 .srccache/

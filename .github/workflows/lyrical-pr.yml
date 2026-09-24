@@ -57,6 +57,15 @@ jobs:
                 -c conda-forge
             done
           done
+      # Temporary GitHub Actions artifacts for manual review/publication only.
+      # PRs never get prefix.dev publishing credentials or an upload-to-channel step.
+      - name: Retain tested packages (not published)
+        uses: actions/upload-artifact@v7
+        with:
+          name: lyrical-packages-${{ matrix.platform }}
+          path: output-lyrical/${{ matrix.platform }}/*.conda
+          if-no-files-found: error
+          retention-days: 1
       - name: Upload diagnostics (not packages)
         if: failure()
         uses: actions/upload-artifact@v7

@@ -18,12 +18,14 @@ assert (root / "recipes-lyrical/ros-lyrical-isaac-ros-common/patches").is_dir()
 assert not (root / "recipes-lyrical/ros-lyrical-rosidl-buffer/recipe.yaml").exists()
 
 # Compare the *same* recipe with only channel_sources changed, not package names.
+lyrical_channels = root / "variants-lyrical.yaml"
+assert "./output" not in lyrical_channels.read_text()
 recipe = root / "recipes-lyrical/ros-lyrical-isaac-ros-common/recipe.yaml"
 with tempfile.TemporaryDirectory() as tmp:
     jazzy = Path(tmp) / "jazzy.yaml"
-    jazzy.write_text("channel_sources:\n  - ./output,https://prefix.dev/robostack-jazzy,conda-forge\n")
+    jazzy.write_text("channel_sources:\n  - https://prefix.dev/robostack-jazzy,conda-forge\npython:\n  - '3.14.*'\n")
     hashes = []
-    for channels in (root / "variants-lyrical.yaml", jazzy):
+    for channels in (lyrical_channels, jazzy):
         rendered = subprocess.run(
             ["rattler-build", "build", "--recipe", str(recipe), "--render-only",
              "--target-platform", "linux-64", "-m", str(root / "variants.yaml"),

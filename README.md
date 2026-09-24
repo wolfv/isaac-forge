@@ -103,9 +103,10 @@ rattler-build build --recipe recipes-lyrical/ros-lyrical-isaac-ros-common/recipe
   --output-dir output-lyrical -m variants.yaml -m variants-lyrical.yaml
 ```
 
-`channel_sources` in `variants-lyrical.yaml` selects **only** the local Lyrical
-artifacts, `robostack-lyrical`, and conda-forge; do not pass `-c` as well.
-It also participates in the build variant hash, so Lyrical artifacts get a
+`channel_sources` in `variants-lyrical.yaml` selects `robostack-lyrical` and
+conda-forge; rattler-build adds `--output-dir` to build solves automatically.
+Do not pass `-c` as well. `channel_sources` participates in the build variant
+hash, so Lyrical artifacts get a
 different variant hash from Jazzy artifacts even when the CUDA/Python pins
 match. Run `python scripts/gen_lyrical.py` to stage all source recipes. The
 Lyrical packages are **not published yet**: binary-only NVIDIA components still

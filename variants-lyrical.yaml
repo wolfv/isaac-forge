@@ -1,0 +1,7 @@
+# Pass together with variants.yaml, without -c flags. rattler-build adds
+# --output-dir to build solves; keep the local path out of the variant hash.
+channel_sources:
+  - https://prefix.dev/robostack-lyrical,conda-forge
+# RoboStack Lyrical's ROS Python packages (including rclcpp's ABI closure) use 3.14.
+python:
+  - "3.14.*"
